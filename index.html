@@ -55,6 +55,7 @@
     .pagination { display: flex; justify-content: center; gap: 8px; padding: 0 24px 60px; align-items: center; }
     .page-info { font-size: 14px; color: var(--text3); margin: 0 8px; }
     @media (max-width: 640px) { .hero { padding: 48px 16px 36px; } .grid-container { grid-template-columns: 1fr; padding: 0 16px 60px; } .filters-bar { padding: 0 16px 16px; } .stats-row { gap: 24px; } }
+    @keyframes loadpulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
   </style>
 </head>
 <body>
@@ -212,51 +213,71 @@ async function loadAll() {
   await fetchAllPages(fKey);
 }
 
-async function fetchAllPages(fKey) {
+const DELAY_MS = 3100; // just over 3s between requests → max 19 req/min, safe under 20 limit
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function fetchPages(onProgress) {
   const apiKey = getApiKey();
-  try {
-    let page = 1, hasMore = true;
-    while (hasMore) {
-      const params = new URLSearchParams({ page, limit: 50, sort: filters.sort });
-      if (filters.onSale !== null) params.set('onSale', filters.onSale);
-      if (filters.category) params.set('category', filters.category);
-      const res = await fetch(`${API_BASE}/startups?${params}`, { headers: { Authorization: `Bearer ${apiKey}` } });
-      if (res.status === 401) { showError(t('errors','key')); return; }
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const { data, meta } = await res.json();
-      allCache = allCache.concat(data);
-      hasMore = meta.hasMore;
-      page++;
-      document.getElementById('statTotal').textContent = allCache.length + (hasMore ? '+' : '');
+  let page = 1, hasMore = true, results = [];
+  while (hasMore) {
+    const params = new URLSearchParams({ page, limit: 50, sort: filters.sort });
+    if (filters.onSale !== null) params.set('onSale', filters.onSale);
+    if (filters.category) params.set('category', filters.category);
+
+    let res;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      res = await fetch(`${API_BASE}/startups?${params}`, { headers: { Authorization: `Bearer ${apiKey}` } });
+      if (res.status === 429) {
+        // Rate limited — wait longer and retry
+        await sleep(65000); // wait 65s then retry
+        continue;
+      }
+      break;
     }
+
+    if (res.status === 401) { showError(t('errors','key')); return null; }
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+
+    const { data, meta } = await res.json();
+    results = results.concat(data);
+    hasMore = meta.hasMore;
+    page++;
+
+    if (onProgress) {
+      onProgress(results.length, hasMore);
+      // update progress bar
+      const bar = document.getElementById('loadBar');
+      const cnt = document.getElementById('loadCount');
+      if (bar) bar.style.width = Math.min(90, page * 5) + '%';
+      if (cnt) cnt.textContent = results.length + '+ startups loaded...';
+    }
+    if (hasMore) await sleep(DELAY_MS);
+  }
+  return results;
+}
+
+async function fetchAllPages(fKey) {
+  try {
+    const data = await fetchPages((count, hasMore) => {
+      document.getElementById('statTotal').textContent = count + (hasMore ? '+' : '');
+    });
+    if (!data) return;
+    allCache = data;
     cacheLoaded = true;
     currentPage = 1;
     saveToDailyCache(fKey, allCache);
     updateStatsFromCache();
     renderFromCache();
-    showCacheBadge(null); // fresh
+    showCacheBadge(null);
   } catch(e) { showError(t('errors','load')); }
 }
 
 async function refreshInBackground(fKey) {
-  // Silent background refresh — update cache without disrupting UI
-  const apiKey = getApiKey();
   try {
-    let page = 1, hasMore = true, freshData = [];
-    while (hasMore) {
-      const params = new URLSearchParams({ page, limit: 50, sort: filters.sort });
-      if (filters.onSale !== null) params.set('onSale', filters.onSale);
-      if (filters.category) params.set('category', filters.category);
-      const res = await fetch(`${API_BASE}/startups?${params}`, { headers: { Authorization: `Bearer ${apiKey}` } });
-      if (!res.ok) return;
-      const { data, meta } = await res.json();
-      freshData = freshData.concat(data);
-      hasMore = meta.hasMore;
-      page++;
-    }
-    if (freshData.length > 0) {
-      allCache = freshData;
-      saveToDailyCache(fKey, freshData);
+    const data = await fetchPages(null);
+    if (data && data.length > 0) {
+      allCache = data;
+      saveToDailyCache(fKey, data);
       updateStatsFromCache();
       renderFromCache();
       showCacheBadge(null);
@@ -353,12 +374,14 @@ function saveStartup(e, json) {
 }
 
 function showSkeleton() {
-  document.getElementById('grid').innerHTML = Array(9).fill(0).map(() => `
-    <div class="skeleton-card">
-      <div style="display:flex;gap:12px;margin-bottom:14px;"><div class="skeleton" style="width:42px;height:42px;border-radius:10px;flex-shrink:0;"></div><div style="flex:1;"><div class="skeleton" style="height:15px;width:55%;margin-bottom:7px;"></div><div class="skeleton" style="height:11px;width:35%;"></div></div></div>
-      <div class="skeleton" style="height:12px;width:100%;margin-bottom:5px;"></div><div class="skeleton" style="height:12px;width:75%;margin-bottom:14px;"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"><div class="skeleton" style="height:56px;border-radius:8px;"></div><div class="skeleton" style="height:56px;border-radius:8px;"></div><div class="skeleton" style="height:56px;border-radius:8px;"></div><div class="skeleton" style="height:56px;border-radius:8px;"></div></div>
-    </div>`).join('');
+  document.getElementById("grid").innerHTML = `
+    <div style="grid-column:1/-1;padding:48px 0 24px;text-align:center;">
+      <div style="font-size:15px;color:var(--text2);margin-bottom:20px;">${t("cache","loading")}</div>
+      <div style="width:240px;height:4px;background:var(--bg3);border-radius:2px;margin:0 auto;overflow:hidden;">
+        <div id="loadBar" style="height:100%;width:8%;background:var(--accent);border-radius:2px;animation:loadpulse 1.5s ease-in-out infinite;"></div>
+      </div>
+      <div style="font-size:12px;color:var(--text3);margin-top:12px;" id="loadCount"></div>
+    </div>`;
 }
 
 function showError(msg) {
