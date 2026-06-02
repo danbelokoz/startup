@@ -1,43 +1,29 @@
-const CACHE_KEY = 'startups_all';
-const CACHE_TTL = 3600; // 1 hour in seconds
+// Simple proxy with Redis caching per page
+// Each page request is cached separately — fits in 10s timeout
 
 async function redisGet(key) {
-  const url = `${process.env.KV_REST_API_URL}/get/${key}`;
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}` }
-  });
-  const { result } = await res.json();
-  return result ? JSON.parse(result) : null;
-}
-
-async function redisSet(key, value, ttl) {
-  const url = `${process.env.KV_REST_API_URL}/set/${key}`;
-  await fetch(url, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ value: JSON.stringify(value), ex: ttl })
-  });
-}
-
-async function fetchAllFromTrustMRR(apiKey) {
-  let page = 1, hasMore = true, all = [];
-  while (hasMore) {
-    const params = new URLSearchParams({ page, limit: 50, sort: 'revenue-desc' });
-    const res = await fetch(`https://trustmrr.com/api/v1/startups?${params}`, {
-      headers: { Authorization: apiKey }
+  try {
+    const url = `${process.env.KV_REST_API_URL}/get/${encodeURIComponent(key)}`;
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}` }
     });
-    if (!res.ok) throw new Error('TrustMRR API error: ' + res.status);
-    const { data, meta } = await res.json();
-    all = all.concat(data);
-    hasMore = meta.hasMore;
-    page++;
-    // Respect rate limit: 20 req/min
-    if (hasMore) await new Promise(r => setTimeout(r, 3100));
-  }
-  return all;
+    const json = await res.json();
+    return json.result ? JSON.parse(json.result) : null;
+  } catch { return null; }
+}
+
+async function redisSet(key, value) {
+  try {
+    const url = `${process.env.KV_REST_API_URL}/set/${encodeURIComponent(key)}`;
+    await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ value: JSON.stringify(value), ex: 3600 })
+    });
+  } catch {}
 }
 
 export default async function handler(req, res) {
@@ -49,33 +35,33 @@ export default async function handler(req, res) {
   const apiKey = req.headers.authorization;
   if (!apiKey) return res.status(401).json({ error: 'No API key' });
 
-  const { refresh } = req.query;
+  // Pass through all query params to TrustMRR
+  const params = new URLSearchParams(req.query);
+  const cacheKey = `page_${params.toString()}`;
 
+  // Try cache first
+  const cached = await redisGet(cacheKey);
+  if (cached) {
+    res.setHeader('X-Cache', 'HIT');
+    return res.status(200).json({ ...cached, fromCache: true });
+  }
+
+  // Fetch from TrustMRR
   try {
-    // Try server cache first (unless force refresh)
-    if (!refresh) {
-      const cached = await redisGet(CACHE_KEY);
-      if (cached) {
-        res.setHeader('X-Cache', 'HIT');
-        return res.status(200).json({ data: cached, fromCache: true, count: cached.length });
-      }
-    }
+    const url = `https://trustmrr.com/api/v1/startups?${params}`;
+    const upstream = await fetch(url, { headers: { Authorization: apiKey } });
 
-    // Cache miss — fetch from TrustMRR
+    if (upstream.status === 401) return res.status(401).json({ error: 'Invalid API key' });
+    if (!upstream.ok) throw new Error('TrustMRR error: ' + upstream.status);
+
+    const data = await upstream.json();
+
+    // Cache this page
+    await redisSet(cacheKey, data);
+
     res.setHeader('X-Cache', 'MISS');
-    const all = await fetchAllFromTrustMRR(apiKey);
-
-    // Save to server cache
-    await redisSet(CACHE_KEY, all, CACHE_TTL);
-
-    return res.status(200).json({ data: all, fromCache: false, count: all.length });
-
+    return res.status(200).json({ ...data, fromCache: false });
   } catch (err) {
-    // If cache fetch failed but we have stale data, return it
-    try {
-      const stale = await redisGet(CACHE_KEY);
-      if (stale) return res.status(200).json({ data: stale, fromCache: true, stale: true, count: stale.length });
-    } catch {}
     return res.status(500).json({ error: err.message });
   }
 }

@@ -213,27 +213,51 @@ async function loadAll() {
   await fetchAllPages(fKey);
 }
 
-const DELAY_MS = 3100;
+const DELAY_MS = 3200;
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 async function fetchAllPages(fKey) {
   const apiKey = getApiKey();
   try {
-    // Single request — server returns all startups from Redis cache
-    const res = await fetch(`${API_BASE}/startups`, {
-      headers: { Authorization: `Bearer ${apiKey}` }
-    });
-    if (res.status === 401) { showError(t('errors','key')); return; }
-    if (!res.ok) throw new Error('HTTP ' + res.status);
+    let page = 1, hasMore = true;
+    allCache = [];
 
-    const { data, fromCache, count } = await res.json();
-    allCache = data;
+    while (hasMore) {
+      const params = new URLSearchParams({ page, limit: 50, sort: filters.sort });
+      if (filters.onSale !== null) params.set('onSale', filters.onSale);
+      if (filters.category) params.set('category', filters.category);
+
+      const res = await fetch(`${API_BASE}/startups?${params}`, {
+        headers: { Authorization: `Bearer ${apiKey}` }
+      });
+
+      if (res.status === 401) { showError(t('errors','key')); return; }
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+
+      const json = await res.json();
+      const { data, meta, fromCache } = json;
+
+      allCache = allCache.concat(data);
+      hasMore = meta.hasMore;
+
+      // Update progress
+      const bar = document.getElementById('loadBar');
+      const cnt = document.getElementById('loadCount');
+      if (bar) bar.style.width = Math.min(95, (page / (page + (hasMore?3:0))) * 100) + '%';
+      if (cnt) cnt.textContent = allCache.length + (hasMore ? '+' : '') + ' startups' + (fromCache ? ' (cached)' : '');
+
+      page++;
+
+      // Only delay if not cached (cached pages are instant)
+      if (hasMore && !fromCache) await sleep(DELAY_MS);
+    }
+
     cacheLoaded = true;
     currentPage = 1;
     saveToDailyCache(fKey, allCache);
     updateStatsFromCache();
     renderFromCache();
-    showCacheBadge(fromCache ? 'server cache' : null);
+    showCacheBadge(null);
   } catch(e) {
     showError(t('errors','load'));
   }
@@ -242,14 +266,24 @@ async function fetchAllPages(fKey) {
 async function refreshInBackground(fKey) {
   try {
     const apiKey = getApiKey();
-    const res = await fetch(`${API_BASE}/startups`, {
-      headers: { Authorization: `Bearer ${apiKey}` }
-    });
-    if (!res.ok) return;
-    const { data } = await res.json();
-    if (data && data.length > 0) {
-      allCache = data;
-      saveToDailyCache(fKey, data);
+    let page = 1, hasMore = true, freshData = [];
+    while (hasMore) {
+      const params = new URLSearchParams({ page, limit: 50, sort: filters.sort });
+      if (filters.onSale !== null) params.set('onSale', filters.onSale);
+      if (filters.category) params.set('category', filters.category);
+      const res = await fetch(`${API_BASE}/startups?${params}`, {
+        headers: { Authorization: `Bearer ${apiKey}` }
+      });
+      if (!res.ok) return;
+      const { data, meta } = await res.json();
+      freshData = freshData.concat(data);
+      hasMore = meta.hasMore;
+      page++;
+      if (hasMore) await sleep(DELAY_MS);
+    }
+    if (freshData.length > 0) {
+      allCache = freshData;
+      saveToDailyCache(fKey, freshData);
       updateStatsFromCache();
       renderFromCache();
       showCacheBadge(null);
