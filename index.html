@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StartupMarket — Проверенные стартапы на продажу</title>
+  <meta name="description" content="Купите прибыльный стартап с верифицированными метриками. Реальные данные MRR из Stripe, LemonSqueezy и Polar." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0f;
+      --bg2: #111118;
+      --bg3: #1a1a24;
+      --border: rgba(255,255,255,0.08);
+      --border2: rgba(255,255,255,0.14);
+      --text: #f0f0f8;
+      --text2: #9090a8;
+      --text3: #606078;
+      --accent: #6c63ff;
+      --accent2: #8b5cf6;
+      --green: #22c55e;
+      --green-bg: rgba(34,197,94,0.1);
+      --red: #ef4444;
+      --red-bg: rgba(239,68,68,0.1);
+      --yellow: #eab308;
+      --yellow-bg: rgba(234,179,8,0.1);
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    /* NAV */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(10,10,15,0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-logo {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #6c63ff, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-decoration: none;
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.15s;
+      border: none;
+      outline: none;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text2);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { background: var(--bg3); color: var(--text); border-color: var(--border2); }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      border: 1px solid transparent;
+    }
+    .btn-primary:hover { background: var(--accent2); }
+
+    /* HERO */
+    .hero {
+      text-align: center;
+      padding: 80px 24px 60px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(108,99,255,0.12);
+      border: 1px solid rgba(108,99,255,0.3);
+      border-radius: 999px;
+      padding: 4px 14px;
+      font-size: 13px;
+      color: #a78bfa;
+      margin-bottom: 24px;
+    }
+
+    .hero h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(36px, 6vw, 64px);
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: -1px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 span {
+      background: linear-gradient(135deg, #6c63ff, #a78bfa, #ec4899);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      font-size: 18px;
+      color: var(--text2);
+      max-width: 560px;
+      margin: 0 auto 36px;
+      line-height: 1.7;
+    }
+
+    /* STATS */
+    .stats-row {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      padding: 0 24px 60px;
+      flex-wrap: wrap;
+    }
+
+    .stat-item {
+      text-align: center;
+    }
+
+    .stat-value {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: var(--text3);
+      margin-top: 2px;
+    }
+
+    /* FILTERS */
+    .filters-bar {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px 24px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .search-input {
+      flex: 1;
+      min-width: 220px;
+      max-width: 340px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+      padding: 9px 14px 9px 36px;
+      outline: none;
+      transition: border-color 0.15s;
+      position: relative;
+    }
+    .search-input:focus { border-color: var(--accent); }
+
+    .search-wrap {
+      position: relative;
+    }
+    .search-wrap svg {
+      position: absolute;
+      left: 11px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text3);
+      pointer-events: none;
+    }
+
+    select.filter-select {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+      padding: 9px 32px 9px 12px;
+      outline: none;
+      cursor: pointer;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23606078' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      transition: border-color 0.15s;
+    }
+    select.filter-select:focus { border-color: var(--accent); }
+
+    .filter-chip {
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 500;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text2);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .filter-chip:hover, .filter-chip.active {
+      background: rgba(108,99,255,0.15);
+      border-color: rgba(108,99,255,0.4);
+      color: #a78bfa;
+    }
+
+    /* GRID */
+    .grid-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 20px;
+    }
+
+    .startup-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      transition: border-color 0.2s, transform 0.15s;
+      position: relative;
+      overflow: hidden;
+    }
+    .startup-card:hover {
+      border-color: var(--border2);
+      transform: translateY(-2px);
+    }
+
+    .card-top {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .card-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: var(--bg3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .card-icon img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; }
+
+    .card-meta {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .card-name {
+      font-weight: 600;
+      font-size: 16px;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .card-badges {
+      display: flex;
+      gap: 6px;
+      margin-top: 4px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 999px;
+    }
+
+    .badge-cat {
+      background: var(--bg3);
+      color: var(--text2);
+      border: 1px solid var(--border);
+    }
+
+    .badge-sale {
+      background: rgba(108,99,255,0.15);
+      color: #a78bfa;
+      border: 1px solid rgba(108,99,255,0.3);
+    }
+
+    .card-desc {
+      font-size: 13px;
+      color: var(--text2);
+      line-height: 1.5;
+      margin-bottom: 16px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .card-metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .metric {
+      background: var(--bg3);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+    }
+
+    .metric-label {
+      font-size: 11px;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 3px;
+    }
+
+    .metric-value {
+      font-size: 18px;
+      font-weight: 700;
+      font-family: 'Space Grotesk', sans-serif;
+      color: var(--text);
+    }
+
+    .metric-sub {
+      font-size: 11px;
+      color: var(--text3);
+      margin-top: 2px;
+    }
+
+    .growth-positive { color: var(--green); }
+    .growth-negative { color: var(--red); }
+
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+    }
+
+    .card-price {
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    .card-price .label { font-size: 11px; color: var(--text3); }
+    .card-price .amount { font-size: 20px; font-weight: 700; color: var(--text); }
+    .card-price .multiple { font-size: 12px; color: var(--text3); }
+
+    .card-actions { display: flex; gap: 8px; }
+
+    .verified-dot {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      color: var(--green);
+      background: var(--green-bg);
+      padding: 2px 8px;
+      border-radius: 999px;
+    }
+    .verified-dot::before {
+      content: '';
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--green);
+    }
+
+    /* LOADING */
+    .skeleton {
+      background: linear-gradient(90deg, var(--bg3) 25%, var(--bg2) 50%, var(--bg3) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: var(--radius-sm);
+    }
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    .skeleton-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      height: 280px;
+    }
+
+    /* EMPTY / ERROR */
+    .state-center {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 60px 24px;
+      color: var(--text3);
+    }
+    .state-center h3 { color: var(--text2); margin-bottom: 8px; font-size: 18px; }
+    .state-center p { font-size: 14px; }
+
+    /* PAGINATION */
+    .pagination {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 24px 60px;
+      align-items: center;
+    }
+
+    .page-info {
+      font-size: 14px;
+      color: var(--text3);
+      margin: 0 8px;
+    }
+
+    /* API KEY MODAL */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .modal-overlay.hidden { display: none; }
+
+    .modal {
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: 16px;
+      padding: 32px;
+      width: 100%;
+      max-width: 480px;
+    }
+
+    .modal h2 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 22px;
+      margin-bottom: 8px;
+    }
+    .modal p { color: var(--text2); font-size: 14px; margin-bottom: 20px; line-height: 1.6; }
+
+    .modal input {
+      width: 100%;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+      padding: 10px 14px;
+      outline: none;
+      margin-bottom: 16px;
+    }
+    .modal input:focus { border-color: var(--accent); }
+
+    .modal-hint {
+      font-size: 12px;
+      color: var(--text3);
+      margin-bottom: 20px;
+    }
+    .modal-hint a { color: #a78bfa; }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 24px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--text3);
+    }
+    footer a { color: var(--text2); }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+    @media (max-width: 640px) {
+      .hero { padding: 48px 20px 40px; }
+      .stats-row { gap: 24px; }
+      .grid-container { grid-template-columns: 1fr; padding: 0 16px 60px; }
+      .filters-bar { padding: 0 16px 20px; }
+      nav { padding: 0 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- API KEY MODAL -->
+<div class="modal-overlay" id="apiModal">
+  <div class="modal">
+    <h2>🔑 Введите API ключ</h2>
+    <p>Для работы сайта нужен API ключ TrustMRR. Он используется только в вашем браузере и никуда не отправляется.</p>
+    <input type="text" id="apiKeyInput" placeholder="tmrr_xxxxxxxxxxxxxxxx" autocomplete="off" spellcheck="false" />
+    <p class="modal-hint">
+      Получить ключ: <a href="https://trustmrr.com/dashboard-dev" target="_blank">trustmrr.com/dashboard-dev</a><br>
+      Ключи начинаются с <code style="color:#a78bfa">tmrr_</code>
+    </p>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-primary" onclick="saveApiKey()" style="flex:1;justify-content:center;">
+        Сохранить и загрузить
+      </button>
+      <button class="btn btn-ghost" onclick="useDemoMode()" style="flex:1;justify-content:center;">
+        Демо-режим
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="#">⚡ StartupMarket</a>
+  <div class="nav-right">
+    <button class="btn btn-ghost" onclick="showApiModal()" id="apiBtn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+      API ключ
+    </button>
+    <a class="btn btn-primary" href="https://trustmrr.com/sell" target="_blank">Продать стартап</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
+    Данные верифицированы через Stripe, LemonSqueezy и Polar
+  </div>
+  <h1>Купите <span>прибыльный стартап</span> с доказанными метриками</h1>
+  <p>Только реальные MRR-данные. Никаких выдуманных цифр — каждый показатель проверен через платёжные провайдеры напрямую.</p>
+  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+    <button class="btn btn-primary" onclick="filterSale(true)" style="font-size:15px;padding:11px 24px;">
+      Смотреть на продаже
+    </button>
+    <button class="btn btn-ghost" onclick="filterSale(false)" style="font-size:15px;padding:11px 24px;">
+      Все стартапы
+    </button>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats-row" id="statsRow">
+  <div class="stat-item"><div class="stat-value" id="statTotal">—</div><div class="stat-label">Стартапов в базе</div></div>
+  <div class="stat-item"><div class="stat-value" id="statSale">—</div><div class="stat-label">На продаже прямо сейчас</div></div>
+  <div class="stat-item"><div class="stat-value" id="statRevenue">—</div><div class="stat-label">Суммарный MRR</div></div>
+</div>
+
+<!-- FILTERS -->
+<div class="filters-bar">
+  <div class="search-wrap">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input type="text" class="search-input" id="searchInput" placeholder="Поиск по названию..." oninput="onSearch(this.value)" />
+  </div>
+
+  <select class="filter-select" id="categorySelect" onchange="onCategoryChange(this.value)">
+    <option value="">Все категории</option>
+    <option value="ai">🤖 Искусственный интеллект</option>
+    <option value="saas">☁️ SaaS</option>
+    <option value="developer-tools">💻 Инструменты разработчика</option>
+    <option value="fintech">💳 Финтех</option>
+    <option value="marketing">📣 Маркетинг</option>
+    <option value="ecommerce">🛒 E-commerce</option>
+    <option value="productivity">⚡ Продуктивность</option>
+    <option value="design-tools">🎨 Дизайн</option>
+    <option value="no-code">🧩 No-code</option>
+    <option value="analytics">📊 Аналитика</option>
+    <option value="crypto-web3">🔗 Крипто / Web3</option>
+    <option value="education">📚 Образование</option>
+    <option value="health-fitness">💪 Здоровье</option>
+  </select>
+
+  <select class="filter-select" id="sortSelect" onchange="onSortChange(this.value)">
+    <option value="revenue-desc">↓ По выручке</option>
+    <option value="growth-desc">🚀 По росту</option>
+    <option value="price-asc">💰 Дешевле сначала</option>
+    <option value="price-desc">💎 Дороже сначала</option>
+    <option value="multiple-asc">🏷️ Лучшая цена/выручка</option>
+    <option value="listed-desc">🆕 Недавно добавлены</option>
+    <option value="best-deal">🔥 Лучшие сделки</option>
+  </select>
+
+  <button class="filter-chip active" id="chipAll" onclick="filterSale(null)">Все</button>
+  <button class="filter-chip" id="chipSale" onclick="filterSale(true)">На продаже</button>
+</div>
+
+<!-- GRID -->
+<div class="grid-container" id="grid">
+  <!-- Cards inserted by JS -->
+</div>
+
+<!-- PAGINATION -->
+<div class="pagination" id="pagination" style="display:none;">
+  <button class="btn btn-ghost" id="prevBtn" onclick="changePage(-1)" disabled>← Назад</button>
+  <span class="page-info" id="pageInfo"></span>
+  <button class="btn btn-ghost" id="nextBtn" onclick="changePage(1)">Вперёд →</button>
+</div>
+
+<footer>
+  Данные предоставлены <a href="https://trustmrr.com" target="_blank">TrustMRR</a> · API v1 · Обновляется каждый час
+</footer>
+
+<script>
+const API_BASE = 'https://trustmrr.com/api/v1';
+let apiKey = localStorage.getItem('trustmrr_api_key') || '';
+let currentPage = 1;
+let totalPages = 1;
+let currentFilters = { sort: 'revenue-desc', onSale: null, category: '', search: '' };
+let searchTimeout = null;
+let isDemoMode = false;
+let allData = [];
+
+// ── DEMO DATA ──────────────────────────────────────────────────────────────
+const DEMO_STARTUPS = [
+  { name:'ShipFast', slug:'shipfast', icon:'https://shipfa.st/favicon.ico', description:'The NextJS boilerplate with all you need to build your SaaS, AI tool, or any other web app fast.', category:'saas', paymentProvider:'stripe', onSale:true, askingPrice:5000000, multiple:0.98, revenue:{last30Days:4250000,mrr:420000,total:98000000}, customers:7800, activeSubscriptions:320, growth30d:12, country:'TH' },
+  { name:'CodeFast', slug:'codefast', icon:null, description:'Learn to code 10x faster with AI-assisted learning. Build real projects from day one.', category:'education', paymentProvider:'stripe', onSale:false, askingPrice:null, multiple:null, revenue:{last30Days:1800000,mrr:180000,total:24000000}, customers:3200, activeSubscriptions:890, growth30d:24, country:'US' },
+  { name:'DataFast', slug:'datafast', icon:null, description:'Analytics platform for indie hackers. Real-time stats, A/B testing, conversion funnels.', category:'analytics', paymentProvider:'lemonsqueezy', onSale:true, askingPrice:2400000, multiple:1.1, revenue:{last30Days:220000,mrr:200000,total:8200000}, customers:640, activeSubscriptions:200, growth30d:8, country:'FR' },
+  { name:'ZenVoice', slug:'zenvoice', icon:null, description:'Auto-generate beautiful invoices from Stripe. Stop wasting time on billing paperwork.', category:'fintech', paymentProvider:'stripe', onSale:false, askingPrice:null, multiple:null, revenue:{last30Days:480000,mrr:480000,total:5600000}, customers:1200, activeSubscriptions:480, growth30d:35, country:'DE' },
+  { name:'ByeDispute', slug:'byedispute', icon:null, description:'Reduce Stripe chargebacks and disputes automatically. Win more disputes with AI.', category:'fintech', paymentProvider:'stripe', onSale:true, askingPrice:1800000, multiple:3.1, revenue:{last30Days:58000,mrr:58000,total:720000}, customers:340, activeSubscriptions:58, growth30d:-3, country:'ES' },
+  { name:'IndiePage', slug:'indiepage', icon:null, description:'Showcase your startup portfolio. The linktree for indie hackers and solopreneurs.', category:'marketing', paymentProvider:'lemonsqueezy', onSale:true, askingPrice:900000, multiple:7.5, revenue:{last30Days:12000,mrr:12000,total:180000}, customers:2800, activeSubscriptions:120, growth30d:5, country:'TH' },
+];
+
+// ── INIT ────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  if (!apiKey) {
+    document.getElementById('apiModal').classList.remove('hidden');
+  } else {
+    document.getElementById('apiModal').classList.add('hidden');
+    loadStartups();
+  }
+});
+
+function saveApiKey() {
+  const val = document.getElementById('apiKeyInput').value.trim();
+  if (!val) return alert('Введите API ключ');
+  apiKey = val;
+  localStorage.setItem('trustmrr_api_key', val);
+  isDemoMode = false;
+  document.getElementById('apiModal').classList.add('hidden');
+  loadStartups();
+}
+
+function useDemoMode() {
+  isDemoMode = true;
+  apiKey = '';
+  document.getElementById('apiModal').classList.add('hidden');
+  renderDemoData();
+}
+
+function renderDemoData() {
+  document.getElementById('statTotal').textContent = '800+';
+  document.getElementById('statSale').textContent = '120+';
+  document.getElementById('statRevenue').textContent = '$1.2M';
+
+  let filtered = DEMO_STARTUPS;
+  if (currentFilters.onSale === true) filtered = filtered.filter(s => s.onSale);
+  if (currentFilters.category) filtered = filtered.filter(s => s.category === currentFilters.category);
+  if (currentFilters.search) filtered = filtered.filter(s => s.name.toLowerCase().includes(currentFilters.search.toLowerCase()));
+
+  renderCards(filtered);
+  document.getElementById('pagination').style.display = 'none';
+}
+
+function showApiModal() {
+  document.getElementById('apiModal').classList.remove('hidden');
+}
+
+// ── DATA FETCHING ───────────────────────────────────────────────────────────
+async function loadStartups() {
+  if (isDemoMode) { renderDemoData(); return; }
+
+  showSkeleton();
+
+  const params = new URLSearchParams({
+    page: currentPage,
+    limit: 12,
+    sort: currentFilters.sort,
+  });
+  if (currentFilters.onSale !== null) params.set('onSale', currentFilters.onSale);
+  if (currentFilters.category) params.set('category', currentFilters.category);
+
+  try {
+    const res = await fetch(`${API_BASE}/startups?${params}`, {
+      headers: { Authorization: `Bearer ${apiKey}` }
+    });
+
+    if (res.status === 401) {
+      showError('Неверный API ключ. Проверьте ключ на trustmrr.com/dashboard-dev');
+      return;
+    }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const { data, meta } = await res.json();
+    allData = data;
+
+    // Update stats (first page only)
+    if (currentPage === 1 && !currentFilters.onSale && !currentFilters.category) {
+      updateStats(meta.total);
+    }
+
+    totalPages = Math.ceil(meta.total / 12);
+    renderCards(data, meta);
+    updatePagination(meta);
+
+  } catch (err) {
+    console.error(err);
+    showError('Ошибка загрузки данных. Проверьте API ключ или интернет-соединение.');
+  }
+}
+
+async function updateStats(total) {
+  document.getElementById('statTotal').textContent = total.toLocaleString();
+
+  try {
+    const resSale = await fetch(`${API_BASE}/startups?limit=1&onSale=true`, {
+      headers: { Authorization: `Bearer ${apiKey}` }
+    });
+    if (resSale.ok) {
+      const { meta } = await resSale.json();
+      document.getElementById('statSale').textContent = meta.total.toLocaleString();
+    }
+  } catch {}
+
+  document.getElementById('statRevenue').textContent = '—';
+}
+
+// ── RENDER ──────────────────────────────────────────────────────────────────
+function renderCards(startups) {
+  const grid = document.getElementById('grid');
+
+  if (!startups || startups.length === 0) {
+    grid.innerHTML = `<div class="state-center"><h3>Ничего не найдено</h3><p>Попробуйте изменить фильтры или поисковый запрос</p></div>`;
+    return;
+  }
+
+  let filtered = startups;
+  if (currentFilters.search) {
+    const q = currentFilters.search.toLowerCase();
+    filtered = startups.filter(s =>
+      s.name.toLowerCase().includes(q) ||
+      (s.description || '').toLowerCase().includes(q)
+    );
+  }
+
+  grid.innerHTML = filtered.map(s => cardHTML(s)).join('');
+}
+
+function cardHTML(s) {
+  const mrr = formatMoney(s.revenue?.mrr);
+  const rev30 = formatMoney(s.revenue?.last30Days);
+  const growth = s.growth30d;
+  const growthClass = growth > 0 ? 'growth-positive' : growth < 0 ? 'growth-negative' : '';
+  const growthStr = growth !== null && growth !== undefined
+    ? `<span class="${growthClass}">${growth > 0 ? '+' : ''}${growth.toFixed(1)}%</span>`
+    : '—';
+
+  const iconHtml = s.icon
+    ? `<img src="${s.icon}" alt="${s.name}" loading="lazy" onerror="this.parentElement.textContent='${s.name.charAt(0)}'"/>`
+    : `<span style="font-size:18px;font-weight:700;color:var(--text2)">${s.name.charAt(0)}</span>`;
+
+  const catLabel = categoryLabel(s.category);
+
+  const priceSection = s.onSale && s.askingPrice
+    ? `<div class="card-price">
+        <div class="label">Цена продажи</div>
+        <div class="amount">${formatMoney(s.askingPrice)}</div>
+        ${s.multiple ? `<div class="multiple">${s.multiple.toFixed(1)}x MRR</div>` : ''}
+       </div>`
+    : `<div class="card-price">
+        <div class="label">Не продаётся</div>
+        <div class="amount" style="font-size:14px;color:var(--text3)">—</div>
+       </div>`;
+
+  return `
+    <div class="startup-card">
+      <div class="verified-dot">verified</div>
+      <div class="card-top">
+        <div class="card-icon">${iconHtml}</div>
+        <div class="card-meta">
+          <div class="card-name">${escHtml(s.name)}</div>
+          <div class="card-badges">
+            ${catLabel ? `<span class="badge badge-cat">${catLabel}</span>` : ''}
+            ${s.onSale ? `<span class="badge badge-sale">На продаже</span>` : ''}
+            ${s.paymentProvider ? `<span class="badge badge-cat">${s.paymentProvider}</span>` : ''}
+          </div>
+        </div>
+      </div>
+      ${s.description ? `<div class="card-desc">${escHtml(s.description)}</div>` : ''}
+      <div class="card-metrics">
+        <div class="metric">
+          <div class="metric-label">MRR</div>
+          <div class="metric-value">${mrr}</div>
+          <div class="metric-sub">в месяц</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Выручка 30 дней</div>
+          <div class="metric-value">${rev30}</div>
+          <div class="metric-sub">рост: ${growthStr}</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Клиентов</div>
+          <div class="metric-value">${(s.customers || 0).toLocaleString()}</div>
+          <div class="metric-sub">всего</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Подписки</div>
+          <div class="metric-value">${(s.activeSubscriptions || 0).toLocaleString()}</div>
+          <div class="metric-sub">активных</div>
+        </div>
+      </div>
+      <div class="card-footer">
+        ${priceSection}
+        <div class="card-actions">
+          <a href="https://trustmrr.com/${s.slug}" target="_blank" class="btn btn-ghost" style="font-size:13px;padding:7px 12px;">
+            Подробнее →
+          </a>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function showSkeleton() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = Array(9).fill(0).map(() => `
+    <div class="skeleton-card">
+      <div style="display:flex;gap:12px;margin-bottom:16px;">
+        <div class="skeleton" style="width:44px;height:44px;border-radius:10px;flex-shrink:0;"></div>
+        <div style="flex:1;">
+          <div class="skeleton" style="height:16px;width:60%;margin-bottom:8px;"></div>
+          <div class="skeleton" style="height:12px;width:40%;"></div>
+        </div>
+      </div>
+      <div class="skeleton" style="height:13px;width:100%;margin-bottom:6px;"></div>
+      <div class="skeleton" style="height:13px;width:80%;margin-bottom:16px;"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="skeleton" style="height:60px;border-radius:8px;"></div>
+        <div class="skeleton" style="height:60px;border-radius:8px;"></div>
+        <div class="skeleton" style="height:60px;border-radius:8px;"></div>
+        <div class="skeleton" style="height:60px;border-radius:8px;"></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function showError(msg) {
+  document.getElementById('grid').innerHTML = `
+    <div class="state-center">
+      <h3>⚠️ Ошибка</h3>
+      <p>${msg}</p>
+      <button class="btn btn-primary" onclick="showApiModal()" style="margin-top:16px;">Изменить API ключ</button>
+    </div>
+  `;
+}
+
+// ── PAGINATION ───────────────────────────────────────────────────────────────
+function updatePagination(meta) {
+  if (!meta || meta.total <= 12) {
+    document.getElementById('pagination').style.display = 'none';
+    return;
+  }
+  document.getElementById('pagination').style.display = 'flex';
+  document.getElementById('pageInfo').textContent = `Страница ${currentPage} из ${Math.ceil(meta.total / 12)}`;
+  document.getElementById('prevBtn').disabled = currentPage <= 1;
+  document.getElementById('nextBtn').disabled = !meta.hasMore;
+}
+
+function changePage(dir) {
+  currentPage += dir;
+  if (currentPage < 1) currentPage = 1;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  loadStartups();
+}
+
+// ── FILTERS ───────────────────────────────────────────────────────────────────
+function filterSale(val) {
+  currentFilters.onSale = val;
+  currentPage = 1;
+  document.getElementById('chipAll').classList.toggle('active', val === null);
+  document.getElementById('chipSale').classList.toggle('active', val === true);
+  if (isDemoMode) renderDemoData(); else loadStartups();
+}
+
+function onCategoryChange(val) {
+  currentFilters.category = val;
+  currentPage = 1;
+  if (isDemoMode) renderDemoData(); else loadStartups();
+}
+
+function onSortChange(val) {
+  currentFilters.sort = val;
+  currentPage = 1;
+  if (isDemoMode) renderDemoData(); else loadStartups();
+}
+
+function onSearch(val) {
+  clearTimeout(searchTimeout);
+  currentFilters.search = val;
+  searchTimeout = setTimeout(() => {
+    currentPage = 1;
+    if (isDemoMode) renderDemoData(); else loadStartups();
+  }, 400);
+}
+
+// ── HELPERS ────────────────────────────────────────────────────────────────
+function formatMoney(cents) {
+  if (cents === null || cents === undefined) return '—';
+  const dollars = cents / 100;
+  if (dollars >= 1000000) return '$' + (dollars / 1000000).toFixed(1) + 'M';
+  if (dollars >= 1000) return '$' + (dollars / 1000).toFixed(1) + 'K';
+  return '$' + Math.round(dollars).toLocaleString();
+}
+
+function categoryLabel(cat) {
+  const map = {
+    ai: '🤖 AI', saas: '☁️ SaaS', 'developer-tools': '💻 Dev Tools',
+    fintech: '💳 Fintech', marketing: '📣 Marketing', ecommerce: '🛒 E-commerce',
+    productivity: '⚡ Productivity', 'design-tools': '🎨 Design', 'no-code': '🧩 No-code',
+    analytics: '📊 Analytics', 'crypto-web3': '🔗 Web3', education: '📚 Education',
+    'health-fitness': '💪 Health'
+  };
+  return map[cat] || cat || '';
+}
+
+function escHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
