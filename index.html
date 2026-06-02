@@ -184,10 +184,35 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 async function loadAll() {
-  const key = buildCacheKey();
-  if (cacheLoaded && cacheKey === key) { renderFromCache(); return; }
+  const fKey = buildCacheKey();
+
+  // 1. Try daily localStorage cache first — instant load
+  if (!cacheLoaded || cacheKey !== fKey) {
+    const cached = getFromDailyCache(fKey);
+    if (cached && cached.length > 0) {
+      allCache = cached;
+      cacheLoaded = true;
+      cacheKey = fKey;
+      currentPage = 1;
+      updateStatsFromCache();
+      renderFromCache();
+      showCacheBadge(getCacheAge(fKey));
+      // Refresh in background after showing cached data
+      refreshInBackground(fKey);
+      return;
+    }
+  }
+
+  // 2. In-memory cache (same session, filter unchanged)
+  if (cacheLoaded && cacheKey === fKey) { renderFromCache(); return; }
+
+  // 3. No cache — full load with progress
   showSkeleton();
-  allCache = []; cacheLoaded = false; cacheKey = key;
+  allCache = []; cacheLoaded = false; cacheKey = fKey;
+  await fetchAllPages(fKey);
+}
+
+async function fetchAllPages(fKey) {
   const apiKey = getApiKey();
   try {
     let page = 1, hasMore = true;
@@ -202,20 +227,62 @@ async function loadAll() {
       allCache = allCache.concat(data);
       hasMore = meta.hasMore;
       page++;
-      // Show progress
       document.getElementById('statTotal').textContent = allCache.length + (hasMore ? '+' : '');
     }
     cacheLoaded = true;
     currentPage = 1;
-    // Update stats
-    document.getElementById('statTotal').textContent = allCache.length.toLocaleString();
-    const onSaleCnt = allCache.filter(s => s.onSale).length;
-    document.getElementById('statSale').textContent = onSaleCnt.toLocaleString();
+    saveToDailyCache(fKey, allCache);
+    updateStatsFromCache();
     renderFromCache();
+    showCacheBadge(null); // fresh
   } catch(e) { showError(t('errors','load')); }
 }
 
-function buildCacheKey() { return `${filters.sort}|${filters.onSale}|${filters.category}`; }
+async function refreshInBackground(fKey) {
+  // Silent background refresh — update cache without disrupting UI
+  const apiKey = getApiKey();
+  try {
+    let page = 1, hasMore = true, freshData = [];
+    while (hasMore) {
+      const params = new URLSearchParams({ page, limit: 50, sort: filters.sort });
+      if (filters.onSale !== null) params.set('onSale', filters.onSale);
+      if (filters.category) params.set('category', filters.category);
+      const res = await fetch(`${API_BASE}/startups?${params}`, { headers: { Authorization: `Bearer ${apiKey}` } });
+      if (!res.ok) return;
+      const { data, meta } = await res.json();
+      freshData = freshData.concat(data);
+      hasMore = meta.hasMore;
+      page++;
+    }
+    if (freshData.length > 0) {
+      allCache = freshData;
+      saveToDailyCache(fKey, freshData);
+      updateStatsFromCache();
+      renderFromCache();
+      showCacheBadge(null);
+    }
+  } catch(e) { /* silent */ }
+}
+
+function updateStatsFromCache() {
+  document.getElementById('statTotal').textContent = allCache.length.toLocaleString();
+  const onSaleCnt = allCache.filter(s => s.onSale).length;
+  document.getElementById('statSale').textContent = onSaleCnt.toLocaleString();
+}
+
+function showCacheBadge(ageStr) {
+  let badge = document.getElementById('cacheBadge');
+  if (!badge) {
+    badge = document.createElement('div');
+    badge.id = 'cacheBadge';
+    badge.style.cssText = 'text-align:center;font-size:12px;color:var(--text3);padding:0 0 12px;';
+    document.querySelector('.filters-bar').before(badge);
+  }
+  badge.textContent = ageStr ? `${t('cache','cached')} · ${ageStr}` : t('cache','fresh');
+  setTimeout(() => { if (badge) badge.style.opacity = '0'; }, 3000);
+}
+
+function buildCacheKey() { return `rev-desc|${filters.onSale}|${filters.category}`; }
 
 function renderDemo() {
   document.getElementById('statTotal').textContent = '800+';
@@ -306,7 +373,25 @@ function filterSale(v) {
   if (isDemoMode) renderDemo(); else loadAll();
 }
 function onCategoryChange(v) { filters.category = v; currentPage = 1; cacheLoaded = false; if (isDemoMode) renderDemo(); else loadAll(); }
-function onSortChange(v) { filters.sort = v; currentPage = 1; cacheLoaded = false; if (isDemoMode) renderDemo(); else loadAll(); }
+function onSortChange(v) {
+  filters.sort = v; currentPage = 1;
+  if (!cacheLoaded) { loadAll(); return; }
+  // Sort cached data locally
+  allCache.sort((a, b) => {
+    switch(v) {
+      case 'revenue-desc': return (b.revenue?.last30Days||0) - (a.revenue?.last30Days||0);
+      case 'revenue-asc':  return (a.revenue?.last30Days||0) - (b.revenue?.last30Days||0);
+      case 'growth-desc':  return (b.growth30d||0) - (a.growth30d||0);
+      case 'price-desc':   return (b.askingPrice||0) - (a.askingPrice||0);
+      case 'price-asc':    return ((a.askingPrice||999999999) - (b.askingPrice||999999999));
+      case 'multiple-asc': return ((a.multiple||999) - (b.multiple||999));
+      case 'listed-desc':  return new Date(b.firstListedForSaleAt||0) - new Date(a.firstListedForSaleAt||0);
+      case 'best-deal':    return ((a.multiple||999) - (b.multiple||999));
+      default: return 0;
+    }
+  });
+  if (isDemoMode) renderDemo(); else renderFromCache();
+}
 function onSearch(v) { clearTimeout(searchTimer); filters.search = v; searchTimer = setTimeout(() => { currentPage = 1; if (isDemoMode) renderDemo(); else renderFromCache(); }, 300); }
 function changePage(d) { currentPage += d; if (currentPage < 1) currentPage = 1; window.scrollTo({top:0,behavior:'smooth'}); if (isDemoMode) renderDemo(); else renderFromCache(); }
 </script>
