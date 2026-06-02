@@ -8,54 +8,77 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/shared.css" />
   <style>
-    .hero { text-align: center; padding: 72px 24px 52px; max-width: 800px; margin: 0 auto; }
-    .hero-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(108,99,255,0.08); border: 1px solid rgba(108,99,255,0.2); border-radius: 999px; padding: 4px 14px; font-size: 13px; color: var(--accent); margin-bottom: 24px; }
-    .hero h1 { font-family: 'Space Grotesk', sans-serif; font-size: clamp(32px, 5vw, 58px); font-weight: 700; line-height: 1.1; letter-spacing: -1px; margin-bottom: 18px; }
+    /* HERO — compact */
+    .hero { text-align: center; padding: 40px 24px 28px; max-width: 900px; margin: 0 auto; }
+    .hero-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(108,99,255,0.08); border: 1px solid rgba(108,99,255,0.2); border-radius: 999px; padding: 4px 14px; font-size: 13px; color: var(--accent); margin-bottom: 16px; }
+    .hero h1 { font-family: 'Space Grotesk', sans-serif; font-size: clamp(24px, 3.5vw, 42px); font-weight: 700; line-height: 1.15; letter-spacing: -0.5px; margin-bottom: 12px; }
     .hero h1 span { background: linear-gradient(135deg, #6c63ff, #a78bfa, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .hero p { font-size: 17px; color: var(--text2); max-width: 540px; margin: 0 auto 32px; line-height: 1.7; }
-    .stats-row { display: flex; justify-content: center; gap: 40px; padding: 0 24px 52px; flex-wrap: wrap; }
+    .hero p { font-size: 15px; color: var(--text2); max-width: 560px; margin: 0 auto 20px; line-height: 1.6; }
+    .hero-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 24px; }
+
+    /* STATS */
+    .stats-row { display: flex; justify-content: center; gap: 32px; padding: 0 24px 24px; flex-wrap: wrap; }
     .stat-item { text-align: center; }
-    .stat-value { font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 700; }
-    .stat-label { font-size: 13px; color: var(--text3); margin-top: 2px; }
-    .filters-bar { max-width: 1200px; margin: 0 auto; padding: 0 24px 20px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-    .search-wrap { position: relative; }
-    .search-wrap svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--text3); pointer-events: none; }
-    .search-input { min-width: 220px; max-width: 300px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 14px; font-family: inherit; padding: 9px 14px 9px 36px; outline: none; transition: border-color 0.15s; box-shadow: var(--shadow); }
+    .stat-value { font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; }
+    .stat-label { font-size: 12px; color: var(--text3); margin-top: 2px; }
+
+    /* LAYOUT: sidebar + grid */
+    .main-layout { max-width: 1260px; margin: 0 auto; padding: 0 24px 80px; display: flex; gap: 24px; align-items: flex-start; }
+
+    /* SIDEBAR FILTERS */
+    .sidebar { width: 220px; flex-shrink: 0; position: sticky; top: 78px; }
+    .sidebar-section { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow); }
+    .sidebar-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text3); margin-bottom: 10px; }
+    .search-wrap { position: relative; width: 100%; }
+    .search-wrap svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text3); pointer-events: none; }
+    .search-input { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 13px; font-family: inherit; padding: 8px 10px 8px 32px; outline: none; transition: border-color 0.15s; }
     .search-input:focus { border-color: var(--accent); }
-    select.filter-select { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 14px; font-family: inherit; padding: 9px 30px 9px 12px; outline: none; cursor: pointer; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239090a8' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; box-shadow: var(--shadow); }
+    .filter-chip-group { display: flex; flex-direction: column; gap: 4px; }
+    .filter-chip { padding: 7px 12px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; border: 1px solid transparent; background: transparent; color: var(--text2); cursor: pointer; transition: all 0.15s; font-family: inherit; text-align: left; width: 100%; }
+    .filter-chip:hover { background: var(--bg3); color: var(--text); }
+    .filter-chip.active { background: rgba(108,99,255,0.1); border-color: rgba(108,99,255,0.25); color: var(--accent); }
+    select.filter-select { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 13px; font-family: inherit; padding: 8px 28px 8px 10px; outline: none; cursor: pointer; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239090a8' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; margin-bottom: 6px; }
     select.filter-select:focus { border-color: var(--accent); }
-    .filter-chip { padding: 8px 14px; border-radius: 999px; font-size: 13px; font-weight: 500; border: 1px solid var(--border); background: var(--bg2); color: var(--text2); cursor: pointer; transition: all 0.15s; font-family: inherit; }
-    .filter-chip:hover, .filter-chip.active { background: rgba(108,99,255,0.08); border-color: rgba(108,99,255,0.3); color: var(--accent); }
-    .grid-container { max-width: 1200px; margin: 0 auto; padding: 0 24px 80px; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; }
-    .startup-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s; position: relative; overflow: hidden; box-shadow: var(--shadow); cursor: pointer; text-decoration: none; display: block; color: inherit; }
+
+    /* GRID */
+    .grid-wrap { flex: 1; min-width: 0; }
+    .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .startup-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s; position: relative; overflow: hidden; box-shadow: var(--shadow); cursor: pointer; text-decoration: none; display: block; color: inherit; }
     .startup-card:hover { border-color: rgba(108,99,255,0.3); transform: translateY(-2px); box-shadow: 0 4px 20px rgba(108,99,255,0.1); }
-    .card-top { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
-    .card-icon { width: 42px; height: 42px; border-radius: 10px; background: var(--bg3); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; overflow: hidden; border: 1px solid var(--border); }
-    .card-icon img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; }
+    .card-top { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; }
+    .card-icon { width: 40px; height: 40px; border-radius: 9px; background: var(--bg3); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; overflow: hidden; border: 1px solid var(--border); }
+    .card-icon img { width: 100%; height: 100%; object-fit: cover; border-radius: 9px; }
     .card-meta { flex: 1; min-width: 0; }
-    .card-name { font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .card-badges { display: flex; gap: 5px; margin-top: 4px; flex-wrap: wrap; }
-    .card-desc { font-size: 13px; color: var(--text2); line-height: 1.5; margin-bottom: 14px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-    .card-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
-    .metric { background: var(--bg3); border-radius: var(--radius-sm); padding: 9px 11px; border: 1px solid var(--border); }
+    .card-name { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card-badges { display: flex; gap: 4px; margin-top: 3px; flex-wrap: wrap; }
+    .card-desc { font-size: 12px; color: var(--text2); line-height: 1.5; margin-bottom: 12px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .card-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px; }
+    .metric { background: var(--bg3); border-radius: var(--radius-sm); padding: 8px 10px; border: 1px solid var(--border); }
     .metric-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
-    .metric-value { font-size: 17px; font-weight: 700; font-family: 'Space Grotesk', sans-serif; }
-    .metric-sub { font-size: 11px; color: var(--text3); margin-top: 1px; }
+    .metric-value { font-size: 16px; font-weight: 700; font-family: 'Space Grotesk', sans-serif; }
+    .metric-sub { font-size: 10px; color: var(--text3); margin-top: 1px; }
     .growth-positive { color: var(--green); }
     .growth-negative { color: var(--red); }
-    .card-footer { display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid var(--border); }
-    .card-price .label { font-size: 11px; color: var(--text3); }
-    .card-price .amount { font-size: 19px; font-weight: 700; font-family: 'Space Grotesk', sans-serif; }
-    .card-price .multiple { font-size: 11px; color: var(--text3); }
-    .verified-dot { position: absolute; top: 12px; right: 12px; display: flex; align-items: center; gap: 4px; font-size: 10px; color: var(--green); background: var(--green-bg); padding: 2px 7px; border-radius: 999px; border: 1px solid rgba(22,163,74,0.15); }
-    .verified-dot::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--green); }
-    .skeleton-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; height: 270px; box-shadow: var(--shadow); }
+    .card-footer { display: flex; align-items: center; justify-content: space-between; padding-top: 10px; border-top: 1px solid var(--border); }
+    .card-price .label { font-size: 10px; color: var(--text3); }
+    .card-price .amount { font-size: 17px; font-weight: 700; font-family: 'Space Grotesk', sans-serif; }
+    .card-price .multiple { font-size: 10px; color: var(--text3); }
+    .verified-dot { position: absolute; top: 10px; right: 10px; display: flex; align-items: center; gap: 3px; font-size: 10px; color: var(--green); background: var(--green-bg); padding: 2px 6px; border-radius: 999px; border: 1px solid rgba(22,163,74,0.15); }
+    .verified-dot::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: var(--green); }
+    .skeleton-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; height: 250px; box-shadow: var(--shadow); }
     .state-center { grid-column: 1/-1; text-align: center; padding: 60px 24px; color: var(--text3); }
     .state-center h3 { color: var(--text2); margin-bottom: 8px; font-size: 18px; }
-    .pagination { display: flex; justify-content: center; gap: 8px; padding: 0 24px 60px; align-items: center; }
-    .page-info { font-size: 14px; color: var(--text3); margin: 0 8px; }
-    @media (max-width: 640px) { .hero { padding: 48px 16px 36px; } .grid-container { grid-template-columns: 1fr; padding: 0 16px 60px; } .filters-bar { padding: 0 16px 16px; } .stats-row { gap: 24px; } }
+    .pagination { display: flex; justify-content: center; gap: 8px; padding: 0 0 40px; align-items: center; }
+    .page-info { font-size: 13px; color: var(--text3); margin: 0 8px; }
     @keyframes loadpulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+    @media (max-width: 768px) {
+      .main-layout { flex-direction: column; padding: 0 16px 60px; }
+      .sidebar { width: 100%; position: static; }
+      .filter-chip-group { flex-direction: row; flex-wrap: wrap; }
+      .filter-chip { width: auto; }
+      .hero { padding: 28px 16px 20px; }
+    }
   </style>
 </head>
 <body>
@@ -69,61 +92,84 @@
   </div>
   <h1 id="heroTitle"></h1>
   <p id="heroSub"></p>
-  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
-    <button class="btn btn-primary" onclick="filterSale(true)" style="font-size:15px;padding:11px 24px;" id="heroBtn1"></button>
-    <button class="btn btn-ghost" onclick="filterSale(null)" style="font-size:15px;padding:11px 24px;" id="heroBtn2"></button>
+  <div class="hero-btns">
+    <button class="btn btn-primary" onclick="filterSale(true)" id="heroBtn1"></button>
+    <button class="btn btn-ghost" onclick="filterSale(null)" id="heroBtn2"></button>
   </div>
 </div>
 
 <div class="stats-row">
   <div class="stat-item"><div class="stat-value" id="statTotal">—</div><div class="stat-label" id="statLabel1"></div></div>
   <div class="stat-item"><div class="stat-value" id="statSale">—</div><div class="stat-label" id="statLabel2"></div></div>
-  <div class="stat-item"><div class="stat-value" id="statMrr">—</div><div class="stat-label" id="statLabel3"></div></div>
+  <div class="stat-item"><div class="stat-value" id="statAvgMrr">—</div><div class="stat-label" id="statLabel3"></div></div>
 </div>
 
-<div class="filters-bar">
-  <div class="search-wrap">
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-    <input type="text" class="search-input" id="searchInput" oninput="onSearch(this.value)" />
+<div class="main-layout">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-title" id="sideSearch"></div>
+      <div class="search-wrap">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" class="search-input" id="searchInput" oninput="onSearch(this.value)" />
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-title" id="sideStatus"></div>
+      <div class="filter-chip-group">
+        <button class="filter-chip active" id="chipAll" onclick="filterSale(null)"></button>
+        <button class="filter-chip" id="chipSale" onclick="filterSale(true)"></button>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-title" id="sideCat"></div>
+      <select class="filter-select" id="categorySelect" onchange="onCategoryChange(this.value)">
+        <option value="" id="optAllCats"></option>
+        <option value="ai">AI</option>
+        <option value="saas">SaaS</option>
+        <option value="developer-tools">Developer Tools</option>
+        <option value="fintech">Fintech</option>
+        <option value="marketing">Marketing</option>
+        <option value="ecommerce">E-commerce</option>
+        <option value="productivity">Productivity</option>
+        <option value="design-tools">Design Tools</option>
+        <option value="no-code">No-code</option>
+        <option value="analytics">Analytics</option>
+        <option value="crypto-web3">Web3</option>
+        <option value="education">Education</option>
+        <option value="health-fitness">Health</option>
+        <option value="social-media">Social Media</option>
+        <option value="content-creation">Content Creation</option>
+        <option value="marketplace">Marketplace</option>
+        <option value="mobile-apps">Mobile Apps</option>
+      </select>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-title" id="sideSort"></div>
+      <select class="filter-select" id="sortSelect" onchange="onSortChange(this.value)">
+        <option value="revenue-desc" id="optSortRev"></option>
+        <option value="growth-desc" id="optSortGrowth"></option>
+        <option value="price-asc" id="optSortPriceAsc"></option>
+        <option value="price-desc" id="optSortPriceDesc"></option>
+        <option value="multiple-asc" id="optSortMultiple"></option>
+        <option value="listed-desc" id="optSortListed"></option>
+        <option value="best-deal" id="optSortDeal"></option>
+      </select>
+    </div>
+  </aside>
+
+  <!-- GRID -->
+  <div class="grid-wrap">
+    <div class="grid-container" id="grid"></div>
+    <div class="pagination" id="pagination" style="display:none;">
+      <button class="btn btn-ghost btn-sm" id="prevBtn" onclick="changePage(-1)" disabled>←</button>
+      <span class="page-info" id="pageInfo"></span>
+      <button class="btn btn-ghost btn-sm" id="nextBtn" onclick="changePage(1)">→</button>
+    </div>
   </div>
-  <select class="filter-select" id="categorySelect" onchange="onCategoryChange(this.value)">
-    <option value="" id="optAllCats"></option>
-    <option value="ai">AI</option>
-    <option value="saas">SaaS</option>
-    <option value="developer-tools">Developer Tools</option>
-    <option value="fintech">Fintech</option>
-    <option value="marketing">Marketing</option>
-    <option value="ecommerce">E-commerce</option>
-    <option value="productivity">Productivity</option>
-    <option value="design-tools">Design Tools</option>
-    <option value="no-code">No-code</option>
-    <option value="analytics">Analytics</option>
-    <option value="crypto-web3">Web3</option>
-    <option value="education">Education</option>
-    <option value="health-fitness">Health</option>
-    <option value="social-media">Social Media</option>
-    <option value="content-creation">Content Creation</option>
-    <option value="marketplace">Marketplace</option>
-    <option value="mobile-apps">Mobile Apps</option>
-  </select>
-  <select class="filter-select" id="sortSelect" onchange="onSortChange(this.value)">
-    <option value="revenue-desc" id="optSortRev"></option>
-    <option value="growth-desc" id="optSortGrowth"></option>
-    <option value="price-asc" id="optSortPriceAsc"></option>
-    <option value="price-desc" id="optSortPriceDesc"></option>
-    <option value="multiple-asc" id="optSortMultiple"></option>
-    <option value="listed-desc" id="optSortListed"></option>
-    <option value="best-deal" id="optSortDeal"></option>
-  </select>
-  <button class="filter-chip active" id="chipAll" onclick="filterSale(null)"></button>
-  <button class="filter-chip" id="chipSale" onclick="filterSale(true)"></button>
-</div>
-
-<div class="grid-container" id="grid"></div>
-<div class="pagination" id="pagination" style="display:none;">
-  <button class="btn btn-ghost btn-sm" id="prevBtn" onclick="changePage(-1)" disabled>←</button>
-  <span class="page-info" id="pageInfo"></span>
-  <button class="btn btn-ghost btn-sm" id="nextBtn" onclick="changePage(1)">→</button>
 </div>
 
 <footer><span id="footerText"></span> <a href="https://trustmrr.com" target="_blank">TrustMRR</a> · API v1</footer>
@@ -137,12 +183,10 @@ let filters = { sort:'revenue-desc', onSale:null, category:'', search:'' };
 let searchTimer = null;
 
 const DEMO = [
-  { name:'ShipFast', slug:'shipfast', icon:'https://shipfa.st/favicon.ico', description:'The NextJS boilerplate with all you need to build your SaaS, AI tool, or any other web app fast.', category:'saas', paymentProvider:'stripe', onSale:true, askingPrice:5000000, multiple:0.98, revenue:{last30Days:4250000,mrr:420000,total:98000000}, customers:7800, activeSubscriptions:320, growth30d:12 },
-  { name:'CodeFast', slug:'codefast', icon:null, description:'Learn to code 10x faster with AI-assisted learning. Build real projects from day one.', category:'education', paymentProvider:'stripe', onSale:false, askingPrice:null, multiple:null, revenue:{last30Days:1800000,mrr:180000,total:24000000}, customers:3200, activeSubscriptions:890, growth30d:24 },
-  { name:'DataFast', slug:'datafast', icon:null, description:'Analytics platform for indie hackers. Real-time stats, A/B testing, conversion funnels.', category:'analytics', paymentProvider:'lemonsqueezy', onSale:true, askingPrice:2400000, multiple:1.1, revenue:{last30Days:220000,mrr:200000,total:8200000}, customers:640, activeSubscriptions:200, growth30d:8 },
-  { name:'ZenVoice', slug:'zenvoice', icon:null, description:'Auto-generate beautiful invoices from Stripe. Stop wasting time on billing paperwork.', category:'fintech', paymentProvider:'stripe', onSale:false, askingPrice:null, multiple:null, revenue:{last30Days:480000,mrr:480000,total:5600000}, customers:1200, activeSubscriptions:480, growth30d:35 },
-  { name:'ByeDispute', slug:'byedispute', icon:null, description:'Reduce Stripe chargebacks and disputes automatically. Win more disputes with AI.', category:'fintech', paymentProvider:'stripe', onSale:true, askingPrice:1800000, multiple:3.1, revenue:{last30Days:58000,mrr:58000,total:720000}, customers:340, activeSubscriptions:58, growth30d:-3 },
-  { name:'IndiePage', slug:'indiepage', icon:null, description:'Showcase your startup portfolio. The linktree for indie hackers and solopreneurs.', category:'marketing', paymentProvider:'lemonsqueezy', onSale:true, askingPrice:900000, multiple:7.5, revenue:{last30Days:12000,mrr:12000,total:180000}, customers:2800, activeSubscriptions:120, growth30d:5 },
+  { name:'ShipFast', slug:'shipfast', icon:'https://shipfa.st/favicon.ico', description:'The NextJS boilerplate with all you need to build your SaaS, AI tool, or any other web app fast.', category:'saas', paymentProvider:'stripe', onSale:true, askingPrice:5000000, multiple:0.98, revenue:{last30Days:4250000,mrr:420000,total:98000000}, activeSubscriptions:320, growth30d:12, website:'https://shipfa.st' },
+  { name:'CodeFast', slug:'codefast', icon:null, description:'Learn to code 10x faster with AI-assisted learning.', category:'education', paymentProvider:'stripe', onSale:false, revenue:{last30Days:1800000,mrr:180000,total:24000000}, activeSubscriptions:890, growth30d:24, website:'https://codefast.dev' },
+  { name:'ZenVoice', slug:'zenvoice', icon:null, description:'Auto-generate beautiful invoices from Stripe.', category:'fintech', paymentProvider:'stripe', onSale:false, revenue:{last30Days:480000,mrr:480000,total:5600000}, activeSubscriptions:480, growth30d:35, website:'https://zenvoice.io' },
+  { name:'DataFast', slug:'datafast', icon:null, description:'Analytics platform for indie hackers.', category:'analytics', paymentProvider:'lemonsqueezy', onSale:true, askingPrice:2400000, multiple:1.1, revenue:{last30Days:220000,mrr:200000,total:8200000}, activeSubscriptions:200, growth30d:8, website:'https://datafa.st' },
 ];
 
 function applyUI() {
@@ -150,6 +194,7 @@ function applyUI() {
   document.getElementById('navPlaceholder').innerHTML = buildNavHTML('home');
   document.getElementById('modalPlaceholder').innerHTML = buildModalHTML();
   document.getElementById('heroBadge').textContent = t('hero','badge');
+  // Fixed title for all languages — point 2
   document.getElementById('heroTitle').innerHTML = t('hero','title') + `<span>${t('hero','span')}</span>` + t('hero','titleEnd');
   document.getElementById('heroSub').textContent = t('hero','sub');
   document.getElementById('heroBtn1').textContent = t('hero','btn1');
@@ -158,6 +203,10 @@ function applyUI() {
   document.getElementById('statLabel2').textContent = t('stats','sale');
   document.getElementById('statLabel3').textContent = t('stats','mrr');
   document.getElementById('searchInput').placeholder = t('filter','search');
+  document.getElementById('sideSearch').textContent = t('filter','search').replace('...','');
+  document.getElementById('sideStatus').textContent = 'Status';
+  document.getElementById('sideCat').textContent = t('filter','allCats').replace('All ','').replace('Все ','').replace('Toutes les ','').replace('Alle ','') || 'Category';
+  document.getElementById('sideSort').textContent = 'Sort';
   document.getElementById('optAllCats').textContent = t('filter','allCats');
   document.getElementById('optSortRev').textContent = t('filter','sortRevDesc');
   document.getElementById('optSortGrowth').textContent = t('filter','sortGrowth');
@@ -171,43 +220,71 @@ function applyUI() {
   document.getElementById('footerText').textContent = t('footer','data');
 }
 
-window.onApiKeySaved = () => loadAll();
+window.onApiKeySaved = () => { cacheLoaded = false; loadAll(); };
 window.onDemoMode = () => { isDemoMode = true; renderDemo(); };
 
 window.addEventListener('DOMContentLoaded', () => {
   applyUI();
   const key = getApiKey();
-  if (!key) {
-    document.getElementById('apiModal').classList.remove('hidden');
-  } else {
-    loadAll();
-  }
+  if (!key) { document.getElementById('apiModal').classList.remove('hidden'); }
+  else { loadAll(); }
 });
 
+// ── SORT LOCALLY — point 4: no reload on filter toggle ────────────────────
+function sortCache(data) {
+  // Point 8: startups with more filled data come first within same sort
+  return [...data].sort((a, b) => {
+    const scoreA = dataScore(a), scoreB = dataScore(b);
+    switch(filters.sort) {
+      case 'revenue-desc': {
+        const ra = a.revenue?.last30Days||0, rb = b.revenue?.last30Days||0;
+        if (ra !== rb) return rb - ra;
+        return scoreB - scoreA;
+      }
+      case 'revenue-asc': return (a.revenue?.last30Days||0) - (b.revenue?.last30Days||0);
+      case 'growth-desc': return (b.growth30d||0) - (a.growth30d||0);
+      case 'price-desc': return (b.askingPrice||0) - (a.askingPrice||0);
+      case 'price-asc': return (a.askingPrice||999999999) - (b.askingPrice||999999999);
+      case 'multiple-asc': return (a.multiple||999) - (b.multiple||999);
+      case 'listed-desc': return new Date(b.firstListedForSaleAt||0) - new Date(a.firstListedForSaleAt||0);
+      case 'best-deal': return (a.multiple||999) - (b.multiple||999);
+      default: return scoreB - scoreA;
+    }
+  });
+}
+
+// Point 8: score based on how many fields are filled
+function dataScore(s) {
+  let score = 0;
+  if (s.revenue?.last30Days > 0) score += 3;
+  if (s.revenue?.mrr > 0) score += 2;
+  if (s.growth30d != null) score += 2;
+  if (s.description) score += 1;
+  if (s.icon) score += 1;
+  if (s.website) score += 1;
+  if (s.activeSubscriptions > 0) score += 1;
+  return score;
+}
+
+// ── LOAD ──────────────────────────────────────────────────────────────────────
 async function loadAll() {
   const fKey = buildCacheKey();
 
-  // 1. Try daily localStorage cache first — instant load
+  // Try localStorage daily cache
   if (!cacheLoaded || cacheKey !== fKey) {
     const cached = getFromDailyCache(fKey);
     if (cached && cached.length > 0) {
       allCache = cached;
-      cacheLoaded = true;
-      cacheKey = fKey;
-      currentPage = 1;
+      cacheLoaded = true; cacheKey = fKey; currentPage = 1;
       updateStatsFromCache();
       renderFromCache();
       showCacheBadge(getCacheAge(fKey));
-      // Refresh in background after showing cached data
       refreshInBackground(fKey);
       return;
     }
   }
-
-  // 2. In-memory cache (same session, filter unchanged)
   if (cacheLoaded && cacheKey === fKey) { renderFromCache(); return; }
 
-  // 3. No cache — full load with progress
   showSkeleton();
   allCache = []; cacheLoaded = false; cacheKey = fKey;
   await fetchAllPages(fKey);
@@ -221,46 +298,29 @@ async function fetchAllPages(fKey) {
   try {
     let page = 1, hasMore = true;
     allCache = [];
-
     while (hasMore) {
-      const params = new URLSearchParams({ page, limit: 50, sort: filters.sort });
-      if (filters.onSale !== null) params.set('onSale', filters.onSale);
-      if (filters.category) params.set('category', filters.category);
-
-      const res = await fetch(`${API_BASE}/startups?${params}`, {
-        headers: { Authorization: `Bearer ${apiKey}` }
-      });
-
+      const params = new URLSearchParams({ page, limit: 50, sort: 'revenue-desc' });
+      const res = await fetch(`${API_BASE}/startups?${params}`, { headers: { Authorization: `Bearer ${apiKey}` } });
       if (res.status === 401) { showError(t('errors','key')); return; }
       if (!res.ok) throw new Error('HTTP ' + res.status);
-
       const json = await res.json();
       const { data, meta, fromCache } = json;
-
       allCache = allCache.concat(data);
       hasMore = meta.hasMore;
-
-      // Update progress
       const bar = document.getElementById('loadBar');
       const cnt = document.getElementById('loadCount');
-      if (bar) bar.style.width = Math.min(95, (page / (page + (hasMore?3:0))) * 100) + '%';
-      if (cnt) cnt.textContent = allCache.length + (hasMore ? '+' : '') + ' startups' + (fromCache ? ' (cached)' : '');
-
+      if (bar) bar.style.width = Math.min(95, page * 5) + '%';
+      if (cnt) cnt.textContent = allCache.length + (hasMore?'+':'') + ' startups' + (fromCache?' (cached)':'');
+      document.getElementById('statTotal').textContent = allCache.length + (hasMore?'+':'');
       page++;
-
-      // Only delay if not cached (cached pages are instant)
       if (hasMore && !fromCache) await sleep(DELAY_MS);
     }
-
-    cacheLoaded = true;
-    currentPage = 1;
+    cacheLoaded = true; currentPage = 1;
     saveToDailyCache(fKey, allCache);
     updateStatsFromCache();
     renderFromCache();
     showCacheBadge(null);
-  } catch(e) {
-    showError(t('errors','load'));
-  }
+  } catch(e) { showError(t('errors','load')); }
 }
 
 async function refreshInBackground(fKey) {
@@ -268,18 +328,14 @@ async function refreshInBackground(fKey) {
     const apiKey = getApiKey();
     let page = 1, hasMore = true, freshData = [];
     while (hasMore) {
-      const params = new URLSearchParams({ page, limit: 50, sort: filters.sort });
-      if (filters.onSale !== null) params.set('onSale', filters.onSale);
-      if (filters.category) params.set('category', filters.category);
-      const res = await fetch(`${API_BASE}/startups?${params}`, {
-        headers: { Authorization: `Bearer ${apiKey}` }
-      });
+      const params = new URLSearchParams({ page, limit: 50, sort: 'revenue-desc' });
+      const res = await fetch(`${API_BASE}/startups?${params}`, { headers: { Authorization: `Bearer ${apiKey}` } });
       if (!res.ok) return;
-      const { data, meta } = await res.json();
+      const { data, meta, fromCache } = await res.json();
       freshData = freshData.concat(data);
       hasMore = meta.hasMore;
       page++;
-      if (hasMore) await sleep(DELAY_MS);
+      if (hasMore && !fromCache) await sleep(DELAY_MS);
     }
     if (freshData.length > 0) {
       allCache = freshData;
@@ -288,13 +344,21 @@ async function refreshInBackground(fKey) {
       renderFromCache();
       showCacheBadge(null);
     }
-  } catch(e) { /* silent */ }
+  } catch(e) {}
 }
+
+function buildCacheKey() { return `all`; }
 
 function updateStatsFromCache() {
   document.getElementById('statTotal').textContent = allCache.length.toLocaleString();
   const onSaleCnt = allCache.filter(s => s.onSale).length;
   document.getElementById('statSale').textContent = onSaleCnt.toLocaleString();
+  // Point 5: show avg MRR instead of customers (customers is often 0)
+  const withMrr = allCache.filter(s => s.revenue?.mrr > 0);
+  if (withMrr.length > 0) {
+    const avgMrr = withMrr.reduce((sum, s) => sum + s.revenue.mrr, 0) / withMrr.length;
+    document.getElementById('statAvgMrr').textContent = formatMoney(avgMrr);
+  }
 }
 
 function showCacheBadge(ageStr) {
@@ -302,33 +366,32 @@ function showCacheBadge(ageStr) {
   if (!badge) {
     badge = document.createElement('div');
     badge.id = 'cacheBadge';
-    badge.style.cssText = 'text-align:center;font-size:12px;color:var(--text3);padding:0 0 12px;';
-    document.querySelector('.filters-bar').before(badge);
+    badge.style.cssText = 'text-align:center;font-size:11px;color:var(--text3);padding:0 0 8px;';
+    document.querySelector('.main-layout').before(badge);
   }
   badge.textContent = ageStr ? `${t('cache','cached')} · ${ageStr}` : t('cache','fresh');
-  setTimeout(() => { if (badge) badge.style.opacity = '0'; }, 3000);
+  badge.style.opacity = '1';
+  setTimeout(() => { if (badge) badge.style.opacity = '0'; }, 4000);
 }
 
-function buildCacheKey() { return `rev-desc|${filters.onSale}|${filters.category}`; }
-
-function renderDemo() {
-  document.getElementById('statTotal').textContent = '800+';
-  document.getElementById('statSale').textContent = '120+';
-  document.getElementById('statMrr').textContent = '$1.2M';
-  let d = DEMO;
-  if (filters.onSale === true) d = d.filter(s => s.onSale);
-  if (filters.category) d = d.filter(s => s.category === filters.category);
-  if (filters.search) { const q = filters.search.toLowerCase(); d = d.filter(s => s.name.toLowerCase().includes(q)); }
-  renderCards(d);
-  document.getElementById('pagination').style.display = 'none';
-}
-
+// ── RENDER ────────────────────────────────────────────────────────────────────
 function renderFromCache() {
   let d = allCache;
-  if (filters.search) { const q = filters.search.toLowerCase(); d = d.filter(s => s.name.toLowerCase().includes(q) || (s.description||'').toLowerCase().includes(q)); }
-  const ps = 12, total = d.length, pages = Math.ceil(total / ps);
-  const slice = d.slice((currentPage-1)*ps, currentPage*ps);
-  renderCards(slice);
+
+  // Point 4: filter locally from full cache, no reload
+  if (filters.onSale === true) d = d.filter(s => s.onSale);
+  if (filters.category) d = d.filter(s => s.category === filters.category);
+  if (filters.search) {
+    const q = filters.search.toLowerCase();
+    d = d.filter(s => s.name.toLowerCase().includes(q) || (s.description||'').toLowerCase().includes(q));
+  }
+
+  // Sort
+  d = sortCache(d);
+
+  const ps = 18, total = d.length, pages = Math.ceil(total / ps);
+  renderCards(d.slice((currentPage-1)*ps, currentPage*ps));
+
   if (total <= ps) { document.getElementById('pagination').style.display = 'none'; }
   else {
     document.getElementById('pagination').style.display = 'flex';
@@ -336,6 +399,18 @@ function renderFromCache() {
     document.getElementById('prevBtn').disabled = currentPage <= 1;
     document.getElementById('nextBtn').disabled = currentPage >= pages;
   }
+}
+
+function renderDemo() {
+  document.getElementById('statTotal').textContent = '800+';
+  document.getElementById('statSale').textContent = '120+';
+  document.getElementById('statAvgMrr').textContent = '$320';
+  let d = DEMO;
+  if (filters.onSale === true) d = d.filter(s => s.onSale);
+  if (filters.category) d = d.filter(s => s.category === filters.category);
+  if (filters.search) { const q = filters.search.toLowerCase(); d = d.filter(s => s.name.toLowerCase().includes(q)); }
+  renderCards(d);
+  document.getElementById('pagination').style.display = 'none';
 }
 
 function renderCards(list) {
@@ -348,10 +423,14 @@ function cardHTML(s) {
   const mrr = formatMoney(s.revenue?.mrr), rev = formatMoney(s.revenue?.last30Days);
   const g = s.growth30d;
   const gStr = g != null ? `<span class="${g>0?'growth-positive':g<0?'growth-negative':''}">${g>0?'+':''}${parseFloat(g).toFixed(1)}%</span>` : '—';
-  const icon = s.icon ? `<img src="${escHtml(s.icon)}" loading="lazy" onerror="this.parentElement.textContent='${s.name.charAt(0)}'"/>` : `<span style="font-size:16px;font-weight:700;color:var(--text2)">${s.name.charAt(0)}</span>`;
+  const icon = s.icon ? `<img src="${escHtml(s.icon)}" loading="lazy" onerror="this.parentElement.textContent='${s.name.charAt(0)}'"/>` : `<span style="font-size:15px;font-weight:700;color:var(--text2)">${s.name.charAt(0)}</span>`;
   const price = s.onSale && s.askingPrice
     ? `<div class="card-price"><div class="label">${t('card','price')}</div><div class="amount">${formatMoney(s.askingPrice)}</div>${s.multiple?`<div class="multiple">${parseFloat(s.multiple).toFixed(1)}x</div>`:''}</div>`
-    : `<div class="card-price"><div class="label">${t('card','notSale')}</div><div class="amount" style="font-size:13px;color:var(--text3)">—</div></div>`;
+    : `<div class="card-price"><div class="label">${t('card','notSale')}</div><div class="amount" style="font-size:12px;color:var(--text3)">—</div></div>`;
+
+  // Point 5: replace customers (often 0) with total revenue
+  const totalRev = formatMoney(s.revenue?.total);
+
   return `<a class="startup-card" href="/startup/${s.slug}.html" onclick="saveStartup(event,'${escHtml(JSON.stringify(s))}')">
     <div class="verified-dot">${t('card','verified')}</div>
     <div class="card-top">
@@ -368,8 +447,8 @@ function cardHTML(s) {
     <div class="card-metrics">
       <div class="metric"><div class="metric-label">${t('card','mrr')}</div><div class="metric-value">${mrr}</div><div class="metric-sub">/mo</div></div>
       <div class="metric"><div class="metric-label">${t('card','rev30')}</div><div class="metric-value">${rev}</div><div class="metric-sub">${t('card','growth')}: ${gStr}</div></div>
-      <div class="metric"><div class="metric-label">${t('card','customers')}</div><div class="metric-value">${(s.customers||0).toLocaleString()}</div><div class="metric-sub">${t('card','total')}</div></div>
       <div class="metric"><div class="metric-label">${t('card','subs')}</div><div class="metric-value">${(s.activeSubscriptions||0).toLocaleString()}</div><div class="metric-sub">${t('card','active')}</div></div>
+      <div class="metric"><div class="metric-label">${t('startupPage','totalRev')}</div><div class="metric-value">${totalRev}</div><div class="metric-sub">all time</div></div>
     </div>
     <div class="card-footer">${price}<span class="btn btn-ghost btn-sm">${t('card','more')} →</span></div>
   </a>`;
@@ -380,13 +459,13 @@ function saveStartup(e, json) {
 }
 
 function showSkeleton() {
-  document.getElementById("grid").innerHTML = `
+  document.getElementById('grid').innerHTML = `
     <div style="grid-column:1/-1;padding:48px 0 24px;text-align:center;">
-      <div style="font-size:15px;color:var(--text2);margin-bottom:20px;">${t("cache","loading")}</div>
-      <div style="width:240px;height:4px;background:var(--bg3);border-radius:2px;margin:0 auto;overflow:hidden;">
+      <div style="font-size:14px;color:var(--text2);margin-bottom:16px;">${t('cache','loading')}</div>
+      <div style="width:200px;height:3px;background:var(--bg3);border-radius:2px;margin:0 auto;overflow:hidden;">
         <div id="loadBar" style="height:100%;width:8%;background:var(--accent);border-radius:2px;animation:loadpulse 1.5s ease-in-out infinite;"></div>
       </div>
-      <div style="font-size:12px;color:var(--text3);margin-top:12px;" id="loadCount"></div>
+      <div style="font-size:11px;color:var(--text3);margin-top:10px;" id="loadCount"></div>
     </div>`;
 }
 
@@ -394,34 +473,16 @@ function showError(msg) {
   document.getElementById('grid').innerHTML = `<div class="state-center"><h3>⚠️</h3><p>${msg}</p><button class="btn btn-primary" onclick="document.getElementById('apiModal').classList.remove('hidden')" style="margin-top:16px;">${t('nav','apiKey')}</button></div>`;
 }
 
+// Point 4: filter/sort purely from cache, no API call
 function filterSale(v) {
   filters.onSale = v; currentPage = 1;
   document.getElementById('chipAll').classList.toggle('active', v === null);
   document.getElementById('chipSale').classList.toggle('active', v === true);
-  cacheLoaded = false;
-  if (isDemoMode) renderDemo(); else loadAll();
+  if (isDemoMode) renderDemo(); else if (cacheLoaded) renderFromCache(); else loadAll();
 }
-function onCategoryChange(v) { filters.category = v; currentPage = 1; cacheLoaded = false; if (isDemoMode) renderDemo(); else loadAll(); }
-function onSortChange(v) {
-  filters.sort = v; currentPage = 1;
-  if (!cacheLoaded) { loadAll(); return; }
-  // Sort cached data locally
-  allCache.sort((a, b) => {
-    switch(v) {
-      case 'revenue-desc': return (b.revenue?.last30Days||0) - (a.revenue?.last30Days||0);
-      case 'revenue-asc':  return (a.revenue?.last30Days||0) - (b.revenue?.last30Days||0);
-      case 'growth-desc':  return (b.growth30d||0) - (a.growth30d||0);
-      case 'price-desc':   return (b.askingPrice||0) - (a.askingPrice||0);
-      case 'price-asc':    return ((a.askingPrice||999999999) - (b.askingPrice||999999999));
-      case 'multiple-asc': return ((a.multiple||999) - (b.multiple||999));
-      case 'listed-desc':  return new Date(b.firstListedForSaleAt||0) - new Date(a.firstListedForSaleAt||0);
-      case 'best-deal':    return ((a.multiple||999) - (b.multiple||999));
-      default: return 0;
-    }
-  });
-  if (isDemoMode) renderDemo(); else renderFromCache();
-}
-function onSearch(v) { clearTimeout(searchTimer); filters.search = v; searchTimer = setTimeout(() => { currentPage = 1; if (isDemoMode) renderDemo(); else renderFromCache(); }, 300); }
+function onCategoryChange(v) { filters.category = v; currentPage = 1; if (isDemoMode) renderDemo(); else if (cacheLoaded) renderFromCache(); else loadAll(); }
+function onSortChange(v) { filters.sort = v; currentPage = 1; if (isDemoMode) renderDemo(); else if (cacheLoaded) renderFromCache(); else loadAll(); }
+function onSearch(v) { clearTimeout(searchTimer); filters.search = v; searchTimer = setTimeout(() => { currentPage = 1; if (isDemoMode) renderDemo(); else renderFromCache(); }, 250); }
 function changePage(d) { currentPage += d; if (currentPage < 1) currentPage = 1; window.scrollTo({top:0,behavior:'smooth'}); if (isDemoMode) renderDemo(); else renderFromCache(); }
 </script>
 </body>

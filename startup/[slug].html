@@ -115,7 +115,7 @@ function renderStartup(s) {
       </div>
       <div class="sale-actions">
         ${s.xHandle ? `<a href="https://x.com/${s.xHandle}" target="_blank" class="btn btn-primary">${t('startupPage','contact')} (@${s.xHandle})</a>` : ''}
-        <a href="https://trustmrr.com/${s.slug}" target="_blank" class="btn btn-ghost">${t('startupPage','viewOriginal')} ↗</a>
+        ${s.website ? `<a href="${escHtml(s.website)}" target="_blank" class="btn btn-ghost">${t('startupPage','viewOriginal')} ↗</a>` : ''}
       </div>
     </div>` : `<div class="not-sale-box">${t('startupPage','notForSale')}</div>`;
 
