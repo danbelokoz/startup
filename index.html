@@ -927,49 +927,99 @@ function showApiModal() {
   document.getElementById('apiModal').classList.remove('hidden');
 }
 
+// ── CACHE ─────────────────────────────────────────────────────────────────────
+let allStartupsCache = [];
+let cacheKey = '';
+let cacheLoaded = false;
+
+function buildCacheKey() {
+  return `${currentFilters.sort}|${currentFilters.onSale}|${currentFilters.category}`;
+}
+
 // ── FETCH ─────────────────────────────────────────────────────────────────────
 async function loadStartups() {
   if (isDemoMode) { renderDemoData(); return; }
+
+  const newKey = buildCacheKey();
+
+  if (currentFilters.search && cacheLoaded && cacheKey === newKey) {
+    renderFromCache(); return;
+  }
+
   showSkeleton();
-  const params = new URLSearchParams({ page: currentPage, limit: 12, sort: currentFilters.sort });
-  if (currentFilters.onSale !== null) params.set('onSale', currentFilters.onSale);
-  if (currentFilters.category) params.set('category', currentFilters.category);
+  allStartupsCache = [];
+  cacheLoaded = false;
+  cacheKey = newKey;
+
   try {
-    const res = await fetch(`${API_BASE}/startups?${params}`, {
-      headers: { Authorization: `Bearer ${apiKey}` }
-    });
-    if (res.status === 401) { showError(t('errorKey')); return; }
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const { data, meta } = await res.json();
-    if (currentPage === 1 && !currentFilters.onSale && !currentFilters.category) updateStats(meta.total);
-    renderCards(data);
-    updatePagination(meta);
+    let page = 1;
+    let hasMore = true;
+    const MAX_PAGES = 20;
+
+    while (hasMore && page <= MAX_PAGES) {
+      const params = new URLSearchParams({ page, limit: 50, sort: currentFilters.sort });
+      if (currentFilters.onSale !== null) params.set('onSale', currentFilters.onSale);
+      if (currentFilters.category) params.set('category', currentFilters.category);
+
+      const res = await fetch(`${API_BASE}/startups?${params}`, {
+        headers: { Authorization: `Bearer ${apiKey}` }
+      });
+      if (res.status === 401) { showError(t('errorKey')); return; }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const { data, meta } = await res.json();
+      allStartupsCache = allStartupsCache.concat(data);
+      hasMore = meta.hasMore;
+      page++;
+    }
+
+    cacheLoaded = true;
+    currentPage = 1;
+    updateStats();
+    renderFromCache();
+
   } catch (err) {
     showError(t('errorLoad'));
   }
 }
 
-async function updateStats(total) {
-  document.getElementById('statTotal').textContent = total.toLocaleString();
-  try {
-    const r = await fetch(`${API_BASE}/startups?limit=1&onSale=true`, { headers: { Authorization: `Bearer ${apiKey}` } });
-    if (r.ok) { const { meta } = await r.json(); document.getElementById('statSale').textContent = meta.total.toLocaleString(); }
-  } catch {}
+function updateStats() {
+  document.getElementById('statTotal').textContent = allStartupsCache.length.toLocaleString();
+  const onSaleCount = allStartupsCache.filter(s => s.onSale).length;
+  if (onSaleCount > 0) document.getElementById('statSale').textContent = onSaleCount.toLocaleString();
+}
+
+function renderFromCache() {
+  let filtered = allStartupsCache;
+  if (currentFilters.search) {
+    const q = currentFilters.search.toLowerCase();
+    filtered = filtered.filter(s =>
+      s.name.toLowerCase().includes(q) || (s.description || '').toLowerCase().includes(q)
+    );
+  }
+  const pageSize = 12;
+  const totalFiltered = filtered.length;
+  const totalPages = Math.ceil(totalFiltered / pageSize);
+  const start = (currentPage - 1) * pageSize;
+  renderCards(filtered.slice(start, start + pageSize));
+  if (totalFiltered <= pageSize) {
+    document.getElementById('pagination').style.display = 'none';
+  } else {
+    document.getElementById('pagination').style.display = 'flex';
+    document.getElementById('pageInfo').textContent = `${t('pageLabel')} ${currentPage} ${t('pageOf')} ${totalPages}`;
+    document.getElementById('prevBtn').disabled = currentPage <= 1;
+    document.getElementById('nextBtn').disabled = currentPage >= totalPages;
+  }
 }
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
 function renderCards(startups) {
   const grid = document.getElementById('grid');
-  let filtered = startups || [];
-  if (currentFilters.search) {
-    const q = currentFilters.search.toLowerCase();
-    filtered = filtered.filter(s => s.name.toLowerCase().includes(q) || (s.description||'').toLowerCase().includes(q));
-  }
-  if (!filtered.length) {
+  if (!startups || !startups.length) {
     grid.innerHTML = `<div class="state-center"><h3>${t('emptyTitle')}</h3><p>${t('emptySub')}</p></div>`;
     return;
   }
-  grid.innerHTML = filtered.map(s => cardHTML(s)).join('');
+  grid.innerHTML = startups.map(s => cardHTML(s)).join('');
 }
 
 function renderDemoData() {
@@ -1050,21 +1100,11 @@ function showError(msg) {
   document.getElementById('grid').innerHTML = `<div class="state-center"><h3>⚠️ Error</h3><p>${msg}</p><button class="btn btn-primary" onclick="showApiModal()" style="margin-top:16px;">${t('navApi')}</button></div>`;
 }
 
-// ── PAGINATION ────────────────────────────────────────────────────────────────
-function updatePagination(meta) {
-  if (!meta || meta.total <= 12) { document.getElementById('pagination').style.display = 'none'; return; }
-  const total = Math.ceil(meta.total / 12);
-  document.getElementById('pagination').style.display = 'flex';
-  document.getElementById('pageInfo').textContent = `${t('pageLabel')} ${currentPage} ${t('pageOf')} ${total}`;
-  document.getElementById('prevBtn').disabled = currentPage <= 1;
-  document.getElementById('nextBtn').disabled = !meta.hasMore;
-}
-
 function changePage(dir) {
   currentPage += dir;
   if (currentPage < 1) currentPage = 1;
   window.scrollTo({ top: 0, behavior: 'smooth' });
-  loadStartups();
+  renderFromCache();
 }
 
 // ── FILTERS ───────────────────────────────────────────────────────────────────
