@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" dir="ltr">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>StartupMarket — Проверенные стартапы на продажу</title>
-  <meta name="description" content="Купите прибыльный стартап с верифицированными метриками. Реальные данные MRR из Stripe, LemonSqueezy и Polar." />
+  <title>StartupMarket</title>
+  <meta name="description" content="Verified startup marketplace" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
@@ -12,24 +12,23 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg: #0a0a0f;
-      --bg2: #111118;
-      --bg3: #1a1a24;
-      --border: rgba(255,255,255,0.08);
-      --border2: rgba(255,255,255,0.14);
-      --text: #f0f0f8;
-      --text2: #9090a8;
-      --text3: #606078;
+      --bg: #f8f8fc;
+      --bg2: #ffffff;
+      --bg3: #f0f0f8;
+      --border: rgba(0,0,0,0.08);
+      --border2: rgba(0,0,0,0.14);
+      --text: #0f0f1a;
+      --text2: #52526e;
+      --text3: #9090a8;
       --accent: #6c63ff;
       --accent2: #8b5cf6;
-      --green: #22c55e;
-      --green-bg: rgba(34,197,94,0.1);
-      --red: #ef4444;
-      --red-bg: rgba(239,68,68,0.1);
-      --yellow: #eab308;
-      --yellow-bg: rgba(234,179,8,0.1);
+      --green: #16a34a;
+      --green-bg: rgba(22,163,74,0.08);
+      --red: #dc2626;
+      --red-bg: rgba(220,38,38,0.08);
       --radius: 12px;
       --radius-sm: 8px;
+      --shadow: 0 1px 4px rgba(0,0,0,0.07), 0 4px 16px rgba(0,0,0,0.04);
     }
 
     body {
@@ -41,12 +40,16 @@
       line-height: 1.6;
     }
 
-    /* NAV */
+    /* RTL support */
+    [dir="rtl"] .search-wrap svg { left: auto; right: 11px; }
+    [dir="rtl"] .search-input { padding: 9px 36px 9px 14px; }
+    [dir="rtl"] select.filter-select { background-position: left 10px center; padding: 9px 12px 9px 32px; }
+
     nav {
       position: sticky;
       top: 0;
       z-index: 100;
-      background: rgba(10,10,15,0.85);
+      background: rgba(248,248,252,0.92);
       backdrop-filter: blur(16px);
       border-bottom: 1px solid var(--border);
       padding: 0 24px;
@@ -66,11 +69,58 @@
       text-decoration: none;
     }
 
-    .nav-right {
+    .nav-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+    /* LANG SWITCHER */
+    .lang-switcher {
+      position: relative;
+    }
+
+    .lang-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 7px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      background: var(--bg2);
+      color: var(--text2);
+      border: 1px solid var(--border);
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+    .lang-btn:hover { border-color: var(--border2); color: var(--text); }
+
+    .lang-dropdown {
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 0;
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      min-width: 160px;
+      overflow: hidden;
+      display: none;
+      z-index: 200;
+    }
+    .lang-dropdown.open { display: block; }
+
+    .lang-option {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
+      padding: 9px 14px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.1s;
+      color: var(--text);
     }
+    .lang-option:hover { background: var(--bg3); }
+    .lang-option.active { color: var(--accent); font-weight: 500; }
+    .lang-flag { font-size: 18px; }
 
     .btn {
       display: inline-flex;
@@ -85,10 +135,11 @@
       transition: all 0.15s;
       border: none;
       outline: none;
+      font-family: inherit;
     }
 
     .btn-ghost {
-      background: transparent;
+      background: var(--bg2);
       color: var(--text2);
       border: 1px solid var(--border);
     }
@@ -101,7 +152,6 @@
     }
     .btn-primary:hover { background: var(--accent2); }
 
-    /* HERO */
     .hero {
       text-align: center;
       padding: 80px 24px 60px;
@@ -113,22 +163,23 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: rgba(108,99,255,0.12);
-      border: 1px solid rgba(108,99,255,0.3);
+      background: rgba(108,99,255,0.08);
+      border: 1px solid rgba(108,99,255,0.2);
       border-radius: 999px;
       padding: 4px 14px;
       font-size: 13px;
-      color: #a78bfa;
+      color: var(--accent);
       margin-bottom: 24px;
     }
 
     .hero h1 {
       font-family: 'Space Grotesk', sans-serif;
-      font-size: clamp(36px, 6vw, 64px);
+      font-size: clamp(34px, 5vw, 60px);
       font-weight: 700;
       line-height: 1.1;
       letter-spacing: -1px;
       margin-bottom: 20px;
+      color: var(--text);
     }
 
     .hero h1 span {
@@ -145,7 +196,6 @@
       line-height: 1.7;
     }
 
-    /* STATS */
     .stats-row {
       display: flex;
       justify-content: center;
@@ -154,24 +204,15 @@
       flex-wrap: wrap;
     }
 
-    .stat-item {
-      text-align: center;
-    }
-
+    .stat-item { text-align: center; }
     .stat-value {
       font-family: 'Space Grotesk', sans-serif;
       font-size: 28px;
       font-weight: 700;
       color: var(--text);
     }
+    .stat-label { font-size: 13px; color: var(--text3); margin-top: 2px; }
 
-    .stat-label {
-      font-size: 13px;
-      color: var(--text3);
-      margin-top: 2px;
-    }
-
-    /* FILTERS */
     .filters-bar {
       max-width: 1200px;
       margin: 0 auto;
@@ -180,6 +221,16 @@
       gap: 12px;
       flex-wrap: wrap;
       align-items: center;
+    }
+
+    .search-wrap { position: relative; }
+    .search-wrap svg {
+      position: absolute;
+      left: 11px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text3);
+      pointer-events: none;
     }
 
     .search-input {
@@ -195,21 +246,9 @@
       padding: 9px 14px 9px 36px;
       outline: none;
       transition: border-color 0.15s;
-      position: relative;
+      box-shadow: var(--shadow);
     }
     .search-input:focus { border-color: var(--accent); }
-
-    .search-wrap {
-      position: relative;
-    }
-    .search-wrap svg {
-      position: absolute;
-      left: 11px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: var(--text3);
-      pointer-events: none;
-    }
 
     select.filter-select {
       background: var(--bg2);
@@ -222,10 +261,10 @@
       outline: none;
       cursor: pointer;
       -webkit-appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23606078' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239090a8' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
       background-repeat: no-repeat;
       background-position: right 10px center;
-      transition: border-color 0.15s;
+      box-shadow: var(--shadow);
     }
     select.filter-select:focus { border-color: var(--accent); }
 
@@ -235,18 +274,18 @@
       font-size: 13px;
       font-weight: 500;
       border: 1px solid var(--border);
-      background: transparent;
+      background: var(--bg2);
       color: var(--text2);
       cursor: pointer;
       transition: all 0.15s;
+      font-family: inherit;
     }
     .filter-chip:hover, .filter-chip.active {
-      background: rgba(108,99,255,0.15);
-      border-color: rgba(108,99,255,0.4);
-      color: #a78bfa;
+      background: rgba(108,99,255,0.08);
+      border-color: rgba(108,99,255,0.3);
+      color: var(--accent);
     }
 
-    /* GRID */
     .grid-container {
       max-width: 1200px;
       margin: 0 auto;
@@ -261,13 +300,15 @@
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 20px;
-      transition: border-color 0.2s, transform 0.15s;
+      transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
       position: relative;
       overflow: hidden;
+      box-shadow: var(--shadow);
     }
     .startup-card:hover {
-      border-color: var(--border2);
+      border-color: rgba(108,99,255,0.3);
       transform: translateY(-2px);
+      box-shadow: 0 4px 20px rgba(108,99,255,0.1);
     }
 
     .card-top {
@@ -292,11 +333,7 @@
     }
     .card-icon img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; }
 
-    .card-meta {
-      flex: 1;
-      min-width: 0;
-    }
-
+    .card-meta { flex: 1; min-width: 0; }
     .card-name {
       font-weight: 600;
       font-size: 16px;
@@ -306,12 +343,7 @@
       text-overflow: ellipsis;
     }
 
-    .card-badges {
-      display: flex;
-      gap: 6px;
-      margin-top: 4px;
-      flex-wrap: wrap;
-    }
+    .card-badges { display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
 
     .badge {
       font-size: 11px;
@@ -319,17 +351,15 @@
       padding: 2px 8px;
       border-radius: 999px;
     }
-
     .badge-cat {
       background: var(--bg3);
       color: var(--text2);
       border: 1px solid var(--border);
     }
-
     .badge-sale {
-      background: rgba(108,99,255,0.15);
-      color: #a78bfa;
-      border: 1px solid rgba(108,99,255,0.3);
+      background: rgba(108,99,255,0.08);
+      color: var(--accent);
+      border: 1px solid rgba(108,99,255,0.2);
     }
 
     .card-desc {
@@ -346,7 +376,7 @@
     .card-metrics {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 12px;
+      gap: 10px;
       margin-bottom: 16px;
     }
 
@@ -354,8 +384,8 @@
       background: var(--bg3);
       border-radius: var(--radius-sm);
       padding: 10px 12px;
+      border: 1px solid var(--border);
     }
-
     .metric-label {
       font-size: 11px;
       color: var(--text3);
@@ -363,19 +393,13 @@
       letter-spacing: 0.5px;
       margin-bottom: 3px;
     }
-
     .metric-value {
       font-size: 18px;
       font-weight: 700;
       font-family: 'Space Grotesk', sans-serif;
       color: var(--text);
     }
-
-    .metric-sub {
-      font-size: 11px;
-      color: var(--text3);
-      margin-top: 2px;
-    }
+    .metric-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
 
     .growth-positive { color: var(--green); }
     .growth-negative { color: var(--red); }
@@ -388,11 +412,8 @@
       border-top: 1px solid var(--border);
     }
 
-    .card-price {
-      font-family: 'Space Grotesk', sans-serif;
-    }
     .card-price .label { font-size: 11px; color: var(--text3); }
-    .card-price .amount { font-size: 20px; font-weight: 700; color: var(--text); }
+    .card-price .amount { font-size: 20px; font-weight: 700; font-family: 'Space Grotesk', sans-serif; color: var(--text); }
     .card-price .multiple { font-size: 12px; color: var(--text3); }
 
     .card-actions { display: flex; gap: 8px; }
@@ -409,6 +430,7 @@
       background: var(--green-bg);
       padding: 2px 8px;
       border-radius: 999px;
+      border: 1px solid rgba(22,163,74,0.15);
     }
     .verified-dot::before {
       content: '';
@@ -418,9 +440,8 @@
       background: var(--green);
     }
 
-    /* LOADING */
     .skeleton {
-      background: linear-gradient(90deg, var(--bg3) 25%, var(--bg2) 50%, var(--bg3) 75%);
+      background: linear-gradient(90deg, var(--bg3) 25%, #e8e8f4 50%, var(--bg3) 75%);
       background-size: 200% 100%;
       animation: shimmer 1.5s infinite;
       border-radius: var(--radius-sm);
@@ -429,16 +450,15 @@
       0% { background-position: 200% 0; }
       100% { background-position: -200% 0; }
     }
-
     .skeleton-card {
       background: var(--bg2);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 20px;
       height: 280px;
+      box-shadow: var(--shadow);
     }
 
-    /* EMPTY / ERROR */
     .state-center {
       grid-column: 1 / -1;
       text-align: center;
@@ -448,7 +468,6 @@
     .state-center h3 { color: var(--text2); margin-bottom: 8px; font-size: 18px; }
     .state-center p { font-size: 14px; }
 
-    /* PAGINATION */
     .pagination {
       display: flex;
       justify-content: center;
@@ -456,18 +475,12 @@
       padding: 0 24px 60px;
       align-items: center;
     }
+    .page-info { font-size: 14px; color: var(--text3); margin: 0 8px; }
 
-    .page-info {
-      font-size: 14px;
-      color: var(--text3);
-      margin: 0 8px;
-    }
-
-    /* API KEY MODAL */
     .modal-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.7);
+      background: rgba(0,0,0,0.3);
       z-index: 200;
       display: flex;
       align-items: center;
@@ -483,13 +496,9 @@
       padding: 32px;
       width: 100%;
       max-width: 480px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.12);
     }
-
-    .modal h2 {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 22px;
-      margin-bottom: 8px;
-    }
+    .modal h2 { font-family: 'Space Grotesk', sans-serif; font-size: 22px; margin-bottom: 8px; }
     .modal p { color: var(--text2); font-size: 14px; margin-bottom: 20px; line-height: 1.6; }
 
     .modal input {
@@ -502,18 +511,13 @@
       font-family: inherit;
       padding: 10px 14px;
       outline: none;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
     }
     .modal input:focus { border-color: var(--accent); }
 
-    .modal-hint {
-      font-size: 12px;
-      color: var(--text3);
-      margin-bottom: 20px;
-    }
-    .modal-hint a { color: #a78bfa; }
+    .modal-hint { font-size: 12px; color: var(--text3); margin-bottom: 20px; }
+    .modal-hint a { color: var(--accent); }
 
-    /* Footer */
     footer {
       border-top: 1px solid var(--border);
       padding: 24px;
@@ -523,7 +527,6 @@
     }
     footer a { color: var(--text2); }
 
-    /* Scrollbar */
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
@@ -534,134 +537,285 @@
       .grid-container { grid-template-columns: 1fr; padding: 0 16px 60px; }
       .filters-bar { padding: 0 16px 20px; }
       nav { padding: 0 16px; }
+      .nav-right { gap: 6px; }
     }
   </style>
 </head>
 <body>
 
-<!-- API KEY MODAL -->
 <div class="modal-overlay" id="apiModal">
   <div class="modal">
-    <h2>🔑 Введите API ключ</h2>
-    <p>Для работы сайта нужен API ключ TrustMRR. Он используется только в вашем браузере и никуда не отправляется.</p>
+    <h2 id="m-title">🔑 Введите API ключ</h2>
+    <p id="m-desc">Для работы сайта нужен API ключ TrustMRR. Он используется только в вашем браузере и никуда не отправляется.</p>
     <input type="text" id="apiKeyInput" placeholder="tmrr_xxxxxxxxxxxxxxxx" autocomplete="off" spellcheck="false" />
     <p class="modal-hint">
-      Получить ключ: <a href="https://trustmrr.com/dashboard-dev" target="_blank">trustmrr.com/dashboard-dev</a><br>
-      Ключи начинаются с <code style="color:#a78bfa">tmrr_</code>
+      <span id="m-hint1">Получить ключ:</span> <a href="https://trustmrr.com/dashboard-dev" target="_blank">trustmrr.com/dashboard-dev</a><br>
+      <span id="m-hint2">Ключи начинаются с</span> <code style="color:var(--accent)">tmrr_</code>
     </p>
     <div style="display:flex;gap:10px;">
-      <button class="btn btn-primary" onclick="saveApiKey()" style="flex:1;justify-content:center;">
-        Сохранить и загрузить
-      </button>
-      <button class="btn btn-ghost" onclick="useDemoMode()" style="flex:1;justify-content:center;">
-        Демо-режим
-      </button>
+      <button class="btn btn-primary" onclick="saveApiKey()" style="flex:1;justify-content:center;" id="m-save">Сохранить и загрузить</button>
+      <button class="btn btn-ghost" onclick="useDemoMode()" style="flex:1;justify-content:center;" id="m-demo">Демо-режим</button>
     </div>
   </div>
 </div>
 
-<!-- NAV -->
 <nav>
   <a class="nav-logo" href="#">⚡ StartupMarket</a>
   <div class="nav-right">
-    <button class="btn btn-ghost" onclick="showApiModal()" id="apiBtn">
+    <!-- LANG SWITCHER -->
+    <div class="lang-switcher" id="langSwitcher">
+      <button class="lang-btn" onclick="toggleLangMenu()" id="langBtnLabel">🇷🇺 RU</button>
+      <div class="lang-dropdown" id="langDropdown">
+        <div class="lang-option" onclick="setLang('en')"><span class="lang-flag">🇬🇧</span> English</div>
+        <div class="lang-option" onclick="setLang('de')"><span class="lang-flag">🇩🇪</span> Deutsch</div>
+        <div class="lang-option" onclick="setLang('fr')"><span class="lang-flag">🇫🇷</span> Français</div>
+        <div class="lang-option" onclick="setLang('it')"><span class="lang-flag">🇮🇹</span> Italiano</div>
+        <div class="lang-option active" onclick="setLang('ru')"><span class="lang-flag">🇷🇺</span> Русский</div>
+        <div class="lang-option" onclick="setLang('zh')"><span class="lang-flag">🇨🇳</span> 中文</div>
+        <div class="lang-option" onclick="setLang('ar')"><span class="lang-flag">🇸🇦</span> العربية</div>
+      </div>
+    </div>
+    <button class="btn btn-ghost" onclick="showApiModal()" id="nav-api-btn">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
-      API ключ
+      <span id="nav-api-text">API ключ</span>
     </button>
-    <a class="btn btn-primary" href="https://trustmrr.com/sell" target="_blank">Продать стартап</a>
+    <a class="btn btn-primary" href="https://trustmrr.com/sell" target="_blank" id="nav-sell-btn">Продать стартап</a>
   </div>
 </nav>
 
-<!-- HERO -->
 <div class="hero">
   <div class="hero-badge">
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
-    Данные верифицированы через Stripe, LemonSqueezy и Polar
+    <span id="hero-badge-text">Данные верифицированы через Stripe, LemonSqueezy и Polar</span>
   </div>
-  <h1>Купите <span>прибыльный стартап</span> с доказанными метриками</h1>
-  <p>Только реальные MRR-данные. Никаких выдуманных цифр — каждый показатель проверен через платёжные провайдеры напрямую.</p>
+  <h1 id="hero-title">Купите <span id="hero-title-span">прибыльный стартап</span> с доказанными метриками</h1>
+  <p id="hero-sub">Только реальные MRR-данные. Никаких выдуманных цифр — каждый показатель проверен через платёжные провайдеры напрямую.</p>
   <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
-    <button class="btn btn-primary" onclick="filterSale(true)" style="font-size:15px;padding:11px 24px;">
-      Смотреть на продаже
-    </button>
-    <button class="btn btn-ghost" onclick="filterSale(false)" style="font-size:15px;padding:11px 24px;">
-      Все стартапы
-    </button>
+    <button class="btn btn-primary" onclick="filterSale(true)" style="font-size:15px;padding:11px 24px;" id="hero-btn1">Смотреть на продаже</button>
+    <button class="btn btn-ghost" onclick="filterSale(null)" style="font-size:15px;padding:11px 24px;" id="hero-btn2">Все стартапы</button>
   </div>
 </div>
 
-<!-- STATS -->
-<div class="stats-row" id="statsRow">
-  <div class="stat-item"><div class="stat-value" id="statTotal">—</div><div class="stat-label">Стартапов в базе</div></div>
-  <div class="stat-item"><div class="stat-value" id="statSale">—</div><div class="stat-label">На продаже прямо сейчас</div></div>
-  <div class="stat-item"><div class="stat-value" id="statRevenue">—</div><div class="stat-label">Суммарный MRR</div></div>
+<div class="stats-row">
+  <div class="stat-item"><div class="stat-value" id="statTotal">—</div><div class="stat-label" id="stat-label1">Стартапов в базе</div></div>
+  <div class="stat-item"><div class="stat-value" id="statSale">—</div><div class="stat-label" id="stat-label2">На продаже прямо сейчас</div></div>
+  <div class="stat-item"><div class="stat-value" id="statRevenue">—</div><div class="stat-label" id="stat-label3">Суммарный MRR</div></div>
 </div>
 
-<!-- FILTERS -->
 <div class="filters-bar">
   <div class="search-wrap">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
     <input type="text" class="search-input" id="searchInput" placeholder="Поиск по названию..." oninput="onSearch(this.value)" />
   </div>
-
   <select class="filter-select" id="categorySelect" onchange="onCategoryChange(this.value)">
-    <option value="">Все категории</option>
-    <option value="ai">🤖 Искусственный интеллект</option>
+    <option value="" id="cat-all">Все категории</option>
+    <option value="ai">🤖 AI</option>
     <option value="saas">☁️ SaaS</option>
-    <option value="developer-tools">💻 Инструменты разработчика</option>
-    <option value="fintech">💳 Финтех</option>
-    <option value="marketing">📣 Маркетинг</option>
+    <option value="developer-tools">💻 Dev Tools</option>
+    <option value="fintech">💳 Fintech</option>
+    <option value="marketing">📣 Marketing</option>
     <option value="ecommerce">🛒 E-commerce</option>
-    <option value="productivity">⚡ Продуктивность</option>
-    <option value="design-tools">🎨 Дизайн</option>
+    <option value="productivity">⚡ Productivity</option>
+    <option value="design-tools">🎨 Design</option>
     <option value="no-code">🧩 No-code</option>
-    <option value="analytics">📊 Аналитика</option>
-    <option value="crypto-web3">🔗 Крипто / Web3</option>
-    <option value="education">📚 Образование</option>
-    <option value="health-fitness">💪 Здоровье</option>
+    <option value="analytics">📊 Analytics</option>
+    <option value="crypto-web3">🔗 Web3</option>
+    <option value="education">📚 Education</option>
+    <option value="health-fitness">💪 Health</option>
   </select>
-
   <select class="filter-select" id="sortSelect" onchange="onSortChange(this.value)">
-    <option value="revenue-desc">↓ По выручке</option>
-    <option value="growth-desc">🚀 По росту</option>
-    <option value="price-asc">💰 Дешевле сначала</option>
-    <option value="price-desc">💎 Дороже сначала</option>
-    <option value="multiple-asc">🏷️ Лучшая цена/выручка</option>
-    <option value="listed-desc">🆕 Недавно добавлены</option>
-    <option value="best-deal">🔥 Лучшие сделки</option>
+    <option value="revenue-desc" id="sort-rev-desc">↓ По выручке</option>
+    <option value="growth-desc" id="sort-growth">🚀 По росту</option>
+    <option value="price-asc" id="sort-price-asc">💰 Дешевле сначала</option>
+    <option value="price-desc" id="sort-price-desc">💎 Дороже сначала</option>
+    <option value="multiple-asc" id="sort-multiple">🏷️ Лучшая цена/выручка</option>
+    <option value="listed-desc" id="sort-listed">🆕 Недавно добавлены</option>
+    <option value="best-deal" id="sort-deal">🔥 Лучшие сделки</option>
   </select>
-
-  <button class="filter-chip active" id="chipAll" onclick="filterSale(null)">Все</button>
-  <button class="filter-chip" id="chipSale" onclick="filterSale(true)">На продаже</button>
+  <button class="filter-chip active" id="chipAll" onclick="filterSale(null)">—</button>
+  <button class="filter-chip" id="chipSale" onclick="filterSale(true)">—</button>
 </div>
 
-<!-- GRID -->
-<div class="grid-container" id="grid">
-  <!-- Cards inserted by JS -->
-</div>
+<div class="grid-container" id="grid"></div>
 
-<!-- PAGINATION -->
 <div class="pagination" id="pagination" style="display:none;">
-  <button class="btn btn-ghost" id="prevBtn" onclick="changePage(-1)" disabled>← Назад</button>
+  <button class="btn btn-ghost" id="prevBtn" onclick="changePage(-1)" disabled>←</button>
   <span class="page-info" id="pageInfo"></span>
-  <button class="btn btn-ghost" id="nextBtn" onclick="changePage(1)">Вперёд →</button>
+  <button class="btn btn-ghost" id="nextBtn" onclick="changePage(1)">→</button>
 </div>
 
 <footer>
-  Данные предоставлены <a href="https://trustmrr.com" target="_blank">TrustMRR</a> · API v1 · Обновляется каждый час
+  <span id="footer-text">Данные предоставлены</span> <a href="https://trustmrr.com" target="_blank">TrustMRR</a> · API v1
 </footer>
 
 <script>
+// ── TRANSLATIONS ─────────────────────────────────────────────────────────────
+const T = {
+  en: {
+    dir: 'ltr', flag: '🇬🇧', code: 'EN',
+    heroBadge: 'Data verified via Stripe, LemonSqueezy & Polar',
+    heroTitle: 'Buy a ', heroSpan: 'profitable startup', heroTitleEnd: ' with proven metrics',
+    heroSub: 'Real MRR data only. No made-up numbers — every metric verified directly through payment providers.',
+    heroBtn1: 'View for sale', heroBtn2: 'All startups',
+    statLabel1: 'Startups in database', statLabel2: 'For sale right now', statLabel3: 'Total MRR',
+    searchPlaceholder: 'Search by name...', catAll: 'All categories',
+    sortRevDesc: '↓ By revenue', sortGrowth: '🚀 By growth', sortPriceAsc: '💰 Cheapest first',
+    sortPriceDesc: '💎 Most expensive', sortMultiple: '🏷️ Best value', sortListed: '🆕 Recently listed', sortDeal: '🔥 Best deals',
+    chipAll: 'All', chipSale: 'For sale',
+    navApi: 'API key', navSell: 'Sell a startup',
+    mTitle: '🔑 Enter API key', mDesc: 'You need a TrustMRR API key. It is only used in your browser and never sent anywhere.',
+    mHint1: 'Get your key:', mHint2: 'Keys start with', mSave: 'Save & load', mDemo: 'Demo mode',
+    metaMrr: 'MRR', metaRev30: '30-day revenue', metaGrowth: 'growth',
+    metaCustomers: 'Customers', metaTotal: 'total', metaSubs: 'Subscriptions', metaActive: 'active',
+    priceLabel: 'Asking price', notForSale: 'Not for sale', moreBtn: 'Details →',
+    verifiedLabel: 'verified', pageLabel: 'Page', pageOf: 'of',
+    footerText: 'Data provided by', errorKey: 'Invalid API key. Check your key at trustmrr.com/dashboard-dev',
+    errorLoad: 'Error loading data. Check your API key or internet connection.',
+    emptyTitle: 'Nothing found', emptySub: 'Try changing the filters or search query',
+  },
+  de: {
+    dir: 'ltr', flag: '🇩🇪', code: 'DE',
+    heroBadge: 'Daten verifiziert über Stripe, LemonSqueezy & Polar',
+    heroTitle: 'Kaufen Sie ein ', heroSpan: 'profitables Startup', heroTitleEnd: ' mit bewiesenen Metriken',
+    heroSub: 'Nur echte MRR-Daten. Keine erfundenen Zahlen — jede Kennzahl direkt über Zahlungsanbieter verifiziert.',
+    heroBtn1: 'Zum Verkauf', heroBtn2: 'Alle Startups',
+    statLabel1: 'Startups in der Datenbank', statLabel2: 'Gerade zum Verkauf', statLabel3: 'Gesamt MRR',
+    searchPlaceholder: 'Nach Name suchen...', catAll: 'Alle Kategorien',
+    sortRevDesc: '↓ Nach Umsatz', sortGrowth: '🚀 Nach Wachstum', sortPriceAsc: '💰 Günstigste zuerst',
+    sortPriceDesc: '💎 Teuerste zuerst', sortMultiple: '🏷️ Bestes Preis-Umsatz', sortListed: '🆕 Zuletzt gelistet', sortDeal: '🔥 Beste Deals',
+    chipAll: 'Alle', chipSale: 'Zum Verkauf',
+    navApi: 'API-Schlüssel', navSell: 'Startup verkaufen',
+    mTitle: '🔑 API-Schlüssel eingeben', mDesc: 'Sie benötigen einen TrustMRR API-Schlüssel. Er wird nur in Ihrem Browser verwendet.',
+    mHint1: 'Schlüssel erhalten:', mHint2: 'Schlüssel beginnen mit', mSave: 'Speichern & laden', mDemo: 'Demo-Modus',
+    metaMrr: 'MRR', metaRev30: '30-Tage Umsatz', metaGrowth: 'Wachstum',
+    metaCustomers: 'Kunden', metaTotal: 'gesamt', metaSubs: 'Abonnements', metaActive: 'aktiv',
+    priceLabel: 'Verkaufspreis', notForSale: 'Nicht zum Verkauf', moreBtn: 'Details →',
+    verifiedLabel: 'verifiziert', pageLabel: 'Seite', pageOf: 'von',
+    footerText: 'Daten bereitgestellt von', errorKey: 'Ungültiger API-Schlüssel.',
+    errorLoad: 'Fehler beim Laden der Daten. API-Schlüssel prüfen.',
+    emptyTitle: 'Nichts gefunden', emptySub: 'Versuchen Sie, die Filter zu ändern',
+  },
+  fr: {
+    dir: 'ltr', flag: '🇫🇷', code: 'FR',
+    heroBadge: 'Données vérifiées via Stripe, LemonSqueezy & Polar',
+    heroTitle: 'Achetez une ', heroSpan: 'startup rentable', heroTitleEnd: ' avec des métriques prouvées',
+    heroSub: 'Uniquement des données MRR réelles. Aucun chiffre inventé — chaque métrique vérifiée directement.',
+    heroBtn1: 'Voir à vendre', heroBtn2: 'Toutes les startups',
+    statLabel1: 'Startups dans la base', statLabel2: 'En vente maintenant', statLabel3: 'MRR total',
+    searchPlaceholder: 'Rechercher par nom...', catAll: 'Toutes les catégories',
+    sortRevDesc: '↓ Par revenu', sortGrowth: '🚀 Par croissance', sortPriceAsc: '💰 Moins cher d\'abord',
+    sortPriceDesc: '💎 Plus cher d\'abord', sortMultiple: '🏷️ Meilleur rapport', sortListed: '🆕 Récemment listés', sortDeal: '🔥 Meilleures offres',
+    chipAll: 'Tous', chipSale: 'À vendre',
+    navApi: 'Clé API', navSell: 'Vendre une startup',
+    mTitle: '🔑 Entrez la clé API', mDesc: 'Vous avez besoin d\'une clé API TrustMRR. Elle n\'est utilisée que dans votre navigateur.',
+    mHint1: 'Obtenir la clé:', mHint2: 'Les clés commencent par', mSave: 'Sauvegarder & charger', mDemo: 'Mode démo',
+    metaMrr: 'MRR', metaRev30: 'Revenu 30 jours', metaGrowth: 'croissance',
+    metaCustomers: 'Clients', metaTotal: 'total', metaSubs: 'Abonnements', metaActive: 'actifs',
+    priceLabel: 'Prix demandé', notForSale: 'Non à vendre', moreBtn: 'Détails →',
+    verifiedLabel: 'vérifié', pageLabel: 'Page', pageOf: 'sur',
+    footerText: 'Données fournies par', errorKey: 'Clé API invalide.',
+    errorLoad: 'Erreur de chargement. Vérifiez votre clé API.',
+    emptyTitle: 'Rien trouvé', emptySub: 'Essayez de modifier les filtres',
+  },
+  it: {
+    dir: 'ltr', flag: '🇮🇹', code: 'IT',
+    heroBadge: 'Dati verificati tramite Stripe, LemonSqueezy e Polar',
+    heroTitle: 'Acquista una ', heroSpan: 'startup redditizia', heroTitleEnd: ' con metriche provate',
+    heroSub: 'Solo dati MRR reali. Nessun numero inventato — ogni metrica verificata direttamente.',
+    heroBtn1: 'Vedi in vendita', heroBtn2: 'Tutte le startup',
+    statLabel1: 'Startup nel database', statLabel2: 'In vendita adesso', statLabel3: 'MRR totale',
+    searchPlaceholder: 'Cerca per nome...', catAll: 'Tutte le categorie',
+    sortRevDesc: '↓ Per fatturato', sortGrowth: '🚀 Per crescita', sortPriceAsc: '💰 Più economico',
+    sortPriceDesc: '💎 Più costoso', sortMultiple: '🏷️ Miglior rapporto', sortListed: '🆕 Aggiunti di recente', sortDeal: '🔥 Migliori offerte',
+    chipAll: 'Tutti', chipSale: 'In vendita',
+    navApi: 'Chiave API', navSell: 'Vendi startup',
+    mTitle: '🔑 Inserisci la chiave API', mDesc: 'Hai bisogno di una chiave API TrustMRR. Viene utilizzata solo nel tuo browser.',
+    mHint1: 'Ottieni la chiave:', mHint2: 'Le chiavi iniziano con', mSave: 'Salva e carica', mDemo: 'Modalità demo',
+    metaMrr: 'MRR', metaRev30: 'Fatturato 30 giorni', metaGrowth: 'crescita',
+    metaCustomers: 'Clienti', metaTotal: 'totale', metaSubs: 'Abbonamenti', metaActive: 'attivi',
+    priceLabel: 'Prezzo richiesto', notForSale: 'Non in vendita', moreBtn: 'Dettagli →',
+    verifiedLabel: 'verificato', pageLabel: 'Pagina', pageOf: 'di',
+    footerText: 'Dati forniti da', errorKey: 'Chiave API non valida.',
+    errorLoad: 'Errore di caricamento. Controlla la chiave API.',
+    emptyTitle: 'Niente trovato', emptySub: 'Prova a cambiare i filtri',
+  },
+  ru: {
+    dir: 'ltr', flag: '🇷🇺', code: 'RU',
+    heroBadge: 'Данные верифицированы через Stripe, LemonSqueezy и Polar',
+    heroTitle: 'Купите ', heroSpan: 'прибыльный стартап', heroTitleEnd: ' с доказанными метриками',
+    heroSub: 'Только реальные MRR-данные. Никаких выдуманных цифр — каждый показатель проверен через платёжные провайдеры напрямую.',
+    heroBtn1: 'Смотреть на продаже', heroBtn2: 'Все стартапы',
+    statLabel1: 'Стартапов в базе', statLabel2: 'На продаже прямо сейчас', statLabel3: 'Суммарный MRR',
+    searchPlaceholder: 'Поиск по названию...', catAll: 'Все категории',
+    sortRevDesc: '↓ По выручке', sortGrowth: '🚀 По росту', sortPriceAsc: '💰 Дешевле сначала',
+    sortPriceDesc: '💎 Дороже сначала', sortMultiple: '🏷️ Лучшая цена/выручка', sortListed: '🆕 Недавно добавлены', sortDeal: '🔥 Лучшие сделки',
+    chipAll: 'Все', chipSale: 'На продаже',
+    navApi: 'API ключ', navSell: 'Продать стартап',
+    mTitle: '🔑 Введите API ключ', mDesc: 'Для работы сайта нужен API ключ TrustMRR. Он используется только в вашем браузере и никуда не отправляется.',
+    mHint1: 'Получить ключ:', mHint2: 'Ключи начинаются с', mSave: 'Сохранить и загрузить', mDemo: 'Демо-режим',
+    metaMrr: 'MRR', metaRev30: 'Выручка 30 дней', metaGrowth: 'рост',
+    metaCustomers: 'Клиентов', metaTotal: 'всего', metaSubs: 'Подписки', metaActive: 'активных',
+    priceLabel: 'Цена продажи', notForSale: 'Не продаётся', moreBtn: 'Подробнее →',
+    verifiedLabel: 'verified', pageLabel: 'Страница', pageOf: 'из',
+    footerText: 'Данные предоставлены', errorKey: 'Неверный API ключ. Проверьте ключ на trustmrr.com/dashboard-dev',
+    errorLoad: 'Ошибка загрузки данных. Проверьте API ключ или интернет-соединение.',
+    emptyTitle: 'Ничего не найдено', emptySub: 'Попробуйте изменить фильтры или поисковый запрос',
+  },
+  zh: {
+    dir: 'ltr', flag: '🇨🇳', code: 'ZH',
+    heroBadge: '数据通过 Stripe、LemonSqueezy 和 Polar 验证',
+    heroTitle: '购买', heroSpan: '盈利初创公司', heroTitleEnd: '，指标经过验证',
+    heroSub: '只有真实的 MRR 数据。没有虚构数字 — 每个指标均通过支付提供商直接验证。',
+    heroBtn1: '查看在售', heroBtn2: '所有初创公司',
+    statLabel1: '数据库中的初创公司', statLabel2: '当前在售', statLabel3: '总 MRR',
+    searchPlaceholder: '按名称搜索...', catAll: '所有类别',
+    sortRevDesc: '↓ 按收入', sortGrowth: '🚀 按增长', sortPriceAsc: '💰 价格从低到高',
+    sortPriceDesc: '💎 价格从高到低', sortMultiple: '🏷️ 最佳性价比', sortListed: '🆕 最近上架', sortDeal: '🔥 最佳交易',
+    chipAll: '全部', chipSale: '在售',
+    navApi: 'API 密钥', navSell: '出售初创公司',
+    mTitle: '🔑 输入 API 密钥', mDesc: '您需要 TrustMRR API 密钥。它仅在您的浏览器中使用，不会发送到任何地方。',
+    mHint1: '获取密钥：', mHint2: '密钥以', mSave: '保存并加载', mDemo: '演示模式',
+    metaMrr: 'MRR', metaRev30: '30天收入', metaGrowth: '增长',
+    metaCustomers: '客户', metaTotal: '总计', metaSubs: '订阅', metaActive: '活跃',
+    priceLabel: '要价', notForSale: '不出售', moreBtn: '详情 →',
+    verifiedLabel: '已验证', pageLabel: '第', pageOf: '页，共',
+    footerText: '数据由以下提供', errorKey: 'API 密钥无效。',
+    errorLoad: '加载数据时出错。请检查您的 API 密钥。',
+    emptyTitle: '未找到任何内容', emptySub: '请尝试更改过滤条件',
+  },
+  ar: {
+    dir: 'rtl', flag: '🇸🇦', code: 'AR',
+    heroBadge: 'البيانات موثقة عبر Stripe و LemonSqueezy و Polar',
+    heroTitle: 'اشترِ ', heroSpan: 'شركة ناشئة مربحة', heroTitleEnd: ' بمقاييس مثبتة',
+    heroSub: 'بيانات MRR حقيقية فقط. لا أرقام مخترعة — كل مقياس موثق مباشرة عبر موفري الدفع.',
+    heroBtn1: 'عرض المعروضة للبيع', heroBtn2: 'جميع الشركات الناشئة',
+    statLabel1: 'الشركات الناشئة في قاعدة البيانات', statLabel2: 'معروضة للبيع الآن', statLabel3: 'إجمالي MRR',
+    searchPlaceholder: 'بحث بالاسم...', catAll: 'جميع الفئات',
+    sortRevDesc: '↓ حسب الإيرادات', sortGrowth: '🚀 حسب النمو', sortPriceAsc: '💰 الأرخص أولاً',
+    sortPriceDesc: '💎 الأغلى أولاً', sortMultiple: '🏷️ أفضل قيمة', sortListed: '🆕 المضافة حديثاً', sortDeal: '🔥 أفضل الصفقات',
+    chipAll: 'الكل', chipSale: 'للبيع',
+    navApi: 'مفتاح API', navSell: 'بيع شركة ناشئة',
+    mTitle: '🔑 أدخل مفتاح API', mDesc: 'تحتاج إلى مفتاح API من TrustMRR. يُستخدم فقط في متصفحك ولا يُرسل إلى أي مكان.',
+    mHint1: 'احصل على المفتاح:', mHint2: 'تبدأ المفاتيح بـ', mSave: 'حفظ وتحميل', mDemo: 'وضع العرض التوضيحي',
+    metaMrr: 'MRR', metaRev30: 'إيرادات 30 يوم', metaGrowth: 'نمو',
+    metaCustomers: 'العملاء', metaTotal: 'الإجمالي', metaSubs: 'الاشتراكات', metaActive: 'نشط',
+    priceLabel: 'سعر الطلب', notForSale: 'غير معروض للبيع', moreBtn: 'التفاصيل →',
+    verifiedLabel: 'موثق', pageLabel: 'صفحة', pageOf: 'من',
+    footerText: 'البيانات مقدمة من', errorKey: 'مفتاح API غير صالح.',
+    errorLoad: 'خطأ في تحميل البيانات. تحقق من مفتاح API.',
+    emptyTitle: 'لم يتم العثور على شيء', emptySub: 'حاول تغيير المرشحات',
+  }
+};
+
+// ── STATE ─────────────────────────────────────────────────────────────────
 const API_BASE = '/api';
 let apiKey = localStorage.getItem('trustmrr_api_key') || '';
 let currentPage = 1;
-let totalPages = 1;
 let currentFilters = { sort: 'revenue-desc', onSale: null, category: '', search: '' };
 let searchTimeout = null;
 let isDemoMode = false;
-let allData = [];
+let currentLang = localStorage.getItem('lang') || 'ru';
 
-// ── DEMO DATA ──────────────────────────────────────────────────────────────
 const DEMO_STARTUPS = [
   { name:'ShipFast', slug:'shipfast', icon:'https://shipfa.st/favicon.ico', description:'The NextJS boilerplate with all you need to build your SaaS, AI tool, or any other web app fast.', category:'saas', paymentProvider:'stripe', onSale:true, askingPrice:5000000, multiple:0.98, revenue:{last30Days:4250000,mrr:420000,total:98000000}, customers:7800, activeSubscriptions:320, growth30d:12, country:'TH' },
   { name:'CodeFast', slug:'codefast', icon:null, description:'Learn to code 10x faster with AI-assisted learning. Build real projects from day one.', category:'education', paymentProvider:'stripe', onSale:false, askingPrice:null, multiple:null, revenue:{last30Days:1800000,mrr:180000,total:24000000}, customers:3200, activeSubscriptions:890, growth30d:24, country:'US' },
@@ -671,8 +825,79 @@ const DEMO_STARTUPS = [
   { name:'IndiePage', slug:'indiepage', icon:null, description:'Showcase your startup portfolio. The linktree for indie hackers and solopreneurs.', category:'marketing', paymentProvider:'lemonsqueezy', onSale:true, askingPrice:900000, multiple:7.5, revenue:{last30Days:12000,mrr:12000,total:180000}, customers:2800, activeSubscriptions:120, growth30d:5, country:'TH' },
 ];
 
-// ── INIT ────────────────────────────────────────────────────────────────────
+// ── LANG ─────────────────────────────────────────────────────────────────────
+function t(key) { return (T[currentLang] || T.en)[key] || ''; }
+
+function applyTranslations() {
+  const lang = T[currentLang] || T.en;
+  document.documentElement.lang = currentLang;
+  document.documentElement.dir = lang.dir;
+
+  setText('hero-badge-text', lang.heroBadge);
+  document.getElementById('hero-title').innerHTML = lang.heroTitle + `<span id="hero-title-span">${lang.heroSpan}</span>` + lang.heroTitleEnd;
+  setText('hero-sub', lang.heroSub);
+  setText('hero-btn1', lang.heroBtn1);
+  setText('hero-btn2', lang.heroBtn2);
+  setText('stat-label1', lang.statLabel1);
+  setText('stat-label2', lang.statLabel2);
+  setText('stat-label3', lang.statLabel3);
+  document.getElementById('searchInput').placeholder = lang.searchPlaceholder;
+  setText('cat-all', lang.catAll);
+  setText('sort-rev-desc', lang.sortRevDesc);
+  setText('sort-growth', lang.sortGrowth);
+  setText('sort-price-asc', lang.sortPriceAsc);
+  setText('sort-price-desc', lang.sortPriceDesc);
+  setText('sort-multiple', lang.sortMultiple);
+  setText('sort-listed', lang.sortListed);
+  setText('sort-deal', lang.sortDeal);
+  setText('chipAll', lang.chipAll);
+  setText('chipSale', lang.chipSale);
+  setText('nav-api-text', lang.navApi);
+  setText('nav-sell-btn', lang.navSell);
+  setText('m-title', lang.mTitle);
+  setText('m-desc', lang.mDesc);
+  setText('m-hint1', lang.mHint1);
+  setText('m-hint2', lang.mHint2);
+  setText('m-save', lang.mSave);
+  setText('m-demo', lang.mDemo);
+  setText('footer-text', lang.footerText);
+  document.getElementById('langBtnLabel').textContent = lang.flag + ' ' + lang.code;
+
+  // Update active lang option
+  document.querySelectorAll('.lang-option').forEach(el => {
+    el.classList.remove('active');
+    if (el.getAttribute('onclick') === `setLang('${currentLang}')`) el.classList.add('active');
+  });
+
+  // Re-render cards if loaded
+  if (isDemoMode) renderDemoData();
+}
+
+function setText(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+
+function setLang(code) {
+  currentLang = code;
+  localStorage.setItem('lang', code);
+  document.getElementById('langDropdown').classList.remove('open');
+  applyTranslations();
+}
+
+function toggleLangMenu() {
+  document.getElementById('langDropdown').classList.toggle('open');
+}
+
+document.addEventListener('click', (e) => {
+  if (!document.getElementById('langSwitcher').contains(e.target)) {
+    document.getElementById('langDropdown').classList.remove('open');
+  }
+});
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
+  applyTranslations();
   if (!apiKey) {
     document.getElementById('apiModal').classList.remove('hidden');
   } else {
@@ -683,7 +908,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
 function saveApiKey() {
   const val = document.getElementById('apiKeyInput').value.trim();
-  if (!val) return alert('Введите API ключ');
+  if (!val) return alert(t('mHint2'));
   apiKey = val;
   localStorage.setItem('trustmrr_api_key', val);
   isDemoMode = false;
@@ -698,102 +923,68 @@ function useDemoMode() {
   renderDemoData();
 }
 
-function renderDemoData() {
-  document.getElementById('statTotal').textContent = '800+';
-  document.getElementById('statSale').textContent = '120+';
-  document.getElementById('statRevenue').textContent = '$1.2M';
-
-  let filtered = DEMO_STARTUPS;
-  if (currentFilters.onSale === true) filtered = filtered.filter(s => s.onSale);
-  if (currentFilters.category) filtered = filtered.filter(s => s.category === currentFilters.category);
-  if (currentFilters.search) filtered = filtered.filter(s => s.name.toLowerCase().includes(currentFilters.search.toLowerCase()));
-
-  renderCards(filtered);
-  document.getElementById('pagination').style.display = 'none';
-}
-
 function showApiModal() {
   document.getElementById('apiModal').classList.remove('hidden');
 }
 
-// ── DATA FETCHING ───────────────────────────────────────────────────────────
+// ── FETCH ─────────────────────────────────────────────────────────────────────
 async function loadStartups() {
   if (isDemoMode) { renderDemoData(); return; }
-
   showSkeleton();
-
-  const params = new URLSearchParams({
-    page: currentPage,
-    limit: 12,
-    sort: currentFilters.sort,
-  });
+  const params = new URLSearchParams({ page: currentPage, limit: 12, sort: currentFilters.sort });
   if (currentFilters.onSale !== null) params.set('onSale', currentFilters.onSale);
   if (currentFilters.category) params.set('category', currentFilters.category);
-
   try {
     const res = await fetch(`${API_BASE}/startups?${params}`, {
       headers: { Authorization: `Bearer ${apiKey}` }
     });
-
-    if (res.status === 401) {
-      showError('Неверный API ключ. Проверьте ключ на trustmrr.com/dashboard-dev');
-      return;
-    }
+    if (res.status === 401) { showError(t('errorKey')); return; }
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
     const { data, meta } = await res.json();
-    allData = data;
-
-    // Update stats (first page only)
-    if (currentPage === 1 && !currentFilters.onSale && !currentFilters.category) {
-      updateStats(meta.total);
-    }
-
-    totalPages = Math.ceil(meta.total / 12);
-    renderCards(data, meta);
+    if (currentPage === 1 && !currentFilters.onSale && !currentFilters.category) updateStats(meta.total);
+    renderCards(data);
     updatePagination(meta);
-
   } catch (err) {
-    console.error(err);
-    showError('Ошибка загрузки данных. Проверьте API ключ или интернет-соединение.');
+    showError(t('errorLoad'));
   }
 }
 
 async function updateStats(total) {
   document.getElementById('statTotal').textContent = total.toLocaleString();
-
   try {
-    const resSale = await fetch(`${API_BASE}/startups?limit=1&onSale=true`, {
-      headers: { Authorization: `Bearer ${apiKey}` }
-    });
-    if (resSale.ok) {
-      const { meta } = await resSale.json();
-      document.getElementById('statSale').textContent = meta.total.toLocaleString();
-    }
+    const r = await fetch(`${API_BASE}/startups?limit=1&onSale=true`, { headers: { Authorization: `Bearer ${apiKey}` } });
+    if (r.ok) { const { meta } = await r.json(); document.getElementById('statSale').textContent = meta.total.toLocaleString(); }
   } catch {}
-
-  document.getElementById('statRevenue').textContent = '—';
 }
 
-// ── RENDER ──────────────────────────────────────────────────────────────────
+// ── RENDER ────────────────────────────────────────────────────────────────────
 function renderCards(startups) {
   const grid = document.getElementById('grid');
-
-  if (!startups || startups.length === 0) {
-    grid.innerHTML = `<div class="state-center"><h3>Ничего не найдено</h3><p>Попробуйте изменить фильтры или поисковый запрос</p></div>`;
-    return;
-  }
-
-  let filtered = startups;
+  let filtered = startups || [];
   if (currentFilters.search) {
     const q = currentFilters.search.toLowerCase();
-    filtered = startups.filter(s =>
-      s.name.toLowerCase().includes(q) ||
-      (s.description || '').toLowerCase().includes(q)
-    );
+    filtered = filtered.filter(s => s.name.toLowerCase().includes(q) || (s.description||'').toLowerCase().includes(q));
   }
-
+  if (!filtered.length) {
+    grid.innerHTML = `<div class="state-center"><h3>${t('emptyTitle')}</h3><p>${t('emptySub')}</p></div>`;
+    return;
+  }
   grid.innerHTML = filtered.map(s => cardHTML(s)).join('');
+}
+
+function renderDemoData() {
+  document.getElementById('statTotal').textContent = '800+';
+  document.getElementById('statSale').textContent = '120+';
+  document.getElementById('statRevenue').textContent = '$1.2M';
+  let filtered = DEMO_STARTUPS;
+  if (currentFilters.onSale === true) filtered = filtered.filter(s => s.onSale);
+  if (currentFilters.category) filtered = filtered.filter(s => s.category === currentFilters.category);
+  if (currentFilters.search) {
+    const q = currentFilters.search.toLowerCase();
+    filtered = filtered.filter(s => s.name.toLowerCase().includes(q));
+  }
+  renderCards(filtered);
+  document.getElementById('pagination').style.display = 'none';
 }
 
 function cardHTML(s) {
@@ -802,116 +993,69 @@ function cardHTML(s) {
   const growth = s.growth30d;
   const growthClass = growth > 0 ? 'growth-positive' : growth < 0 ? 'growth-negative' : '';
   const growthStr = growth !== null && growth !== undefined
-    ? `<span class="${growthClass}">${growth > 0 ? '+' : ''}${growth.toFixed(1)}%</span>`
-    : '—';
-
+    ? `<span class="${growthClass}">${growth > 0 ? '+' : ''}${parseFloat(growth).toFixed(1)}%</span>` : '—';
   const iconHtml = s.icon
-    ? `<img src="${s.icon}" alt="${s.name}" loading="lazy" onerror="this.parentElement.textContent='${s.name.charAt(0)}'"/>`
+    ? `<img src="${s.icon}" alt="${escHtml(s.name)}" loading="lazy" onerror="this.parentElement.textContent='${s.name.charAt(0)}'"/>`
     : `<span style="font-size:18px;font-weight:700;color:var(--text2)">${s.name.charAt(0)}</span>`;
-
-  const catLabel = categoryLabel(s.category);
-
   const priceSection = s.onSale && s.askingPrice
-    ? `<div class="card-price">
-        <div class="label">Цена продажи</div>
-        <div class="amount">${formatMoney(s.askingPrice)}</div>
-        ${s.multiple ? `<div class="multiple">${s.multiple.toFixed(1)}x MRR</div>` : ''}
-       </div>`
-    : `<div class="card-price">
-        <div class="label">Не продаётся</div>
-        <div class="amount" style="font-size:14px;color:var(--text3)">—</div>
-       </div>`;
-
+    ? `<div class="card-price"><div class="label">${t('priceLabel')}</div><div class="amount">${formatMoney(s.askingPrice)}</div>${s.multiple ? `<div class="multiple">${parseFloat(s.multiple).toFixed(1)}x MRR</div>` : ''}</div>`
+    : `<div class="card-price"><div class="label">${t('notForSale')}</div><div class="amount" style="font-size:14px;color:var(--text3)">—</div></div>`;
   return `
     <div class="startup-card">
-      <div class="verified-dot">verified</div>
+      <div class="verified-dot">${t('verifiedLabel')}</div>
       <div class="card-top">
         <div class="card-icon">${iconHtml}</div>
         <div class="card-meta">
           <div class="card-name">${escHtml(s.name)}</div>
           <div class="card-badges">
-            ${catLabel ? `<span class="badge badge-cat">${catLabel}</span>` : ''}
-            ${s.onSale ? `<span class="badge badge-sale">На продаже</span>` : ''}
+            ${s.category ? `<span class="badge badge-cat">${s.category}</span>` : ''}
+            ${s.onSale ? `<span class="badge badge-sale">${t('chipSale')}</span>` : ''}
             ${s.paymentProvider ? `<span class="badge badge-cat">${s.paymentProvider}</span>` : ''}
           </div>
         </div>
       </div>
       ${s.description ? `<div class="card-desc">${escHtml(s.description)}</div>` : ''}
       <div class="card-metrics">
-        <div class="metric">
-          <div class="metric-label">MRR</div>
-          <div class="metric-value">${mrr}</div>
-          <div class="metric-sub">в месяц</div>
-        </div>
-        <div class="metric">
-          <div class="metric-label">Выручка 30 дней</div>
-          <div class="metric-value">${rev30}</div>
-          <div class="metric-sub">рост: ${growthStr}</div>
-        </div>
-        <div class="metric">
-          <div class="metric-label">Клиентов</div>
-          <div class="metric-value">${(s.customers || 0).toLocaleString()}</div>
-          <div class="metric-sub">всего</div>
-        </div>
-        <div class="metric">
-          <div class="metric-label">Подписки</div>
-          <div class="metric-value">${(s.activeSubscriptions || 0).toLocaleString()}</div>
-          <div class="metric-sub">активных</div>
-        </div>
+        <div class="metric"><div class="metric-label">${t('metaMrr')}</div><div class="metric-value">${mrr}</div><div class="metric-sub">/mo</div></div>
+        <div class="metric"><div class="metric-label">${t('metaRev30')}</div><div class="metric-value">${rev30}</div><div class="metric-sub">${t('metaGrowth')}: ${growthStr}</div></div>
+        <div class="metric"><div class="metric-label">${t('metaCustomers')}</div><div class="metric-value">${(s.customers||0).toLocaleString()}</div><div class="metric-sub">${t('metaTotal')}</div></div>
+        <div class="metric"><div class="metric-label">${t('metaSubs')}</div><div class="metric-value">${(s.activeSubscriptions||0).toLocaleString()}</div><div class="metric-sub">${t('metaActive')}</div></div>
       </div>
       <div class="card-footer">
         ${priceSection}
         <div class="card-actions">
-          <a href="https://trustmrr.com/${s.slug}" target="_blank" class="btn btn-ghost" style="font-size:13px;padding:7px 12px;">
-            Подробнее →
-          </a>
+          <a href="https://trustmrr.com/${s.slug}" target="_blank" class="btn btn-ghost" style="font-size:13px;padding:7px 12px;">${t('moreBtn')}</a>
         </div>
       </div>
-    </div>
-  `;
+    </div>`;
 }
 
 function showSkeleton() {
-  const grid = document.getElementById('grid');
-  grid.innerHTML = Array(9).fill(0).map(() => `
+  document.getElementById('grid').innerHTML = Array(9).fill(0).map(() => `
     <div class="skeleton-card">
       <div style="display:flex;gap:12px;margin-bottom:16px;">
         <div class="skeleton" style="width:44px;height:44px;border-radius:10px;flex-shrink:0;"></div>
-        <div style="flex:1;">
-          <div class="skeleton" style="height:16px;width:60%;margin-bottom:8px;"></div>
-          <div class="skeleton" style="height:12px;width:40%;"></div>
-        </div>
+        <div style="flex:1;"><div class="skeleton" style="height:16px;width:60%;margin-bottom:8px;"></div><div class="skeleton" style="height:12px;width:40%;"></div></div>
       </div>
       <div class="skeleton" style="height:13px;width:100%;margin-bottom:6px;"></div>
       <div class="skeleton" style="height:13px;width:80%;margin-bottom:16px;"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        <div class="skeleton" style="height:60px;border-radius:8px;"></div>
-        <div class="skeleton" style="height:60px;border-radius:8px;"></div>
-        <div class="skeleton" style="height:60px;border-radius:8px;"></div>
-        <div class="skeleton" style="height:60px;border-radius:8px;"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="skeleton" style="height:60px;border-radius:8px;"></div><div class="skeleton" style="height:60px;border-radius:8px;"></div>
+        <div class="skeleton" style="height:60px;border-radius:8px;"></div><div class="skeleton" style="height:60px;border-radius:8px;"></div>
       </div>
-    </div>
-  `).join('');
+    </div>`).join('');
 }
 
 function showError(msg) {
-  document.getElementById('grid').innerHTML = `
-    <div class="state-center">
-      <h3>⚠️ Ошибка</h3>
-      <p>${msg}</p>
-      <button class="btn btn-primary" onclick="showApiModal()" style="margin-top:16px;">Изменить API ключ</button>
-    </div>
-  `;
+  document.getElementById('grid').innerHTML = `<div class="state-center"><h3>⚠️ Error</h3><p>${msg}</p><button class="btn btn-primary" onclick="showApiModal()" style="margin-top:16px;">${t('navApi')}</button></div>`;
 }
 
-// ── PAGINATION ───────────────────────────────────────────────────────────────
+// ── PAGINATION ────────────────────────────────────────────────────────────────
 function updatePagination(meta) {
-  if (!meta || meta.total <= 12) {
-    document.getElementById('pagination').style.display = 'none';
-    return;
-  }
+  if (!meta || meta.total <= 12) { document.getElementById('pagination').style.display = 'none'; return; }
+  const total = Math.ceil(meta.total / 12);
   document.getElementById('pagination').style.display = 'flex';
-  document.getElementById('pageInfo').textContent = `Страница ${currentPage} из ${Math.ceil(meta.total / 12)}`;
+  document.getElementById('pageInfo').textContent = `${t('pageLabel')} ${currentPage} ${t('pageOf')} ${total}`;
   document.getElementById('prevBtn').disabled = currentPage <= 1;
   document.getElementById('nextBtn').disabled = !meta.hasMore;
 }
@@ -932,47 +1076,22 @@ function filterSale(val) {
   if (isDemoMode) renderDemoData(); else loadStartups();
 }
 
-function onCategoryChange(val) {
-  currentFilters.category = val;
-  currentPage = 1;
-  if (isDemoMode) renderDemoData(); else loadStartups();
-}
-
-function onSortChange(val) {
-  currentFilters.sort = val;
-  currentPage = 1;
-  if (isDemoMode) renderDemoData(); else loadStartups();
-}
-
+function onCategoryChange(val) { currentFilters.category = val; currentPage = 1; if (isDemoMode) renderDemoData(); else loadStartups(); }
+function onSortChange(val) { currentFilters.sort = val; currentPage = 1; if (isDemoMode) renderDemoData(); else loadStartups(); }
 function onSearch(val) {
   clearTimeout(searchTimeout);
   currentFilters.search = val;
-  searchTimeout = setTimeout(() => {
-    currentPage = 1;
-    if (isDemoMode) renderDemoData(); else loadStartups();
-  }, 400);
+  searchTimeout = setTimeout(() => { currentPage = 1; if (isDemoMode) renderDemoData(); else loadStartups(); }, 400);
 }
 
-// ── HELPERS ────────────────────────────────────────────────────────────────
+// ── HELPERS ───────────────────────────────────────────────────────────────────
 function formatMoney(cents) {
   if (cents === null || cents === undefined) return '—';
-  const dollars = cents / 100;
-  if (dollars >= 1000000) return '$' + (dollars / 1000000).toFixed(1) + 'M';
-  if (dollars >= 1000) return '$' + (dollars / 1000).toFixed(1) + 'K';
-  return '$' + Math.round(dollars).toLocaleString();
+  const d = cents / 100;
+  if (d >= 1000000) return '$' + (d/1000000).toFixed(1) + 'M';
+  if (d >= 1000) return '$' + (d/1000).toFixed(1) + 'K';
+  return '$' + Math.round(d).toLocaleString();
 }
-
-function categoryLabel(cat) {
-  const map = {
-    ai: '🤖 AI', saas: '☁️ SaaS', 'developer-tools': '💻 Dev Tools',
-    fintech: '💳 Fintech', marketing: '📣 Marketing', ecommerce: '🛒 E-commerce',
-    productivity: '⚡ Productivity', 'design-tools': '🎨 Design', 'no-code': '🧩 No-code',
-    analytics: '📊 Analytics', 'crypto-web3': '🔗 Web3', education: '📚 Education',
-    'health-fitness': '💪 Health'
-  };
-  return map[cat] || cat || '';
-}
-
 function escHtml(str) {
   if (!str) return '';
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
