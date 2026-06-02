@@ -1,5 +1,11 @@
 {
   "rewrites": [
     { "source": "/startup/:slug", "destination": "/startup/[slug].html" }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron-refresh",
+      "schedule": "0 * * * *"
+    }
   ]
 }

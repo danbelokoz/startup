@@ -213,68 +213,40 @@ async function loadAll() {
   await fetchAllPages(fKey);
 }
 
-const DELAY_MS = 3100; // just over 3s between requests → max 19 req/min, safe under 20 limit
+const DELAY_MS = 3100;
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-async function fetchPages(onProgress) {
+async function fetchAllPages(fKey) {
   const apiKey = getApiKey();
-  let page = 1, hasMore = true, results = [];
-  while (hasMore) {
-    const params = new URLSearchParams({ page, limit: 50, sort: filters.sort });
-    if (filters.onSale !== null) params.set('onSale', filters.onSale);
-    if (filters.category) params.set('category', filters.category);
-
-    let res;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      res = await fetch(`${API_BASE}/startups?${params}`, { headers: { Authorization: `Bearer ${apiKey}` } });
-      if (res.status === 429) {
-        // Rate limited — wait longer and retry
-        await sleep(65000); // wait 65s then retry
-        continue;
-      }
-      break;
-    }
-
-    if (res.status === 401) { showError(t('errors','key')); return null; }
+  try {
+    // Single request — server returns all startups from Redis cache
+    const res = await fetch(`${API_BASE}/startups`, {
+      headers: { Authorization: `Bearer ${apiKey}` }
+    });
+    if (res.status === 401) { showError(t('errors','key')); return; }
     if (!res.ok) throw new Error('HTTP ' + res.status);
 
-    const { data, meta } = await res.json();
-    results = results.concat(data);
-    hasMore = meta.hasMore;
-    page++;
-
-    if (onProgress) {
-      onProgress(results.length, hasMore);
-      // update progress bar
-      const bar = document.getElementById('loadBar');
-      const cnt = document.getElementById('loadCount');
-      if (bar) bar.style.width = Math.min(90, page * 5) + '%';
-      if (cnt) cnt.textContent = results.length + '+ startups loaded...';
-    }
-    if (hasMore) await sleep(DELAY_MS);
-  }
-  return results;
-}
-
-async function fetchAllPages(fKey) {
-  try {
-    const data = await fetchPages((count, hasMore) => {
-      document.getElementById('statTotal').textContent = count + (hasMore ? '+' : '');
-    });
-    if (!data) return;
+    const { data, fromCache, count } = await res.json();
     allCache = data;
     cacheLoaded = true;
     currentPage = 1;
     saveToDailyCache(fKey, allCache);
     updateStatsFromCache();
     renderFromCache();
-    showCacheBadge(null);
-  } catch(e) { showError(t('errors','load')); }
+    showCacheBadge(fromCache ? 'server cache' : null);
+  } catch(e) {
+    showError(t('errors','load'));
+  }
 }
 
 async function refreshInBackground(fKey) {
   try {
-    const data = await fetchPages(null);
+    const apiKey = getApiKey();
+    const res = await fetch(`${API_BASE}/startups`, {
+      headers: { Authorization: `Bearer ${apiKey}` }
+    });
+    if (!res.ok) return;
+    const { data } = await res.json();
     if (data && data.length > 0) {
       allCache = data;
       saveToDailyCache(fKey, data);
