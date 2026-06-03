@@ -236,7 +236,11 @@ function applyUI() {
   document.getElementById('footerText').textContent = t('footer','data');
 }
 
-window.onApiKeySaved = () => { cacheLoaded = false; loadAll(); };
+window.onApiKeySaved = () => {
+  cacheLoaded = false;
+  allCache = [];
+  loadAll();
+};
 window.onDemoMode = () => { isDemoMode = true; renderDemo(); };
 
 window.addEventListener('DOMContentLoaded', () => {

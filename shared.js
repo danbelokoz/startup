@@ -246,7 +246,6 @@ function saveApiKeyFromModal() {
   const val = document.getElementById('apiKeyInput').value.trim();
   if (!val) return;
   saveApiKeyToStorage(val);
-  clearOldCache(); // clear cache when key changes
   document.getElementById('apiModal').classList.add('hidden');
   if (typeof onApiKeySaved === 'function') onApiKeySaved();
 }
