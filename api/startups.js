@@ -14,8 +14,14 @@ async function kv(method, path, body) {
 }
 
 async function redisGet(key) {
-  try { const r = await kv('GET', `/get/${encodeURIComponent(key)}`); return r.result ? JSON.parse(r.result) : null; }
-  catch { return null; }
+  try {
+    const r = await kv('GET', `/get/${encodeURIComponent(key)}`);
+    if (!r.result) return null;
+    const parsed = JSON.parse(r.result);
+    // Handle case where Redis returns {value: '...', ex: N}
+    if (parsed && parsed.value) return JSON.parse(parsed.value);
+    return parsed;
+  } catch { return null; }
 }
 
 async function redisSet(key, value, ttl) {
