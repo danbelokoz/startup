@@ -95,8 +95,8 @@
   <h1 id="heroTitle"></h1>
   <p id="heroSub"></p>
   <div class="hero-btns">
-    <button class="btn btn-ghost" onclick="filterSale(null)" id="heroBtn2"></button>
     <button class="btn btn-ghost" onclick="filterSale(true)" id="heroBtn1"></button>
+    <button class="btn btn-ghost" onclick="filterSale(null)" id="heroBtn2"></button>
   </div>
 </div>
 
@@ -231,8 +231,11 @@ window.onDemoMode = () => { isDemoMode = true; renderDemo(); };
 
 window.addEventListener('DOMContentLoaded', () => {
   applyUI();
-  // Set initial active state on hero buttons
-  document.getElementById('heroBtn2').classList.add('active');
+  // Set initial active state on hero buttons — "For sale" by default
+  document.getElementById('heroBtn1').classList.add('active');
+  filters.onSale = true;
+  document.getElementById('chipSale').classList.add('active');
+  document.getElementById('chipAll').classList.remove('active');
   const key = getApiKey();
   if (!key) { document.getElementById('apiModal').classList.remove('hidden'); }
   else { loadAll(); }
