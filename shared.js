@@ -133,89 +133,73 @@ function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// ── LOCAL CACHE ───────────────────────────────────────────────────────────────
-// Cache key includes the API key hash so different users don't share data
-// Data is stored in localStorage forever — never deleted, only refreshed in background
-const BACKGROUND_REFRESH_INTERVAL = 24 * 60 * 60 * 1000; // refresh in background once per day
+// ── INDEXEDDB CACHE ───────────────────────────────────────────────────────────
+// Stores all startups with full data — no size limit (up to ~1GB)
+// Data lives forever, refreshed in background once per day
+const IDB_NAME = 'startupmarket';
+const IDB_VERSION = 1;
+const IDB_STORE = 'startups';
+const IDB_META = 'meta';
 
-function getCacheStorageKey(filtersKey) {
-  const apiKey = getApiKey();
-  const keyHash = apiKey.slice(-8); // last 8 chars as identifier
-  return `sm_cache_${keyHash}_${filtersKey}`;
+function idbOpen() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(IDB_STORE)) db.createObjectStore(IDB_STORE, { keyPath: 'slug' });
+      if (!db.objectStoreNames.contains(IDB_META))  db.createObjectStore(IDB_META,  { keyPath: 'key' });
+    };
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror   = () => reject(req.error);
+  });
 }
 
-function getFromDailyCache(filtersKey, ignoreExpiry = false) {
+async function idbGetAll() {
   try {
-    const key = getCacheStorageKey(filtersKey);
-    const raw = localStorage.getItem(key);
-    if (!raw) return null;
-    const { data } = JSON.parse(raw);
-    return data;
-  } catch(e) { return null; }
+    const db = await idbOpen();
+    return await new Promise(resolve => {
+      const req = db.transaction(IDB_STORE, 'readonly').objectStore(IDB_STORE).getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror   = () => resolve([]);
+    });
+  } catch { return []; }
 }
 
-// Strip startup to only fields needed for card display — reduces size ~70%
-function slimStartup(s) {
-  return {
-    name: s.name, slug: s.slug, icon: s.icon || null,
-    category: s.category || null, onSale: s.onSale || false,
-    askingPrice: s.askingPrice || null, multiple: s.multiple || null,
-    revenue: s.revenue ? { mrr: s.revenue.mrr || 0, last30Days: s.revenue.last30Days || 0, total: s.revenue.total || 0 } : null,
-    growth30d: s.growth30d != null ? s.growth30d : null,
-    activeSubscriptions: s.activeSubscriptions || 0,
-    description: s.description ? s.description.slice(0, 120) : null,
-    firstListedForSaleAt: s.firstListedForSaleAt || null,
-    website: s.website || null
-  };
-}
-
-function saveToDailyCache(filtersKey, data) {
+async function idbGetOne(slug) {
   try {
-    const key = getCacheStorageKey(filtersKey);
-    const slim = data.map(slimStartup);
-    const payload = JSON.stringify({ data: slim, timestamp: Date.now() });
-    try {
-      localStorage.setItem(key, payload);
-    } catch(e) {
-      // localStorage full — clear old entries and retry
-      clearOldCache();
-      localStorage.setItem(key, payload);
-    }
-  } catch(e) {}
+    const db = await idbOpen();
+    return await new Promise(resolve => {
+      const req = db.transaction(IDB_STORE, 'readonly').objectStore(IDB_STORE).get(slug);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror   = () => resolve(null);
+    });
+  } catch { return null; }
 }
 
-function clearOldCache() {
+async function idbSaveAll(startups) {
   try {
-    const keysToRemove = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (k && k.startsWith('sm_cache_')) keysToRemove.push(k);
-    }
-    keysToRemove.forEach(k => localStorage.removeItem(k));
-  } catch(e) {}
+    const db = await idbOpen();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction([IDB_STORE, IDB_META], 'readwrite');
+      const store = tx.objectStore(IDB_STORE);
+      store.clear();
+      startups.forEach(s => store.put(s));
+      tx.objectStore(IDB_META).put({ key: 'lastUpdate', ts: Date.now() });
+      tx.oncomplete = resolve;
+      tx.onerror    = () => reject(tx.error);
+    });
+  } catch {}
 }
 
-function getCacheAgeMs(filtersKey) {
+async function idbGetLastUpdate() {
   try {
-    const key = getCacheStorageKey(filtersKey);
-    const raw = localStorage.getItem(key);
-    if (!raw) return null;
-    const { timestamp } = JSON.parse(raw);
-    return Date.now() - timestamp;
-  } catch(e) { return null; }
-}
-
-function getCacheAge(filtersKey) {
-  try {
-    const key = getCacheStorageKey(filtersKey);
-    const raw = localStorage.getItem(key);
-    if (!raw) return null;
-    const { timestamp } = JSON.parse(raw);
-    const ageMs = Date.now() - timestamp;
-    const ageH = Math.floor(ageMs / 3600000);
-    const ageM = Math.floor((ageMs % 3600000) / 60000);
-    return ageH > 0 ? `${ageH}h ago` : `${ageM}m ago`;
-  } catch(e) { return null; }
+    const db = await idbOpen();
+    return await new Promise(resolve => {
+      const req = db.transaction(IDB_META, 'readonly').objectStore(IDB_META).get('lastUpdate');
+      req.onsuccess = () => resolve(req.result?.ts || null);
+      req.onerror   = () => resolve(null);
+    });
+  } catch { return null; }
 }
 
 // ── NAV & MODAL ───────────────────────────────────────────────────────────────

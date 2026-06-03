@@ -63,11 +63,11 @@ function applyUI() {
 
 window.onApiKeySaved = () => loadStartup();
 
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
   applyUI();
   const slug = location.pathname.replace('/startup/','').replace('.html','');
 
-  // Try sessionStorage first (fast, no API call)
+  // 1. Try sessionStorage first (instant when navigating from catalog)
   try {
     const cached = sessionStorage.getItem('startup_detail');
     if (cached) {
@@ -76,7 +76,11 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   } catch(e) {}
 
-  // Otherwise load from API
+  // 2. Try IndexedDB (works even if API is dead)
+  const fromIdb = await idbGetOne(slug);
+  if (fromIdb) { renderStartup(fromIdb); return; }
+
+  // 3. Fall back to API
   const key = getApiKey();
   if (!key) { document.getElementById('apiModal').classList.remove('hidden'); }
   else { loadStartup(slug); }

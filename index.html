@@ -177,26 +177,10 @@
 <script src="/shared.js"></script>
 <script>
 const API_BASE = '/api';
-const CACHE_VERSION = 'v3'; // bump this to force clear all localStorage cache
-let allCache = [], cacheKey = '', cacheLoaded = false, isDemoMode = false;
+let allCache = [], cacheLoaded = false, isDemoMode = false;
 let currentPage = 1;
 let filters = { sort:'revenue-desc', onSale:null, category:'', search:'' };
 let searchTimer = null;
-
-// Clear cache if version changed
-(function checkCacheVersion() {
-  const stored = localStorage.getItem('sm_cache_version');
-  if (stored !== CACHE_VERSION) {
-    // Clear all old cache keys
-    const keys = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (k && (k.startsWith('sm_cache_') || k.startsWith('trustmrr_cache'))) keys.push(k);
-    }
-    keys.forEach(k => localStorage.removeItem(k));
-    localStorage.setItem('sm_cache_version', CACHE_VERSION);
-  }
-})();
 
 const DEMO = [
   { name:'ShipFast', slug:'shipfast', icon:'https://shipfa.st/favicon.ico', description:'The NextJS boilerplate with all you need to build your SaaS, AI tool, or any other web app fast.', category:'saas', paymentProvider:'stripe', onSale:true, askingPrice:5000000, multiple:0.98, revenue:{last30Days:4250000,mrr:420000,total:98000000}, activeSubscriptions:320, growth30d:12, website:'https://shipfa.st' },
@@ -288,36 +272,31 @@ function dataScore(s) {
 
 // ── LOAD ──────────────────────────────────────────────────────────────────────
 async function loadAll() {
-  const fKey = buildCacheKey();
-
-  // Try localStorage cache first — show instantly without any API call
-  const cached = getFromDailyCache(fKey);
+  // Try IndexedDB first — instant, no API call needed
+  const cached = await idbGetAll();
   if (cached && cached.length > 0) {
     allCache = cached;
-    cacheLoaded = true; cacheKey = fKey; currentPage = 1;
+    cacheLoaded = true; currentPage = 1;
     updateStatsFromCache();
     renderFromCache();
-    showCacheBadge(getCacheAge(fKey));
-    // Refresh in background only once per day
-    const age = getCacheAgeMs(fKey);
-    if (age === null || age > 24 * 3600 * 1000) {
-      refreshInBackground(fKey);
+    showCacheBadge();
+    // Refresh in background once per day
+    const lastUpdate = await idbGetLastUpdate();
+    if (!lastUpdate || Date.now() - lastUpdate > 24 * 3600 * 1000) {
+      refreshInBackground();
     }
     return;
   }
-
-  if (cacheLoaded && cacheKey === fKey) { renderFromCache(); return; }
-
-  // No local cache — fetch from server
+  // No cache at all — fetch fresh
   showSkeleton();
-  allCache = []; cacheLoaded = false; cacheKey = fKey;
-  await fetchAllPages(fKey);
+  allCache = []; cacheLoaded = false;
+  await fetchAllPages();
 }
 
 const DELAY_MS = 3200;
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-async function fetchAllPages(fKey) {
+async function fetchAllPages() {
   const apiKey = getApiKey();
   try {
     let page = 1, hasMore = true;
@@ -325,37 +304,30 @@ async function fetchAllPages(fKey) {
     while (hasMore) {
       const params = new URLSearchParams({ page, limit: 50, sort: 'revenue-desc' });
 
-      let res, lastErr;
+      let res;
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
           res = await fetch(`${API_BASE}/startups?${params}`, { headers: { Authorization: `Bearer ${apiKey}` } });
           break;
-        } catch(e) { lastErr = e; await sleep(2000); }
+        } catch(e) { await sleep(2000); }
       }
 
-      // On any error — try to show stale cache instead of error
+      // On any error — show stale IndexedDB cache if exists
       if (!res || (!res.ok && res.status !== 401)) {
-        const stale = getFromDailyCache(fKey, true); // true = ignore TTL
+        const stale = await idbGetAll();
         if (stale && stale.length > 0) {
-          allCache = stale;
-          cacheLoaded = true; currentPage = 1;
-          updateStatsFromCache();
-          renderFromCache();
-          showCacheBadge('stale');
+          allCache = stale; cacheLoaded = true; currentPage = 1;
+          updateStatsFromCache(); renderFromCache(); showCacheBadge();
           return;
         }
         showError(t('errors','load')); return;
       }
 
       if (res.status === 401) {
-        // Invalid key — but still show stale cache if available
-        const stale = getFromDailyCache(fKey, true);
+        const stale = await idbGetAll();
         if (stale && stale.length > 0) {
-          allCache = stale;
-          cacheLoaded = true; currentPage = 1;
-          updateStatsFromCache();
-          renderFromCache();
-          showCacheBadge('stale');
+          allCache = stale; cacheLoaded = true; currentPage = 1;
+          updateStatsFromCache(); renderFromCache(); showCacheBadge();
           return;
         }
         showError(t('errors','key')); return;
@@ -377,23 +349,22 @@ async function fetchAllPages(fKey) {
       if (hasMore && !fromCache) await sleep(DELAY_MS);
     }
     cacheLoaded = true; currentPage = 1;
-    saveToDailyCache(fKey, allCache);
+    await idbSaveAll(allCache);
     updateStatsFromCache();
     renderFromCache();
-    showCacheBadge(null);
+    showCacheBadge();
   } catch(e) {
-    // Last resort — show stale cache
-    const stale = getFromDailyCache(fKey, true);
+    const stale = await idbGetAll();
     if (stale && stale.length > 0) {
       allCache = stale; cacheLoaded = true; currentPage = 1;
-      updateStatsFromCache(); renderFromCache(); showCacheBadge('stale');
+      updateStatsFromCache(); renderFromCache(); showCacheBadge();
     } else {
       showError(t('errors','load'));
     }
   }
 }
 
-async function refreshInBackground(fKey) {
+async function refreshInBackground() {
   try {
     const apiKey = getApiKey();
     let page = 1, hasMore = true, freshData = [];
@@ -409,15 +380,13 @@ async function refreshInBackground(fKey) {
     }
     if (freshData.length > 0) {
       allCache = freshData;
-      saveToDailyCache(fKey, freshData);
+      await idbSaveAll(freshData);
       updateStatsFromCache();
       renderFromCache();
-      showCacheBadge(null);
+      showCacheBadge();
     }
   } catch(e) {}
 }
-
-function buildCacheKey() { return `all`; }
 
 function updateStatsFromCache() {
   document.getElementById('statTotal').textContent = allCache.length.toLocaleString();
@@ -431,7 +400,7 @@ function updateStatsFromCache() {
   }
 }
 
-function showCacheBadge(ageStr) {
+function showCacheBadge() {
   let badge = document.getElementById('cacheBadge');
   if (!badge) {
     badge = document.createElement('div');
@@ -439,7 +408,7 @@ function showCacheBadge(ageStr) {
     badge.style.cssText = 'text-align:center;font-size:11px;color:var(--text3);padding:0 0 8px;';
     document.querySelector('.main-layout').before(badge);
   }
-  badge.textContent = ageStr ? `${t('cache','cached')} · ${ageStr}` : t('cache','fresh');
+  badge.textContent = t('cache','cached');
   badge.style.opacity = '1';
   setTimeout(() => { if (badge) badge.style.opacity = '0'; }, 4000);
 }
