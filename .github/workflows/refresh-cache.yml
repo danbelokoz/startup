@@ -1,0 +1,18 @@
+name: Refresh startup cache
+
+on:
+  schedule:
+    - cron: '0 3 * * *'  # every day at 3:00 UTC
+  workflow_dispatch:       # allow manual trigger
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger cache refresh
+        run: |
+          curl -s -X GET \
+            "https://startup-silk-nu.vercel.app/api/startups?limit=50&page=1&sort=revenue-desc" \
+            -H "Authorization: Bearer ${{ secrets.TRUSTMRR_API_KEY }}" \
+            -o /dev/null -w "Status: %{http_code}\n"
+          echo "Cache refresh triggered successfully"

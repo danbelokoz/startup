@@ -21,7 +21,7 @@ async function redisSet(key, value) {
         Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ value: JSON.stringify(value), ex: 3600 })
+      body: JSON.stringify({ value: JSON.stringify(value), ex: 90000 }) // 25 hours
     });
   } catch {}
 }
