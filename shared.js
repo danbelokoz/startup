@@ -209,7 +209,7 @@ function applyLangToDoc() {
   document.documentElement.lang = lang;
   document.documentElement.dir = l.dir;
   const btn = document.getElementById('langBtnLabel');
-  if (btn) btn.textContent = l.flag + ' ' + l.code;
+  if (btn) btn.textContent = l.code;
   document.querySelectorAll('.lang-option').forEach(el => {
     el.classList.toggle('active', el.dataset.lang === lang);
   });
@@ -228,9 +228,9 @@ function buildNavHTML(activePage) {
     </div>
     <div class="nav-right">
       <div class="lang-switcher" id="langSwitcher">
-        <button class="lang-btn" onclick="document.getElementById('langDropdown').classList.toggle('open')" id="langBtnLabel">${l.flag} ${l.code}</button>
+        <button class="lang-btn" onclick="document.getElementById('langDropdown').classList.toggle('open')" id="langBtnLabel">${l.code}</button>
         <div class="lang-dropdown" id="langDropdown">
-          ${Object.entries(T).map(([code, v]) => `<div class="lang-option ${code===lang?'active':''}" data-lang="${code}" onclick="setLangCode('${code}')">${v.flag} ${langNames[code]||code}</div>`).join('')}
+          ${Object.entries(T).map(([code, v]) => `<div class="lang-option ${code===lang?'active':''}" data-lang="${code}" onclick="setLangCode('${code}')">${langNames[code]||code}</div>`).join('')}
         </div>
       </div>
       <button class="btn btn-ghost btn-sm" onclick="document.getElementById('apiModal').classList.remove('hidden')">

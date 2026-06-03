@@ -9,15 +9,17 @@
   <link rel="stylesheet" href="/shared.css" />
   <style>
     /* HERO — compact */
-    .hero { text-align: center; padding: 40px 24px 28px; max-width: 900px; margin: 0 auto; }
+    .hero { text-align: center; padding: 24px 24px 16px; max-width: 900px; margin: 0 auto; }
     .hero-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(108,99,255,0.08); border: 1px solid rgba(108,99,255,0.2); border-radius: 999px; padding: 4px 14px; font-size: 13px; color: var(--accent); margin-bottom: 16px; }
     .hero h1 { font-family: 'Space Grotesk', sans-serif; font-size: clamp(24px, 3.5vw, 42px); font-weight: 700; line-height: 1.15; letter-spacing: -0.5px; margin-bottom: 12px; }
     .hero h1 span { background: linear-gradient(135deg, #6c63ff, #a78bfa, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     .hero p { font-size: 15px; color: var(--text2); max-width: 560px; margin: 0 auto 20px; line-height: 1.6; }
-    .hero-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 24px; }
+    .hero-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 16px; }
+    .hero-btns .btn-ghost.active { background: var(--bg3); color: var(--text); border-color: var(--border2); }
+    .hero-btns .btn-primary.active { box-shadow: 0 0 0 3px rgba(108,99,255,0.3); }
 
     /* STATS */
-    .stats-row { display: flex; justify-content: center; gap: 32px; padding: 0 24px 24px; flex-wrap: wrap; }
+    .stats-row { display: flex; justify-content: center; gap: 32px; padding: 0 24px 16px; flex-wrap: wrap; }
     .stat-item { text-align: center; }
     .stat-value { font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; }
     .stat-label { font-size: 12px; color: var(--text3); margin-top: 2px; }
@@ -93,8 +95,8 @@
   <h1 id="heroTitle"></h1>
   <p id="heroSub"></p>
   <div class="hero-btns">
-    <button class="btn btn-primary" onclick="filterSale(true)" id="heroBtn1"></button>
     <button class="btn btn-ghost" onclick="filterSale(null)" id="heroBtn2"></button>
+    <button class="btn btn-ghost" onclick="filterSale(true)" id="heroBtn1"></button>
   </div>
 </div>
 
@@ -229,6 +231,8 @@ window.onDemoMode = () => { isDemoMode = true; renderDemo(); };
 
 window.addEventListener('DOMContentLoaded', () => {
   applyUI();
+  // Set initial active state on hero buttons
+  document.getElementById('heroBtn2').classList.add('active');
   const key = getApiKey();
   if (!key) { document.getElementById('apiModal').classList.remove('hidden'); }
   else { loadAll(); }
@@ -517,6 +521,9 @@ function filterSale(v) {
   filters.onSale = v; currentPage = 1;
   document.getElementById('chipAll').classList.toggle('active', v === null);
   document.getElementById('chipSale').classList.toggle('active', v === true);
+  // Hero buttons: highlight active
+  document.getElementById('heroBtn2').classList.toggle('active', v === null);
+  document.getElementById('heroBtn1').classList.toggle('active', v === true);
   if (isDemoMode) renderDemo(); else if (cacheLoaded) renderFromCache(); else loadAll();
 }
 function onCategoryChange(v) { filters.category = v; currentPage = 1; if (isDemoMode) renderDemo(); else if (cacheLoaded) renderFromCache(); else loadAll(); }
