@@ -154,10 +154,26 @@ function getFromDailyCache(filtersKey, ignoreExpiry = false) {
   } catch(e) { return null; }
 }
 
+// Strip startup to only fields needed for card display — reduces size ~70%
+function slimStartup(s) {
+  return {
+    name: s.name, slug: s.slug, icon: s.icon || null,
+    category: s.category || null, onSale: s.onSale || false,
+    askingPrice: s.askingPrice || null, multiple: s.multiple || null,
+    revenue: s.revenue ? { mrr: s.revenue.mrr || 0, last30Days: s.revenue.last30Days || 0, total: s.revenue.total || 0 } : null,
+    growth30d: s.growth30d != null ? s.growth30d : null,
+    activeSubscriptions: s.activeSubscriptions || 0,
+    description: s.description ? s.description.slice(0, 120) : null,
+    firstListedForSaleAt: s.firstListedForSaleAt || null,
+    website: s.website || null
+  };
+}
+
 function saveToDailyCache(filtersKey, data) {
   try {
     const key = getCacheStorageKey(filtersKey);
-    const payload = JSON.stringify({ data, timestamp: Date.now() });
+    const slim = data.map(slimStartup);
+    const payload = JSON.stringify({ data: slim, timestamp: Date.now() });
     try {
       localStorage.setItem(key, payload);
     } catch(e) {
