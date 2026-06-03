@@ -290,19 +290,20 @@ function dataScore(s) {
 async function loadAll() {
   const fKey = buildCacheKey();
 
-  // Try localStorage daily cache first
-  if (!cacheLoaded || cacheKey !== fKey) {
-    const cached = getFromDailyCache(fKey);
-    if (cached && cached.length > 0) {
-      allCache = cached;
-      cacheLoaded = true; cacheKey = fKey; currentPage = 1;
-      updateStatsFromCache();
-      renderFromCache();
-      showCacheBadge(getCacheAge(fKey));
-      // Always refresh in background to keep data fresh
+  // Try localStorage cache first — show instantly without any API call
+  const cached = getFromDailyCache(fKey);
+  if (cached && cached.length > 0) {
+    allCache = cached;
+    cacheLoaded = true; cacheKey = fKey; currentPage = 1;
+    updateStatsFromCache();
+    renderFromCache();
+    showCacheBadge(getCacheAge(fKey));
+    // Only refresh in background if cache is older than 6 hours
+    const age = getCacheAgeMs(fKey);
+    if (age === null || age > 6 * 3600 * 1000) {
       refreshInBackground(fKey);
-      return;
     }
+    return;
   }
 
   if (cacheLoaded && cacheKey === fKey) { renderFromCache(); return; }

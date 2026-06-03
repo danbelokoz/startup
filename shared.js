@@ -172,6 +172,16 @@ function clearOldCache() {
   } catch(e) {}
 }
 
+function getCacheAgeMs(filtersKey) {
+  try {
+    const key = getCacheStorageKey(filtersKey);
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const { timestamp } = JSON.parse(raw);
+    return Date.now() - timestamp;
+  } catch(e) { return null; }
+}
+
 function getCacheAge(filtersKey) {
   try {
     const key = getCacheStorageKey(filtersKey);
