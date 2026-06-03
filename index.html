@@ -319,20 +319,42 @@ async function fetchAllPages(fKey) {
     allCache = [];
     while (hasMore) {
       const params = new URLSearchParams({ page, limit: 50, sort: 'revenue-desc' });
-      
-      // Retry up to 3 times on network errors
+
       let res, lastErr;
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
-          res = await fetch(`${API_BASE}/startups?${params}`, {
-            headers: { Authorization: `Bearer ${apiKey}` }
-          });
+          res = await fetch(`${API_BASE}/startups?${params}`, { headers: { Authorization: `Bearer ${apiKey}` } });
           break;
         } catch(e) { lastErr = e; await sleep(2000); }
       }
-      if (!res) { showError(t('errors','load')); return; }
-      if (res.status === 401) { showError(t('errors','key')); return; }
-      if (!res.ok) throw new Error('HTTP ' + res.status);
+
+      // On any error — try to show stale cache instead of error
+      if (!res || (!res.ok && res.status !== 401)) {
+        const stale = getFromDailyCache(fKey, true); // true = ignore TTL
+        if (stale && stale.length > 0) {
+          allCache = stale;
+          cacheLoaded = true; currentPage = 1;
+          updateStatsFromCache();
+          renderFromCache();
+          showCacheBadge('stale');
+          return;
+        }
+        showError(t('errors','load')); return;
+      }
+
+      if (res.status === 401) {
+        // Invalid key — but still show stale cache if available
+        const stale = getFromDailyCache(fKey, true);
+        if (stale && stale.length > 0) {
+          allCache = stale;
+          cacheLoaded = true; currentPage = 1;
+          updateStatsFromCache();
+          renderFromCache();
+          showCacheBadge('stale');
+          return;
+        }
+        showError(t('errors','key')); return;
+      }
 
       const json = await res.json();
       const { data, meta, fromCache } = json;
@@ -354,7 +376,16 @@ async function fetchAllPages(fKey) {
     updateStatsFromCache();
     renderFromCache();
     showCacheBadge(null);
-  } catch(e) { showError(t('errors','load')); }
+  } catch(e) {
+    // Last resort — show stale cache
+    const stale = getFromDailyCache(fKey, true);
+    if (stale && stale.length > 0) {
+      allCache = stale; cacheLoaded = true; currentPage = 1;
+      updateStatsFromCache(); renderFromCache(); showCacheBadge('stale');
+    } else {
+      showError(t('errors','load'));
+    }
+  }
 }
 
 async function refreshInBackground(fKey) {

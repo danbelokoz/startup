@@ -137,13 +137,13 @@ function getCacheStorageKey(filtersKey) {
   return `sm_cache_${keyHash}_${filtersKey}`;
 }
 
-function getFromDailyCache(filtersKey) {
+function getFromDailyCache(filtersKey, ignoreExpiry = false) {
   try {
     const key = getCacheStorageKey(filtersKey);
     const raw = localStorage.getItem(key);
     if (!raw) return null;
     const { data, timestamp } = JSON.parse(raw);
-    if (Date.now() - timestamp > CACHE_TTL) {
+    if (!ignoreExpiry && Date.now() - timestamp > CACHE_TTL) {
       localStorage.removeItem(key);
       return null;
     }
