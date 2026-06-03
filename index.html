@@ -177,10 +177,26 @@
 <script src="/shared.js"></script>
 <script>
 const API_BASE = '/api';
+const CACHE_VERSION = 'v3'; // bump this to force clear all localStorage cache
 let allCache = [], cacheKey = '', cacheLoaded = false, isDemoMode = false;
 let currentPage = 1;
 let filters = { sort:'revenue-desc', onSale:null, category:'', search:'' };
 let searchTimer = null;
+
+// Clear cache if version changed
+(function checkCacheVersion() {
+  const stored = localStorage.getItem('sm_cache_version');
+  if (stored !== CACHE_VERSION) {
+    // Clear all old cache keys
+    const keys = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && (k.startsWith('sm_cache_') || k.startsWith('trustmrr_cache'))) keys.push(k);
+    }
+    keys.forEach(k => localStorage.removeItem(k));
+    localStorage.setItem('sm_cache_version', CACHE_VERSION);
+  }
+})();
 
 const DEMO = [
   { name:'ShipFast', slug:'shipfast', icon:'https://shipfa.st/favicon.ico', description:'The NextJS boilerplate with all you need to build your SaaS, AI tool, or any other web app fast.', category:'saas', paymentProvider:'stripe', onSale:true, askingPrice:5000000, multiple:0.98, revenue:{last30Days:4250000,mrr:420000,total:98000000}, activeSubscriptions:320, growth30d:12, website:'https://shipfa.st' },
@@ -303,17 +319,32 @@ async function fetchAllPages(fKey) {
     allCache = [];
     while (hasMore) {
       const params = new URLSearchParams({ page, limit: 50, sort: 'revenue-desc' });
-      const res = await fetch(`${API_BASE}/startups?${params}`, { headers: { Authorization: `Bearer ${apiKey}` } });
+      
+      // Retry up to 3 times on network errors
+      let res, lastErr;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          res = await fetch(`${API_BASE}/startups?${params}`, {
+            headers: { Authorization: `Bearer ${apiKey}` }
+          });
+          break;
+        } catch(e) { lastErr = e; await sleep(2000); }
+      }
+      if (!res) { showError(t('errors','load')); return; }
       if (res.status === 401) { showError(t('errors','key')); return; }
       if (!res.ok) throw new Error('HTTP ' + res.status);
+
       const json = await res.json();
       const { data, meta, fromCache } = json;
+      if (!data) { showError(t('errors','load')); return; }
+
       allCache = allCache.concat(data);
-      hasMore = meta.hasMore;
+      hasMore = meta?.hasMore || false;
+
       const bar = document.getElementById('loadBar');
       const cnt = document.getElementById('loadCount');
       if (bar) bar.style.width = Math.min(95, page * 5) + '%';
-      if (cnt) cnt.textContent = allCache.length + (hasMore?'+':'') + ' startups' + (fromCache?' (cached)':'');
+      if (cnt) cnt.textContent = allCache.length + (hasMore?'+':'') + ' startups' + (fromCache?' ⚡':'');
       document.getElementById('statTotal').textContent = allCache.length + (hasMore?'+':'');
       page++;
       if (hasMore && !fromCache) await sleep(DELAY_MS);
