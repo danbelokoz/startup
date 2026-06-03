@@ -13,7 +13,8 @@ const T = {
     errors: { key:'Invalid API key. Check your key at trustmrr.com/dashboard-dev', load:'Error loading data. Check your API key or internet connection.' },
     empty: { title:'Nothing found', sub:'Try changing the filters or search query' },
     cache: { loading:'Loading startups...', cached:'Loaded from cache', fresh:'Data updated' },
-    startupPage: { back:'Back to catalog', founded:'Founded', country:'Country', audience:'Audience', provider:'Payment provider', customers:'Customers', subs:'Active subscriptions', rev30:'Revenue (30 days)', mrr:'MRR', totalRev:'Total revenue', growth:'30-day growth', margin:'Profit margin', rank:'Rank', visitors:'Visitors (30d)', contact:'Contact seller', viewOriginal:'Visit website', forSale:'For sale', notForSale:'Not for sale', price:'Asking price', multiple:'Revenue multiple', techStack:'Tech stack', cofounders:'Cofounders' }
+    startupPage: { back:'Back to catalog', founded:'Founded', country:'Country', audience:'Audience', provider:'Payment provider', customers:'Customers', subs:'Active subscriptions', rev30:'Revenue (30 days)', mrr:'MRR', totalRev:'Total revenue', growth:'30-day growth', margin:'Profit margin', rank:'Rank', visitors:'Visitors (30d)', contact:'Contact seller', viewOriginal:'Visit website', forSale:'For sale', notForSale:'Not for sale', price:'Asking price', multiple:'Revenue multiple', techStack:'Tech stack', cofounders:'Cofounders' },
+    acquire: { heroTitle:'Buy a <span>profitable startup</span> with confirmed metrics', heroSub:'Every listing has real MRR verified through Stripe, LemonSqueezy, or Polar. No made-up numbers.', step1Title:'Browse listings', step1Desc:'Filter by category, price, and revenue multiple to find the right deal', step2Title:'Verify metrics', step2Desc:'All revenue data is verified directly through payment providers — no estimates', step3Title:'Contact seller', step3Desc:'Reach out directly to the founder on the startup detail page' }
   },
   de: {
     dir:'ltr', flag:'🇩🇪', code:'DE',
@@ -28,7 +29,8 @@ const T = {
     errors: { key:'Ungültiger API-Schlüssel.', load:'Fehler beim Laden.' },
     empty: { title:'Nichts gefunden', sub:'Filter ändern' },
     cache: { loading:'Lade Startups...', cached:'Aus Cache geladen', fresh:'Daten aktualisiert' },
-    startupPage: { back:'Zurück zum Katalog', founded:'Gegründet', country:'Land', audience:'Zielgruppe', provider:'Zahlungsanbieter', customers:'Kunden', subs:'Aktive Abonnements', rev30:'Umsatz (30 Tage)', mrr:'MRR', totalRev:'Gesamtumsatz', growth:'30-Tage Wachstum', margin:'Gewinnmarge', rank:'Rang', visitors:'Besucher (30T)', contact:'Verkäufer kontaktieren', viewOriginal:'Website öffnen', forSale:'Zum Verkauf', notForSale:'Nicht zum Verkauf', price:'Verkaufspreis', multiple:'Umsatzmultiplikator', techStack:'Tech Stack', cofounders:'Mitgründer' }
+    startupPage: { back:'Zurück zum Katalog', founded:'Gegründet', country:'Land', audience:'Zielgruppe', provider:'Zahlungsanbieter', customers:'Kunden', subs:'Aktive Abonnements', rev30:'Umsatz (30 Tage)', mrr:'MRR', totalRev:'Gesamtumsatz', growth:'30-Tage Wachstum', margin:'Gewinnmarge', rank:'Rang', visitors:'Besucher (30T)', contact:'Verkäufer kontaktieren', viewOriginal:'Website öffnen', forSale:'Zum Verkauf', notForSale:'Nicht zum Verkauf', price:'Verkaufspreis', multiple:'Umsatzmultiplikator', techStack:'Tech Stack', cofounders:'Mitgründer' },
+    acquire: { heroTitle:'Ein <span>profitables Startup</span> mit verifizierten Kennzahlen kaufen', heroSub:'Alle Listings haben echte MRR-Daten, verifiziert über Stripe, LemonSqueezy oder Polar.', step1Title:'Listings durchsuchen', step1Desc:'Nach Kategorie, Preis und Umsatzmultiplikator filtern', step2Title:'Kennzahlen prüfen', step2Desc:'Alle Umsatzdaten sind direkt durch Zahlungsanbieter verifiziert', step3Title:'Verkäufer kontaktieren', step3Desc:'Den Gründer direkt auf der Startup-Detailseite kontaktieren' }
   },
   fr: {
     dir:'ltr', flag:'🇫🇷', code:'FR',
@@ -43,7 +45,8 @@ const T = {
     errors: { key:'Clé API invalide.', load:'Erreur de chargement.' },
     empty: { title:'Rien trouvé', sub:'Modifier les filtres' },
     cache: { loading:'Chargement...', cached:'Chargé depuis le cache', fresh:'Données mises à jour' },
-    startupPage: { back:'Retour au catalogue', founded:'Fondée', country:'Pays', audience:'Audience', provider:'Fournisseur de paiement', customers:'Clients', subs:'Abonnements actifs', rev30:'Revenu (30 jours)', mrr:'MRR', totalRev:'Revenu total', growth:'Croissance 30 jours', margin:'Marge bénéficiaire', rank:'Rang', visitors:'Visiteurs (30j)', contact:'Contacter le vendeur', viewOriginal:'Visiter le site', forSale:'À vendre', notForSale:'Non à vendre', price:'Prix demandé', multiple:'Multiple de revenus', techStack:'Stack technique', cofounders:'Cofondateurs' }
+    startupPage: { back:'Retour au catalogue', founded:'Fondée', country:'Pays', audience:'Audience', provider:'Fournisseur de paiement', customers:'Clients', subs:'Abonnements actifs', rev30:'Revenu (30 jours)', mrr:'MRR', totalRev:'Revenu total', growth:'Croissance 30 jours', margin:'Marge bénéficiaire', rank:'Rang', visitors:'Visiteurs (30j)', contact:'Contacter le vendeur', viewOriginal:'Visiter le site', forSale:'À vendre', notForSale:'Non à vendre', price:'Prix demandé', multiple:'Multiple de revenus', techStack:'Stack technique', cofounders:'Cofondateurs' },
+    acquire: { heroTitle:'Acheter une <span>startup rentable</span> avec des métriques confirmées', heroSub:'Chaque annonce a un MRR réel vérifié via Stripe, LemonSqueezy ou Polar.', step1Title:'Parcourir les annonces', step1Desc:'Filtrer par catégorie, prix et multiple de revenus', step2Title:'Vérifier les métriques', step2Desc:'Toutes les données sont vérifiées directement via les fournisseurs de paiement', step3Title:'Contacter le vendeur', step3Desc:'Contactez directement le fondateur sur la page de détail' }
   },
   it: {
     dir:'ltr', flag:'🇮🇹', code:'IT',
@@ -58,7 +61,8 @@ const T = {
     errors: { key:'Chiave API non valida.', load:'Errore di caricamento.' },
     empty: { title:'Niente trovato', sub:'Cambia i filtri' },
     cache: { loading:'Caricamento...', cached:'Caricato dalla cache', fresh:'Dati aggiornati' },
-    startupPage: { back:'Torna al catalogo', founded:'Fondata', country:'Paese', audience:'Pubblico', provider:'Fornitore pagamenti', customers:'Clienti', subs:'Abbonamenti attivi', rev30:'Fatturato (30 giorni)', mrr:'MRR', totalRev:'Fatturato totale', growth:'Crescita 30 giorni', margin:'Margine di profitto', rank:'Classifica', visitors:'Visitatori (30g)', contact:'Contatta il venditore', viewOriginal:'Visita il sito', forSale:'In vendita', notForSale:'Non in vendita', price:'Prezzo richiesto', multiple:'Multiplo di ricavi', techStack:'Stack tecnologico', cofounders:'Cofondatori' }
+    startupPage: { back:'Torna al catalogo', founded:'Fondata', country:'Paese', audience:'Pubblico', provider:'Fornitore pagamenti', customers:'Clienti', subs:'Abbonamenti attivi', rev30:'Fatturato (30 giorni)', mrr:'MRR', totalRev:'Fatturato totale', growth:'Crescita 30 giorni', margin:'Margine di profitto', rank:'Classifica', visitors:'Visitatori (30g)', contact:'Contatta il venditore', viewOriginal:'Visita il sito', forSale:'In vendita', notForSale:'Non in vendita', price:'Prezzo richiesto', multiple:'Multiplo di ricavi', techStack:'Stack tecnologico', cofounders:'Cofondatori' },
+    acquire: { heroTitle:'Acquista una <span>startup redditizia</span> con metriche confermate', heroSub:'Ogni annuncio ha MRR reale verificato tramite Stripe, LemonSqueezy o Polar.', step1Title:'Sfoglia gli annunci', step1Desc:'Filtra per categoria, prezzo e multiplo di ricavi', step2Title:'Verifica le metriche', step2Desc:'Tutti i dati sui ricavi sono verificati direttamente tramite i fornitori di pagamento', step3Title:'Contatta il venditore', step3Desc:'Contatta direttamente il fondatore nella pagina di dettaglio' }
   },
   ru: {
     dir:'ltr', flag:'🇷🇺', code:'RU',
@@ -73,7 +77,8 @@ const T = {
     errors: { key:'Неверный API ключ. Проверьте ключ на trustmrr.com/dashboard-dev', load:'Ошибка загрузки данных. Проверьте API ключ или интернет-соединение.' },
     empty: { title:'Ничего не найдено', sub:'Попробуйте изменить фильтры или поисковый запрос' },
     cache: { loading:'Загружаем стартапы...', cached:'Загружено из кэша', fresh:'Данные обновлены' },
-    startupPage: { back:'Назад в каталог', founded:'Основан', country:'Страна', audience:'Аудитория', provider:'Платёжный провайдер', customers:'Клиентов', subs:'Активных подписок', rev30:'Выручка (30 дней)', mrr:'MRR', totalRev:'Общая выручка', growth:'Рост за 30 дней', margin:'Маржа прибыли', rank:'Место в рейтинге', visitors:'Посетителей (30д)', contact:'Связаться с продавцом', viewOriginal:'Открыть сайт', forSale:'На продаже', notForSale:'Не продаётся', price:'Цена', multiple:'Мультипл выручки', techStack:'Технологии', cofounders:'Сооснователи' }
+    startupPage: { back:'Назад в каталог', founded:'Основан', country:'Страна', audience:'Аудитория', provider:'Платёжный провайдер', customers:'Клиентов', subs:'Активных подписок', rev30:'Выручка (30 дней)', mrr:'MRR', totalRev:'Общая выручка', growth:'Рост за 30 дней', margin:'Маржа прибыли', rank:'Место в рейтинге', visitors:'Посетителей (30д)', contact:'Связаться с продавцом', viewOriginal:'Открыть сайт', forSale:'На продаже', notForSale:'Не продаётся', price:'Цена', multiple:'Мультипл выручки', techStack:'Технологии', cofounders:'Сооснователи' },
+    acquire: { heroTitle:'Купи <span>прибыльный стартап</span> с подтверждёнными метриками', heroSub:'У каждого объявления реальный MRR, верифицированный через Stripe, LemonSqueezy или Polar.', step1Title:'Смотри объявления', step1Desc:'Фильтруй по категории, цене и мультиплу выручки', step2Title:'Проверяй метрики', step2Desc:'Все данные по выручке подтверждены напрямую через платёжные сервисы', step3Title:'Свяжись с продавцом', step3Desc:'Пиши основателю напрямую со страницы стартапа' }
   },
   zh: {
     dir:'ltr', flag:'🇨🇳', code:'ZH',
@@ -88,7 +93,8 @@ const T = {
     errors: { key:'API 密钥无效。', load:'加载数据时出错。' },
     empty: { title:'未找到任何内容', sub:'请尝试更改过滤条件' },
     cache: { loading:'加载中...', cached:'从缓存加载', fresh:'数据已更新' },
-    startupPage: { back:'返回目录', founded:'成立于', country:'国家', audience:'目标受众', provider:'支付提供商', customers:'客户', subs:'活跃订阅', rev30:'收入（30天）', mrr:'MRR', totalRev:'总收入', growth:'30天增长', margin:'利润率', rank:'排名', visitors:'访客（30天）', contact:'联系卖家', viewOriginal:'访问网站', forSale:'在售', notForSale:'不出售', price:'要价', multiple:'收入倍数', techStack:'技术栈', cofounders:'联合创始人' }
+    startupPage: { back:'返回目录', founded:'成立于', country:'国家', audience:'目标受众', provider:'支付提供商', customers:'客户', subs:'活跃订阅', rev30:'收入（30天）', mrr:'MRR', totalRev:'总收入', growth:'30天增长', margin:'利润率', rank:'排名', visitors:'访客（30天）', contact:'联系卖家', viewOriginal:'访问网站', forSale:'在售', notForSale:'不出售', price:'要价', multiple:'收入倍数', techStack:'技术栈', cofounders:'联合创始人' },
+    acquire: { heroTitle:'购买<span>盈利的初创公司</span>，指标经过验证', heroSub:'每个列表都有通过 Stripe、LemonSqueezy 或 Polar 验证的真实 MRR。', step1Title:'浏览列表', step1Desc:'按类别、价格和收入倍数筛选', step2Title:'核实指标', step2Desc:'所有收入数据均直接通过支付提供商验证', step3Title:'联系卖家', step3Desc:'在初创公司详情页直接联系创始人' }
   },
   ar: {
     dir:'rtl', flag:'🇸🇦', code:'AR',
@@ -103,7 +109,8 @@ const T = {
     errors: { key:'مفتاح API غير صالح.', load:'خطأ في تحميل البيانات.' },
     empty: { title:'لم يتم العثور على شيء', sub:'حاول تغيير المرشحات' },
     cache: { loading:'جارٍ التحميل...', cached:'تم التحميل من الذاكرة المؤقتة', fresh:'تم تحديث البيانات' },
-    startupPage: { back:'العودة إلى الكتالوج', founded:'تأسست', country:'الدولة', audience:'الجمهور', provider:'مزود الدفع', customers:'العملاء', subs:'الاشتراكات النشطة', rev30:'الإيرادات (30 يوم)', mrr:'MRR', totalRev:'إجمالي الإيرادات', growth:'نمو 30 يوم', margin:'هامش الربح', rank:'الترتيب', visitors:'الزوار (30 يوم)', contact:'التواصل مع البائع', viewOriginal:'زيارة الموقع', forSale:'للبيع', notForSale:'غير معروض للبيع', price:'سعر الطلب', multiple:'مضاعف الإيرادات', techStack:'مجموعة التقنيات', cofounders:'المؤسسون المشاركون' }
+    startupPage: { back:'العودة إلى الكتالوج', founded:'تأسست', country:'الدولة', audience:'الجمهور', provider:'مزود الدفع', customers:'العملاء', subs:'الاشتراكات النشطة', rev30:'الإيرادات (30 يوم)', mrr:'MRR', totalRev:'إجمالي الإيرادات', growth:'نمو 30 يوم', margin:'هامش الربح', rank:'الترتيب', visitors:'الزوار (30 يوم)', contact:'التواصل مع البائع', viewOriginal:'زيارة الموقع', forSale:'للبيع', notForSale:'غير معروض للبيع', price:'سعر الطلب', multiple:'مضاعف الإيرادات', techStack:'مجموعة التقنيات', cofounders:'المؤسسون المشاركون' },
+    acquire: { heroTitle:'اشترِ <span>شركة ناشئة مربحة</span> بمقاييس مؤكدة', heroSub:'كل إعلان يحتوي على MRR حقيقي موثق عبر Stripe أو LemonSqueezy أو Polar.', step1Title:'تصفح الإعلانات', step1Desc:'فلتر حسب الفئة والسعر ومضاعف الإيرادات', step2Title:'تحقق من المقاييس', step2Desc:'جميع بيانات الإيرادات موثقة مباشرة عبر مزودي الدفع', step3Title:'تواصل مع البائع', step3Desc:'تواصل مباشرة مع المؤسس في صفحة تفاصيل الشركة الناشئة' }
   }
 };
 

@@ -1,8 +1,7 @@
 // Stale-while-revalidate pattern
-// Cache: 7 days in Redis. Freshness flag: 1 hour.
+// Cache: stored permanently in Redis (no TTL). Freshness flag: 1 hour.
 // Returns stale data instantly + triggers background update when stale.
 
-const CACHE_TTL = 7 * 24 * 3600;  // 7 days — always have data
 const FRESH_TTL = 3600;            // 1 hour freshness window
 
 async function kv(method, path, body) {
@@ -25,8 +24,11 @@ async function redisGet(key) {
 }
 
 async function redisSet(key, value, ttl) {
-  try { await kv('POST', `/set/${encodeURIComponent(key)}`, { value: JSON.stringify(value), ex: ttl }); }
-  catch {}
+  try {
+    const body = { value: JSON.stringify(value) };
+    if (ttl) body.ex = ttl;
+    await kv('POST', `/set/${encodeURIComponent(key)}`, body);
+  } catch {}
 }
 
 async function fetchTrustMRR(params, apiKey) {
@@ -67,7 +69,7 @@ export default async function handler(req, res) {
     try {
       const fresh = await fetchTrustMRR(params, apiKey);
       await Promise.all([
-        redisSet(cacheKey, fresh, CACHE_TTL),
+        redisSet(cacheKey, fresh),
         redisSet(freshKey, 1, FRESH_TTL)
       ]);
     } catch {}
@@ -78,7 +80,7 @@ export default async function handler(req, res) {
   try {
     const data = await fetchTrustMRR(params, apiKey);
     await Promise.all([
-      redisSet(cacheKey, data, CACHE_TTL),
+      redisSet(cacheKey, data),
       redisSet(freshKey, 1, FRESH_TTL)
     ]);
     res.setHeader('X-Cache', 'MISS');
