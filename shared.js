@@ -133,10 +133,10 @@ function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// ── DAILY CACHE ───────────────────────────────────────────────────────────────
+// ── LOCAL CACHE ───────────────────────────────────────────────────────────────
 // Cache key includes the API key hash so different users don't share data
-// Data is stored in localStorage and refreshed once per day
-const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+// Data is stored in localStorage forever — never deleted, only refreshed in background
+const BACKGROUND_REFRESH_INTERVAL = 24 * 60 * 60 * 1000; // refresh in background once per day
 
 function getCacheStorageKey(filtersKey) {
   const apiKey = getApiKey();
@@ -149,11 +149,7 @@ function getFromDailyCache(filtersKey, ignoreExpiry = false) {
     const key = getCacheStorageKey(filtersKey);
     const raw = localStorage.getItem(key);
     if (!raw) return null;
-    const { data, timestamp } = JSON.parse(raw);
-    if (!ignoreExpiry && Date.now() - timestamp > CACHE_TTL) {
-      localStorage.removeItem(key);
-      return null;
-    }
+    const { data } = JSON.parse(raw);
     return data;
   } catch(e) { return null; }
 }
