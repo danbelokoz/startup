@@ -161,11 +161,15 @@ function getFromDailyCache(filtersKey, ignoreExpiry = false) {
 function saveToDailyCache(filtersKey, data) {
   try {
     const key = getCacheStorageKey(filtersKey);
-    localStorage.setItem(key, JSON.stringify({ data, timestamp: Date.now() }));
-  } catch(e) {
-    // localStorage might be full — clear old cache entries
-    clearOldCache();
-  }
+    const payload = JSON.stringify({ data, timestamp: Date.now() });
+    try {
+      localStorage.setItem(key, payload);
+    } catch(e) {
+      // localStorage full — clear old entries and retry
+      clearOldCache();
+      localStorage.setItem(key, payload);
+    }
+  } catch(e) {}
 }
 
 function clearOldCache() {
