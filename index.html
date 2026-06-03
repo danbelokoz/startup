@@ -270,7 +270,7 @@ function dataScore(s) {
 async function loadAll() {
   const fKey = buildCacheKey();
 
-  // Try localStorage daily cache
+  // Try localStorage daily cache first
   if (!cacheLoaded || cacheKey !== fKey) {
     const cached = getFromDailyCache(fKey);
     if (cached && cached.length > 0) {
@@ -279,12 +279,15 @@ async function loadAll() {
       updateStatsFromCache();
       renderFromCache();
       showCacheBadge(getCacheAge(fKey));
+      // Always refresh in background to keep data fresh
       refreshInBackground(fKey);
       return;
     }
   }
+
   if (cacheLoaded && cacheKey === fKey) { renderFromCache(); return; }
 
+  // No local cache — fetch from server
   showSkeleton();
   allCache = []; cacheLoaded = false; cacheKey = fKey;
   await fetchAllPages(fKey);

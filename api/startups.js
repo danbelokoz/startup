@@ -1,24 +1,33 @@
-// Stale-while-revalidate: always return cached data instantly,
-// trigger background refresh if cache is older than 1 hour
+// Stale-while-revalidate pattern
+// Cache: 7 days in Redis. Freshness flag: 1 hour.
+// Returns stale data instantly + triggers background update when stale.
+
+const CACHE_TTL = 7 * 24 * 3600;  // 7 days — always have data
+const FRESH_TTL = 3600;            // 1 hour freshness window
+
+async function kv(method, path, body) {
+  const url = `${process.env.KV_REST_API_URL}${path}`;
+  const opts = { method, headers: { Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}` } };
+  if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+  const r = await fetch(url, opts);
+  return r.json();
+}
 
 async function redisGet(key) {
-  try {
-    const url = `${process.env.KV_REST_API_URL}/get/${encodeURIComponent(key)}`;
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}` } });
-    const json = await res.json();
-    return json.result ? JSON.parse(json.result) : null;
-  } catch { return null; }
+  try { const r = await kv('GET', `/get/${encodeURIComponent(key)}`); return r.result ? JSON.parse(r.result) : null; }
+  catch { return null; }
 }
 
 async function redisSet(key, value, ttl) {
-  try {
-    const url = `${process.env.KV_REST_API_URL}/set/${encodeURIComponent(key)}`;
-    await fetch(url, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ value: JSON.stringify(value), ex: ttl })
-    });
-  } catch {}
+  try { await kv('POST', `/set/${encodeURIComponent(key)}`, { value: JSON.stringify(value), ex: ttl }); }
+  catch {}
+}
+
+async function fetchTrustMRR(params, apiKey) {
+  const r = await fetch(`https://trustmrr.com/api/v1/startups?${params}`, { headers: { Authorization: apiKey } });
+  if (r.status === 401) throw new Error('401');
+  if (!r.ok) throw new Error('upstream_' + r.status);
+  return r.json();
 }
 
 export default async function handler(req, res) {
@@ -31,54 +40,45 @@ export default async function handler(req, res) {
   if (!apiKey) return res.status(401).json({ error: 'No API key' });
 
   const params = new URLSearchParams(req.query);
-  const cacheKey = `v2_${params.toString()}`;
-  const freshKey = `${cacheKey}_fresh`; // flag: data is < 1h old
+  const cacheKey = `sm_${params.toString()}`;
+  const freshKey = `${cacheKey}_f`;
 
-  // Always try to return cached data first
-  const cached = await redisGet(cacheKey);
-  const isFresh = await redisGet(freshKey);
+  const [cached, isFresh] = await Promise.all([redisGet(cacheKey), redisGet(freshKey)]);
 
-  if (cached) {
-    // Return cached data immediately
-    res.setHeader('X-Cache', isFresh ? 'HIT-FRESH' : 'HIT-STALE');
-
-    if (!isFresh) {
-      // Cache is stale — refresh in background WITHOUT blocking response
-      res.status(200).json({ ...cached, fromCache: true, stale: true });
-
-      // Background refresh (runs after response is sent)
-      refreshPage(params, cacheKey, freshKey, apiKey).catch(() => {});
-      return;
-    }
-
-    return res.status(200).json({ ...cached, fromCache: true, stale: false });
+  // Case 1: fresh cache — instant return
+  if (cached && isFresh) {
+    res.setHeader('X-Cache', 'HIT');
+    return res.status(200).json({ ...cached, fromCache: true });
   }
 
-  // No cache at all — must fetch (first ever load)
+  // Case 2: stale cache — return immediately, update in background
+  if (cached && !isFresh) {
+    res.setHeader('X-Cache', 'STALE');
+    // Send stale response right away
+    res.status(200).json({ ...cached, fromCache: true, stale: true });
+    // Background refresh — runs after response sent
+    // Vercel keeps function alive briefly after res.end() for cleanup
+    try {
+      const fresh = await fetchTrustMRR(params, apiKey);
+      await Promise.all([
+        redisSet(cacheKey, fresh, CACHE_TTL),
+        redisSet(freshKey, 1, FRESH_TTL)
+      ]);
+    } catch {}
+    return;
+  }
+
+  // Case 3: no cache — must fetch and wait
   try {
-    const data = await fetchFromTrustMRR(params, apiKey);
-    // Save with 7-day TTL (so stale data is always available)
-    await redisSet(cacheKey, data, 7 * 24 * 3600);
-    // Mark as fresh for 1 hour
-    await redisSet(freshKey, '1', 3600);
+    const data = await fetchTrustMRR(params, apiKey);
+    await Promise.all([
+      redisSet(cacheKey, data, CACHE_TTL),
+      redisSet(freshKey, 1, FRESH_TTL)
+    ]);
     res.setHeader('X-Cache', 'MISS');
-    return res.status(200).json({ ...data, fromCache: false, stale: false });
+    return res.status(200).json({ ...data, fromCache: false });
   } catch (err) {
-    if (err.message.includes('401')) return res.status(401).json({ error: 'Invalid API key' });
+    if (err.message === '401') return res.status(401).json({ error: 'Invalid API key' });
     return res.status(500).json({ error: err.message });
   }
-}
-
-async function refreshPage(params, cacheKey, freshKey, apiKey) {
-  const data = await fetchFromTrustMRR(params, apiKey);
-  await redisSet(cacheKey, data, 7 * 24 * 3600); // keep for 7 days
-  await redisSet(freshKey, '1', 3600);            // fresh for 1 hour
-}
-
-async function fetchFromTrustMRR(params, apiKey) {
-  const url = `https://trustmrr.com/api/v1/startups?${params}`;
-  const res = await fetch(url, { headers: { Authorization: apiKey } });
-  if (res.status === 401) throw new Error('401');
-  if (!res.ok) throw new Error('TrustMRR error: ' + res.status);
-  return res.json();
 }
