@@ -32,7 +32,7 @@ async function redisSet(key, value, ttl) {
 }
 
 async function fetchTrustMRR(params, apiKey) {
-  const r = await fetch(`https://trustmrr.com/api/v1/startups?${params}`, { headers: { Authorization: apiKey } });
+  const r = await fetch(`https://trustmrr.com/api/v1/startups?${params}`, { headers: { Authorization: `Bearer ${apiKey}` } });
   if (r.status === 401) throw new Error('401');
   if (!r.ok) throw new Error('upstream_' + r.status);
   return r.json();
@@ -41,11 +41,11 @@ async function fetchTrustMRR(params, apiKey) {
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const apiKey = req.headers.authorization;
-  if (!apiKey) return res.status(401).json({ error: 'No API key' });
+  const apiKey = process.env.TRUSTMRR_API_KEY;
+  if (!apiKey) return res.status(500).json({ error: 'Server not configured' });
 
   const params = new URLSearchParams(req.query);
   const cacheKey = `sm_${params.toString()}`;
@@ -86,7 +86,7 @@ export default async function handler(req, res) {
     res.setHeader('X-Cache', 'MISS');
     return res.status(200).json({ ...data, fromCache: false });
   } catch (err) {
-    if (err.message === '401') return res.status(401).json({ error: 'Invalid API key' });
+    if (err.message === '401') return res.status(503).json({ error: 'Upstream API error' });
     return res.status(500).json({ error: err.message });
   }
 }

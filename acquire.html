@@ -111,10 +111,11 @@
   ${Array(6).fill('<div class="skeleton"></div>').join('')}
 </div>
 
+<script src="/auth-config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="/shared.js"></script>
 <script>
 const API_BASE = '/api';
-const CACHE_KEY = 'sm_cache_all';
 let allData = [], filtered = [];
 
 function applyLangUI() {
@@ -141,19 +142,14 @@ function applyLangUI() {
   document.getElementById('optSortGrowth').textContent = t('filter','sortGrowth');
 }
 
-window.onApiKeySaved = () => { allData = []; load(); };
-window.onDemoMode = () => { renderCards([]); };
-
 window.addEventListener('DOMContentLoaded', () => {
   applyLangUI();
-  const key = getApiKey();
-  if (!key) { document.getElementById('apiModal').classList.remove('hidden'); showSkeleton(); }
-  else { load(); }
+  initNavAuth();
+  load();
 });
 
 async function load() {
-  // Try localStorage first
-  const cached = getFromLocalStorage();
+  const cached = await idbGetAll();
   if (cached && cached.length > 0) {
     allData = cached.filter(s => s.onSale);
     applyFilters();
@@ -163,23 +159,12 @@ async function load() {
   await fetchAll();
 }
 
-function getFromLocalStorage() {
-  try {
-    const raw = localStorage.getItem(CACHE_KEY);
-    if (!raw) return null;
-    const obj = JSON.parse(raw);
-    if (!obj || !obj.data) return null;
-    return obj.data;
-  } catch { return null; }
-}
-
 async function fetchAll() {
-  const apiKey = getApiKey();
   let page = 1, hasMore = true, result = [];
   try {
     while (hasMore) {
       const params = new URLSearchParams({ page, limit: 50, sort: 'revenue-desc' });
-      const res = await fetch(`${API_BASE}/startups?${params}`, { headers: { Authorization: `Bearer ${apiKey}` } });
+      const res = await fetch(`${API_BASE}/startups?${params}`);
       if (!res.ok) break;
       const { data, meta } = await res.json();
       result = result.concat(data);
@@ -228,9 +213,10 @@ function cardHTML(s) {
   const rev30 = formatMoney(s.revenue?.last30Days);
   const g = s.growth30d;
   const gStr = g != null ? `<span class="${g>0?'growth-positive':g<0?'growth-negative':''}">${g>0?'+':''}${parseFloat(g).toFixed(1)}%</span>` : '—';
+  const fb = escHtml(s.name.charAt(0));
   const logo = s.icon
-    ? `<img src="${escHtml(s.icon)}" loading="lazy" onerror="this.parentElement.textContent='${s.name.charAt(0)}'"/>`
-    : s.name.charAt(0);
+    ? `<img src="${escHtml(s.icon)}" loading="lazy" data-fb="${fb}" onerror="this.parentElement.textContent=this.getAttribute('data-fb')"/>`
+    : fb;
 
   return `<a class="deal-card" href="/startup/${s.slug}.html" onclick="saveStartup(event,'${escHtml(JSON.stringify(s))}')">
     <div class="verified-badge">${t('card','verified')}</div>

@@ -81,6 +81,13 @@
       .filter-chip { width: auto; }
       .hero { padding: 28px 16px 20px; }
     }
+  .startup-card--blurred { filter: blur(5px); pointer-events: none; user-select: none; }
+  .upgrade-banner { grid-column: 1 / -1; background: var(--bg2); border: 1.5px solid rgba(108,99,255,0.25); border-radius: var(--radius); padding: 20px 24px; display: flex; align-items: center; gap: 16px; box-shadow: var(--shadow); }
+  .upgrade-banner > svg { flex-shrink: 0; color: var(--accent); }
+  .upgrade-banner-text { flex: 1; }
+  .upgrade-banner-text strong { display: block; font-size: 15px; font-weight: 600; margin-bottom: 2px; }
+  .upgrade-banner-text span { font-size: 13px; color: var(--text2); }
+  @media (max-width: 480px) { .upgrade-banner { flex-direction: column; text-align: center; } }
   </style>
 </head>
 <body>
@@ -176,20 +183,15 @@
 
 <footer><span id="footerText"></span> <a href="https://trustmrr.com" target="_blank">TrustMRR</a> · API v1</footer>
 
+<script src="/auth-config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="/shared.js"></script>
 <script>
 const API_BASE = '/api';
-let allCache = [], cacheLoaded = false, isDemoMode = false;
+let allCache = [], cacheLoaded = false;
 let currentPage = 1;
 let filters = { sort:'revenue-desc', onSale:null, category:'', search:'' };
 let searchTimer = null;
-
-const DEMO = [
-  { name:'ShipFast', slug:'shipfast', icon:'https://shipfa.st/favicon.ico', description:'The NextJS boilerplate with all you need to build your SaaS, AI tool, or any other web app fast.', category:'saas', paymentProvider:'stripe', onSale:true, askingPrice:5000000, multiple:0.98, revenue:{last30Days:4250000,mrr:420000,total:98000000}, activeSubscriptions:320, growth30d:12, website:'https://shipfa.st' },
-  { name:'CodeFast', slug:'codefast', icon:null, description:'Learn to code 10x faster with AI-assisted learning.', category:'education', paymentProvider:'stripe', onSale:false, revenue:{last30Days:1800000,mrr:180000,total:24000000}, activeSubscriptions:890, growth30d:24, website:'https://codefast.dev' },
-  { name:'ZenVoice', slug:'zenvoice', icon:null, description:'Auto-generate beautiful invoices from Stripe.', category:'fintech', paymentProvider:'stripe', onSale:false, revenue:{last30Days:480000,mrr:480000,total:5600000}, activeSubscriptions:480, growth30d:35, website:'https://zenvoice.io' },
-  { name:'DataFast', slug:'datafast', icon:null, description:'Analytics platform for indie hackers.', category:'analytics', paymentProvider:'lemonsqueezy', onSale:true, askingPrice:2400000, multiple:1.1, revenue:{last30Days:220000,mrr:200000,total:8200000}, activeSubscriptions:200, growth30d:8, website:'https://datafa.st' },
-];
 
 function applyUI() {
   applyLangToDoc();
@@ -222,23 +224,15 @@ function applyUI() {
   document.getElementById('footerText').textContent = t('footer','data');
 }
 
-window.onApiKeySaved = () => {
-  cacheLoaded = false;
-  allCache = [];
-  loadAll();
-};
-window.onDemoMode = () => { isDemoMode = true; renderDemo(); };
 
 window.addEventListener('DOMContentLoaded', () => {
   applyUI();
-  // Set initial active state on hero buttons — "For sale" by default
+  initNavAuth();
   document.getElementById('heroBtn1').classList.add('active');
   filters.onSale = true;
   document.getElementById('chipSale').classList.add('active');
   document.getElementById('chipAll').classList.remove('active');
-  const key = getApiKey();
-  if (!key) { document.getElementById('apiModal').classList.remove('hidden'); }
-  else { loadAll(); }
+  loadAll();
 });
 
 // ── SORT LOCALLY — point 4: no reload on filter toggle ────────────────────
@@ -304,7 +298,6 @@ const DELAY_MS = 3200;
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 async function fetchAllPages() {
-  const apiKey = getApiKey();
   try {
     let page = 1, hasMore = true;
     allCache = [];
@@ -314,13 +307,12 @@ async function fetchAllPages() {
       let res;
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
-          res = await fetch(`${API_BASE}/startups?${params}`, { headers: { Authorization: `Bearer ${apiKey}` } });
+          res = await fetch(`${API_BASE}/startups?${params}`);
           break;
         } catch(e) { await sleep(2000); }
       }
 
-      // On any error — show stale IndexedDB cache if exists
-      if (!res || (!res.ok && res.status !== 401)) {
+      if (!res || !res.ok) {
         const stale = await idbGetAll();
         if (stale && stale.length > 0) {
           allCache = stale; cacheLoaded = true; currentPage = 1;
@@ -328,16 +320,6 @@ async function fetchAllPages() {
           return;
         }
         showError(t('errors','load')); return;
-      }
-
-      if (res.status === 401) {
-        const stale = await idbGetAll();
-        if (stale && stale.length > 0) {
-          allCache = stale; cacheLoaded = true; currentPage = 1;
-          updateStatsFromCache(); renderFromCache(); showCacheBadge();
-          return;
-        }
-        showError(t('errors','key')); return;
       }
 
       const json = await res.json();
@@ -373,11 +355,10 @@ async function fetchAllPages() {
 
 async function refreshInBackground() {
   try {
-    const apiKey = getApiKey();
     let page = 1, hasMore = true, freshData = [];
     while (hasMore) {
       const params = new URLSearchParams({ page, limit: 50, sort: 'revenue-desc' });
-      const res = await fetch(`${API_BASE}/startups?${params}`, { headers: { Authorization: `Bearer ${apiKey}` } });
+      const res = await fetch(`${API_BASE}/startups?${params}`);
       if (!res.ok) return;
       const { data, meta, fromCache } = await res.json();
       freshData = freshData.concat(data);
@@ -421,22 +402,53 @@ function showCacheBadge() {
 }
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
+function getViewLimit() {
+  const a = window._access;
+  if (!a) return 3;                          // default to guest until auth resolves
+  if (a.role === 'subscriber') return Infinity;
+  if (a.authenticated) return 8;             // registered free user
+  return 3;                                  // guest
+}
+
+function upgradeHTML(count) {
+  const isAuth = window._access?.authenticated;
+  const from   = encodeURIComponent(location.pathname);
+  const msg    = isAuth
+    ? 'Subscribe for unlimited access to all startups'
+    : 'Create a free account — see 5 more startups';
+  const cta    = isAuth
+    ? `<a href="/dashboard.html" class="btn btn-primary btn-sm">Get unlimited access</a>`
+    : `<a href="/auth.html?from=${from}" class="btn btn-primary btn-sm">Sign up free</a>`;
+  return `<div class="upgrade-banner">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    <div class="upgrade-banner-text"><strong>${count} more startups</strong><span>${msg}</span></div>
+    ${cta}
+  </div>`;
+}
+
 function renderFromCache() {
   let d = allCache;
 
-  // Point 4: filter locally from full cache, no reload
   if (filters.onSale === true) d = d.filter(s => s.onSale);
   if (filters.category) d = d.filter(s => s.category === filters.category);
   if (filters.search) {
     const q = filters.search.toLowerCase();
     d = d.filter(s => s.name.toLowerCase().includes(q) || (s.description||'').toLowerCase().includes(q));
   }
-
-  // Sort
   d = sortCache(d);
 
+  const limit = getViewLimit();
+
+  // Limited view: show limit cards + CTA + blurred preview, no pagination
+  if (limit < Infinity && d.length > limit) {
+    document.getElementById('pagination').style.display = 'none';
+    renderCards(d, limit);
+    return;
+  }
+
+  // Unlimited / subscriber: normal paginated view
   const ps = 18, total = d.length, pages = Math.ceil(total / ps);
-  renderCards(d.slice((currentPage-1)*ps, currentPage*ps));
+  renderCards(d.slice((currentPage-1)*ps, currentPage*ps), Infinity);
 
   if (total <= ps) { document.getElementById('pagination').style.display = 'none'; }
   else {
@@ -447,29 +459,29 @@ function renderFromCache() {
   }
 }
 
-function renderDemo() {
-  document.getElementById('statTotal').textContent = '800+';
-  document.getElementById('statSale').textContent = '120+';
-  document.getElementById('statAvgMrr').textContent = '$320';
-  let d = DEMO;
-  if (filters.onSale === true) d = d.filter(s => s.onSale);
-  if (filters.category) d = d.filter(s => s.category === filters.category);
-  if (filters.search) { const q = filters.search.toLowerCase(); d = d.filter(s => s.name.toLowerCase().includes(q)); }
-  renderCards(d);
-  document.getElementById('pagination').style.display = 'none';
-}
-
-function renderCards(list) {
+function renderCards(list, limit) {
   const grid = document.getElementById('grid');
   if (!list.length) { grid.innerHTML = `<div class="state-center"><h3>${t('empty','title')}</h3><p>${t('empty','sub')}</p></div>`; return; }
-  grid.innerHTML = list.map(s => cardHTML(s)).join('');
+  if (!limit || limit >= list.length) {
+    grid.innerHTML = list.map(s => cardHTML(s)).join('');
+    return;
+  }
+  // Visible cards + upgrade banner + 3 blurred preview cards
+  const visible     = list.slice(0, limit);
+  const preview     = list.slice(limit, limit + 3);
+  const hiddenCount = list.length - limit;
+  let html = visible.map(s => cardHTML(s)).join('');
+  html += upgradeHTML(hiddenCount);
+  html += preview.map(s => cardHTML(s).replace('class="startup-card"', 'class="startup-card startup-card--blurred"')).join('');
+  grid.innerHTML = html;
 }
 
 function cardHTML(s) {
   const mrr = formatMoney(s.revenue?.mrr), rev = formatMoney(s.revenue?.last30Days);
   const g = s.growth30d;
   const gStr = g != null ? `<span class="${g>0?'growth-positive':g<0?'growth-negative':''}">${g>0?'+':''}${parseFloat(g).toFixed(1)}%</span>` : '—';
-  const icon = s.icon ? `<img src="${escHtml(s.icon)}" loading="lazy" onerror="this.parentElement.textContent='${s.name.charAt(0)}'"/>` : `<span style="font-size:15px;font-weight:700;color:var(--text2)">${s.name.charAt(0)}</span>`;
+  const fb = escHtml(s.name.charAt(0));
+  const icon = s.icon ? `<img src="${escHtml(s.icon)}" loading="lazy" data-fb="${fb}" onerror="this.parentElement.textContent=this.getAttribute('data-fb')"/>` : `<span style="font-size:15px;font-weight:700;color:var(--text2)">${fb}</span>`;
   const price = s.onSale && s.askingPrice
     ? `<div class="card-price"><div class="label">${t('card','price')}</div><div class="amount">${formatMoney(s.askingPrice)}</div>${s.multiple?`<div class="multiple">${parseFloat(s.multiple).toFixed(1)}x</div>`:''}</div>`
     : `<div class="card-price"><div class="label">${t('card','notSale')}</div><div class="amount" style="font-size:12px;color:var(--text3)">—</div></div>`;
@@ -516,23 +528,23 @@ function showSkeleton() {
 }
 
 function showError(msg) {
-  document.getElementById('grid').innerHTML = `<div class="state-center"><h3>⚠️</h3><p>${msg}</p><button class="btn btn-primary" onclick="document.getElementById('apiModal').classList.remove('hidden')" style="margin-top:16px;">${t('nav','apiKey')}</button></div>`;
+  document.getElementById('grid').innerHTML = `<div class="state-center"><h3>⚠️</h3><p>${msg}</p></div>`;
 }
 
-// Point 4: filter/sort purely from cache, no API call
 function filterSale(v) {
   filters.onSale = v; currentPage = 1;
   document.getElementById('chipAll').classList.toggle('active', v === null);
   document.getElementById('chipSale').classList.toggle('active', v === true);
-  // Hero buttons: highlight active
   document.getElementById('heroBtn2').classList.toggle('active', v === null);
   document.getElementById('heroBtn1').classList.toggle('active', v === true);
-  if (isDemoMode) renderDemo(); else if (cacheLoaded) renderFromCache(); else loadAll();
+  if (cacheLoaded) renderFromCache(); else loadAll();
 }
-function onCategoryChange(v) { filters.category = v; currentPage = 1; if (isDemoMode) renderDemo(); else if (cacheLoaded) renderFromCache(); else loadAll(); }
-function onSortChange(v) { filters.sort = v; currentPage = 1; if (isDemoMode) renderDemo(); else if (cacheLoaded) renderFromCache(); else loadAll(); }
-function onSearch(v) { clearTimeout(searchTimer); filters.search = v; searchTimer = setTimeout(() => { currentPage = 1; if (isDemoMode) renderDemo(); else renderFromCache(); }, 250); }
-function changePage(d) { currentPage += d; if (currentPage < 1) currentPage = 1; window.scrollTo({top:0,behavior:'smooth'}); if (isDemoMode) renderDemo(); else renderFromCache(); }
+function onCategoryChange(v) { filters.category = v; currentPage = 1; if (cacheLoaded) renderFromCache(); else loadAll(); }
+function onSortChange(v) { filters.sort = v; currentPage = 1; if (cacheLoaded) renderFromCache(); else loadAll(); }
+function onSearch(v) { clearTimeout(searchTimer); filters.search = v; searchTimer = setTimeout(() => { currentPage = 1; renderFromCache(); }, 250); }
+function changePage(d) { currentPage += d; if (currentPage < 1) currentPage = 1; window.scrollTo({top:0,behavior:'smooth'}); renderFromCache(); }
+// Re-render when Supabase auth resolves — applies correct view limit
+window.addEventListener('navAuthUpdated', () => { if (cacheLoaded) renderFromCache(); });
 </script>
 </body>
 </html>

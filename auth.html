@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign in — StartupMarket</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/shared.css" />
+  <style>
+    .auth-page  { min-height: 100vh; display: flex; flex-direction: column; }
+    .auth-nav   { padding: 0 24px; height: 62px; display: flex; align-items: center; border-bottom: 1px solid var(--border); }
+    .auth-body  { flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px 24px; }
+    .auth-card  { background: var(--bg2); border: 1px solid var(--border2); border-radius: 16px; padding: 32px; width: 100%; max-width: 400px; box-shadow: 0 8px 40px rgba(0,0,0,0.08); }
+
+    .tab-group  { display: flex; background: var(--bg3); border-radius: var(--radius-sm); padding: 3px; margin-bottom: 24px; }
+    .tab-btn    { flex: 1; padding: 8px; font-size: 14px; font-weight: 500; border: none; background: transparent; color: var(--text2); border-radius: calc(var(--radius-sm) - 2px); cursor: pointer; font-family: inherit; transition: all 0.15s; }
+    .tab-btn.active { background: var(--bg2); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+
+    .form-label { display: block; font-size: 13px; font-weight: 500; color: var(--text2); margin-bottom: 6px; }
+    .form-input { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 14px; font-family: inherit; padding: 10px 14px; outline: none; transition: border-color 0.15s; box-sizing: border-box; }
+    .form-input:focus { border-color: var(--accent); }
+    .form-group { margin-bottom: 16px; }
+
+    .msg       { border-radius: var(--radius-sm); padding: 10px 14px; font-size: 13px; margin-bottom: 16px; display: none; }
+    .msg-error { background: rgba(220,38,38,0.08); border: 1px solid rgba(220,38,38,0.2); color: var(--red); }
+    .msg-ok    { background: rgba(22,163,74,0.08);  border: 1px solid rgba(22,163,74,0.2);  color: var(--green); }
+
+    .btn-submit { width: 100%; padding: 11px; font-size: 15px; font-weight: 600; border: none; border-radius: var(--radius-sm); background: var(--accent); color: #fff; cursor: pointer; font-family: inherit; transition: background 0.15s; }
+    .btn-submit:hover    { background: var(--accent2); }
+    .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .auth-footer { display: flex; justify-content: space-between; margin-top: 16px; font-size: 13px; }
+    .auth-link   { color: var(--text3); text-decoration: none; }
+    .auth-link:hover { color: var(--accent); }
+
+    .sent-box   { text-align: center; padding: 8px 0; }
+    .sent-icon  { width: 48px; height: 48px; border-radius: 50%; background: rgba(108,99,255,0.1); color: var(--accent); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
+    .sent-box h3 { font-family: 'Space Grotesk', sans-serif; font-size: 18px; margin-bottom: 8px; }
+    .sent-box p  { font-size: 14px; color: var(--text2); line-height: 1.6; margin-bottom: 20px; }
+    .sent-box a  { color: var(--accent); text-decoration: none; font-size: 14px; }
+
+    .reset-notice { font-size: 12px; color: var(--text3); text-align: center; margin-top: 12px; line-height: 1.5; }
+  </style>
+</head>
+<body>
+<div class="auth-page">
+
+  <div class="auth-nav">
+    <a class="nav-logo" href="/">⚡ StartupMarket</a>
+  </div>
+
+  <div class="auth-body">
+    <div class="auth-card">
+
+      <!-- Tabs -->
+      <div class="tab-group" id="tabs">
+        <button class="tab-btn active" id="tabLogin"  onclick="setMode('login')">Sign in</button>
+        <button class="tab-btn"        id="tabSignup" onclick="setMode('signup')">Create account</button>
+      </div>
+
+      <!-- Messages -->
+      <div class="msg msg-error" id="msgError"></div>
+      <div class="msg msg-ok"    id="msgOk"></div>
+
+      <!-- Auth form -->
+      <form id="authForm" onsubmit="submitForm(event)">
+        <div class="form-group">
+          <label class="form-label" for="email">Email</label>
+          <input class="form-input" type="email" id="email" required autocomplete="email" placeholder="you@example.com" />
+        </div>
+        <div class="form-group" id="passwordGroup">
+          <label class="form-label" for="password">Password</label>
+          <input class="form-input" type="password" id="password" required autocomplete="current-password" placeholder="••••••••" minlength="6" />
+        </div>
+        <button class="btn-submit" id="submitBtn" type="submit">Sign in</button>
+      </form>
+
+      <!-- Email-confirmed state (shown after signup) -->
+      <div class="sent-box" id="sentBox" style="display:none;">
+        <div class="sent-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        </div>
+        <h3>Check your inbox</h3>
+        <p>We sent a confirmation link to <strong id="sentEmail"></strong>. Click it to activate your account.</p>
+        <a href="/">Continue browsing →</a>
+      </div>
+
+      <!-- Footer links -->
+      <div class="auth-footer" id="authFooter">
+        <a href="/" class="auth-link">Continue as guest</a>
+        <a href="#" class="auth-link" id="forgotLink" onclick="handleForgot(event)">Forgot password?</a>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Supabase JS SDK (UMD, exposes window.supabase) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="/shared.js"></script>
+<script>
+// ── Supabase config ───────────────────────────────────────────────────────────
+// Anon key is public by design — RLS policies protect data, not the key.
+// Replace these after creating a project at supabase.com.
+const SUPABASE_URL  = 'https://gebmvkghoshihlebgvxm.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlYm12a2dob3NoaWhsZWJndnhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NjU3NzcsImV4cCI6MjA5NjE0MTc3N30.r2UwYb6--NlAjichb3xeDnttSNbJW2UMnt7e3OtVfQU';
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+const redirectTo = new URLSearchParams(location.search).get('from') || '/';
+let mode = 'login';
+let sb = null;
+
+window.addEventListener('DOMContentLoaded', async () => {
+  applyLangToDoc();
+
+  if (SUPABASE_URL === 'YOUR_SUPABASE_URL') {
+    showError('Supabase not configured yet. Set SUPABASE_URL and SUPABASE_ANON_KEY in auth.html.');
+    document.getElementById('submitBtn').disabled = true;
+    return;
+  }
+
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+  // If already logged in — go back to the page they came from
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) { location.href = redirectTo; return; }
+
+  // Handle password-reset redirect: Supabase puts tokens in the hash
+  if (location.hash.includes('type=recovery')) {
+    showResetForm();
+  }
+});
+
+// ── Mode switching ────────────────────────────────────────────────────────────
+function setMode(m) {
+  mode = m;
+  document.getElementById('tabLogin').classList.toggle('active',  m === 'login');
+  document.getElementById('tabSignup').classList.toggle('active', m === 'signup');
+  document.getElementById('submitBtn').textContent = m === 'login' ? 'Sign in' : 'Create account';
+  document.getElementById('password').autocomplete = m === 'login' ? 'current-password' : 'new-password';
+  clearMessages();
+}
+
+// ── Form submit ───────────────────────────────────────────────────────────────
+async function submitForm(e) {
+  e.preventDefault();
+  if (!sb) return;
+
+  const email    = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const btn      = document.getElementById('submitBtn');
+
+  clearMessages();
+  setLoading(btn, true);
+
+  try {
+    if (mode === 'login') {
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) { showError(friendly(error.message)); return; }
+      location.href = redirectTo;
+
+    } else {
+      const { error } = await sb.auth.signUp({ email, password });
+      if (error) { showError(friendly(error.message)); return; }
+      showSentBox(email);
+    }
+  } finally {
+    setLoading(btn, false);
+    btn.textContent = mode === 'login' ? 'Sign in' : 'Create account';
+  }
+}
+
+// ── Forgot password ───────────────────────────────────────────────────────────
+async function handleForgot(e) {
+  e.preventDefault();
+  if (!sb) return;
+
+  const email = document.getElementById('email').value.trim();
+  if (!email) { showError('Enter your email address first.'); return; }
+
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: `${location.origin}/auth.html`,
+  });
+  if (error) { showError(friendly(error.message)); return; }
+  showOk('Password reset link sent — check your inbox.');
+}
+
+// ── Password reset form (shown after clicking email link) ─────────────────────
+function showResetForm() {
+  document.getElementById('tabs').style.display      = 'none';
+  document.getElementById('authFooter').style.display = 'none';
+  document.getElementById('email').closest('.form-group').style.display = 'none';
+  document.getElementById('email').removeAttribute('required');
+  document.getElementById('password').placeholder    = 'New password';
+  document.getElementById('password').autocomplete   = 'new-password';
+  document.getElementById('submitBtn').textContent   = 'Set new password';
+  document.getElementById('authForm').onsubmit = resetPassword;
+  showOk('Enter your new password below.');
+}
+
+async function resetPassword(e) {
+  e.preventDefault();
+  if (!sb) return;
+  const password = document.getElementById('password').value;
+  const btn = document.getElementById('submitBtn');
+  clearMessages(); setLoading(btn, true);
+  try {
+    const { error } = await sb.auth.updateUser({ password });
+    if (error) { showError(friendly(error.message)); return; }
+    showOk('Password updated! Redirecting...');
+    setTimeout(() => { location.href = '/'; }, 1500);
+  } finally {
+    setLoading(btn, false);
+    btn.textContent = 'Set new password';
+  }
+}
+
+// ── UI helpers ────────────────────────────────────────────────────────────────
+function showError(msg) {
+  const el = document.getElementById('msgError');
+  el.textContent = msg; el.style.display = 'block';
+  document.getElementById('msgOk').style.display = 'none';
+}
+function showOk(msg) {
+  const el = document.getElementById('msgOk');
+  el.textContent = msg; el.style.display = 'block';
+  document.getElementById('msgError').style.display = 'none';
+}
+function clearMessages() {
+  document.getElementById('msgError').style.display = 'none';
+  document.getElementById('msgOk').style.display    = 'none';
+}
+function setLoading(btn, on) {
+  btn.disabled = on;
+  if (on) btn.textContent = '...';
+}
+function showSentBox(email) {
+  document.getElementById('authForm').style.display    = 'none';
+  document.getElementById('authFooter').style.display  = 'none';
+  document.getElementById('tabs').style.display        = 'none';
+  document.getElementById('sentEmail').textContent     = email;
+  document.getElementById('sentBox').style.display     = 'block';
+  clearMessages();
+}
+
+// Map Supabase error strings to readable messages
+function friendly(msg) {
+  if (msg.includes('Invalid login credentials')) return 'Incorrect email or password.';
+  if (msg.includes('Email not confirmed'))       return 'Please confirm your email first. Check your inbox.';
+  if (msg.includes('User already registered'))   return 'An account with this email already exists. Sign in instead.';
+  if (msg.includes('Password should be'))        return 'Password must be at least 6 characters.';
+  if (msg.includes('rate limit') || msg.includes('too many')) return 'Too many attempts. Please wait a moment.';
+  if (msg.includes('network'))                   return 'Network error. Check your connection.';
+  return msg;
+}
+</script>
+</body>
+</html>

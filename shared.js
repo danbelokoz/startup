@@ -118,8 +118,6 @@ const T = {
 function getLang() { return localStorage.getItem('lang') || 'ru'; }
 function setLangCode(code) { localStorage.setItem('lang', code); location.reload(); }
 function t(section, key) { const lang = getLang(); return (T[lang]||T.en)[section]?.[key] || (T.en[section]?.[key] || ''); }
-function getApiKey() { return localStorage.getItem('trustmrr_api_key') || ''; }
-function saveApiKeyToStorage(key) { localStorage.setItem('trustmrr_api_key', key); }
 
 function formatMoney(cents) {
   if (cents == null) return '—';
@@ -233,48 +231,63 @@ function buildNavHTML(activePage) {
           ${Object.entries(T).map(([code, v]) => `<div class="lang-option ${code===lang?'active':''}" data-lang="${code}" onclick="setLangCode('${code}')">${langNames[code]||code}</div>`).join('')}
         </div>
       </div>
-      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('apiModal').classList.remove('hidden')">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
-        ${l.nav.apiKey}
-      </button>
+      <div id="navAuth"></div>
       <a class="btn btn-primary btn-sm" href="https://trustmrr.com/sell" target="_blank">${l.nav.sell}</a>
     </div>
   </nav>`;
 }
 
-function buildModalHTML() {
-  const l = T[getLang()] || T.en;
-  return `
-  <div class="modal-overlay hidden" id="apiModal">
-    <div class="modal">
-      <h2>🔑 ${l.modal.title}</h2>
-      <p>${l.modal.desc}</p>
-      <input type="text" id="apiKeyInput" placeholder="tmrr_xxxxxxxxxxxxxxxx" autocomplete="off" spellcheck="false" value="${escHtml(getApiKey())}" />
-      <p class="modal-hint">${l.modal.hint1} <a href="https://trustmrr.com/dashboard-dev" target="_blank">trustmrr.com/dashboard-dev</a><br>${l.modal.hint2} <code style="color:var(--accent)">tmrr_</code></p>
-      <div style="display:flex;gap:10px;">
-        <button class="btn btn-primary" onclick="saveApiKeyFromModal()" style="flex:1;justify-content:center;">${l.modal.save}</button>
-        <button class="btn btn-ghost" onclick="useDemoModeFromModal()" style="flex:1;justify-content:center;">${l.modal.demo}</button>
-      </div>
-    </div>
-  </div>`;
+function buildModalHTML() { return ''; }
+
+// ── AUTH NAV ──────────────────────────────────────────────────────────────────
+// Requires window.SUPABASE_URL + window.SUPABASE_ANON (from auth-config.js)
+// and the Supabase JS SDK loaded before shared.js.
+async function initNavAuth() {
+  if (
+    typeof window.supabase === 'undefined' ||
+    !window.SUPABASE_URL ||
+    window.SUPABASE_URL === 'YOUR_SUPABASE_URL'
+  ) {
+    updateNavAuth(null);
+    return;
+  }
+  window._sb = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON || '');
+  const { data: { session } } = await window._sb.auth.getSession();
+  updateNavAuth(session);
+  window._sb.auth.onAuthStateChange((_, s) => updateNavAuth(s));
 }
 
-function saveApiKeyFromModal() {
-  const val = document.getElementById('apiKeyInput').value.trim();
-  if (!val) return;
-  saveApiKeyToStorage(val);
-  document.getElementById('apiModal').classList.add('hidden');
-  if (typeof onApiKeySaved === 'function') onApiKeySaved();
+async function updateNavAuth(session) {
+  window._session = session; // expose token for page-level API calls
+  const el = document.getElementById('navAuth');
+  if (el) {
+    if (!session?.user) {
+      const from = encodeURIComponent(location.pathname + location.search);
+      el.innerHTML = `<a class="btn btn-ghost btn-sm" href="/auth.html?from=${from}">Sign in</a>`;
+    } else {
+      const name = escHtml(session.user.email?.split('@')[0] || 'Account');
+      el.innerHTML =
+        `<a class="btn btn-ghost btn-sm" href="/dashboard.html" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</a>` +
+        `<button class="btn btn-ghost btn-sm" onclick="navSignOut()">Sign out</button>`;
+    }
+  }
+  // Fetch access level and notify pages that need limit enforcement
+  try {
+    const headers = session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
+    const r = await fetch('/api/auth', { headers });
+    if (r.ok) {
+      window._access = await r.json();
+      window.dispatchEvent(new CustomEvent('navAuthUpdated'));
+    }
+  } catch {}
 }
 
-function useDemoModeFromModal() {
-  document.getElementById('apiModal').classList.add('hidden');
-  if (typeof onDemoMode === 'function') onDemoMode();
+async function navSignOut() {
+  if (window._sb) await window._sb.auth.signOut();
+  location.href = '/';
 }
 
 document.addEventListener('click', (e) => {
   const sw = document.getElementById('langSwitcher');
   if (sw && !sw.contains(e.target)) document.getElementById('langDropdown')?.classList.remove('open');
-  const modal = document.getElementById('apiModal');
-  if (modal && e.target === modal) modal.classList.add('hidden');
 });

@@ -16,12 +16,17 @@ Deployed on Vercel at: https://startup-silk-nu.vercel.app
 ```
 /
 ├── index.html          — Main catalog page
-├── shared.js           — Shared translations (7 langs), utilities, nav/modal HTML builders
+├── acquire.html        — "Buy a startup" page (onSale=true only)
+├── auth.html           — Login / signup (Supabase Auth) [TODO Step 4]
+├── dashboard.html      — User account + subscription page [TODO Step 9]
+├── shared.js           — Shared translations (7 langs), utilities, nav HTML builders
 ├── shared.css          — Shared styles (light theme)
+├── supabase-schema.sql — Supabase DB schema — run once in SQL Editor
 ├── vercel.json         — Routing + cron config
 ├── api/
-│   ├── startups.js     — Main proxy API with Redis stale-while-revalidate cache
+│   ├── startups.js     — Main proxy with Redis stale-while-revalidate cache
 │   ├── startup.js      — Single startup detail proxy
+│   ├── auth.js         — GET: access level; POST {slug}: record view
 │   └── cron-refresh.js — Daily cache refresh (GitHub Actions triggers this)
 └── startup/
     └── [slug].html     — Startup detail page
@@ -37,6 +42,9 @@ Deployed on Vercel at: https://startup-silk-nu.vercel.app
 | `REDIS_URL` | Redis URL (auto-added) |
 | `TRUSTMRR_API_KEY` | TrustMRR API key — get from trustmrr.com/dashboard-dev |
 | `CRON_SECRET` | Secret for cron endpoint: `startup-cron-2024` |
+| `SUPABASE_URL` | Supabase project URL, e.g. `https://xxx.supabase.co` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key — server-only, bypasses RLS |
+| `SUPABASE_ANON_KEY` | Supabase anon/public key — safe to embed in client HTML |
 
 ## Key Architecture Decisions
 
@@ -66,9 +74,19 @@ All translations in `shared.js` in the `T` object:
 
 ### Routing
 - `/` → `index.html`
+- `/acquire.html` → buy page (only onSale startups)
+- `/auth.html` → login/signup (Supabase Auth)
+- `/dashboard.html` → user account + subscription
 - `/startup/some-slug` → `startup/[slug].html` (via vercel.json rewrite)
 - `/api/startups` → proxy to TrustMRR API with Redis cache
 - `/api/startup?slug=X` → single startup proxy
+- `/api/auth` → GET: access level check; POST `{slug}`: record startup view
+
+### Access Tiers
+- **Guest** (unauthenticated) → 3 startup detail views/day (tracked in localStorage)
+- **User** (registered) → 8 startup detail views/day (tracked in `startup_views` DB table)
+- **Subscriber** (paid) → unlimited for 1 month (`subscriptions` table)
+- `GET /api/auth` returns `{ authenticated, role, viewsUsed, viewsLeft }`
 
 ## TrustMRR API
 - Base URL: `https://trustmrr.com/api/v1`
@@ -113,7 +131,9 @@ fetch('/api/startups?page=1&limit=50&sort=revenue-desc', {
 Check `X-Cache` header: `HIT` = fresh, `STALE` = serving old + refreshing, `MISS` = fetching fresh.
 
 ## Known Issues / TODO
-- [ ] Startup detail page: loads from sessionStorage if navigated from catalog, falls back to API
 - [ ] First-ever load takes ~8-10 min (waiting for all pages to load)
-- [ ] `acquire.html` page referenced in nav but not yet created
 - [ ] GitHub Actions secret `TRUSTMRR_API_KEY` needs to be set manually in GitHub repo settings
+- [ ] auth.html — login/signup page (Step 4)
+- [ ] dashboard.html — user account page (Step 9)
+- [ ] Supabase: run supabase-schema.sql in SQL Editor, add env vars to Vercel Dashboard
+- [ ] Debug Redis: `fetch('/api/startups?page=1&limit=50').then(r=>r.json()).then(console.log)` — check `X-Cache` header
