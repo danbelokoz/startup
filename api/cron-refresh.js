@@ -3,7 +3,7 @@
 // Fetches ALL pages directly from TrustMRR and writes them to Redis,
 // using the same cache key format as api/startups.js.
 
-const FRESH_TTL = 3600;  // freshness window — must match api/startups.js
+const FRESH_TTL = 82800; // 23 hour freshness window — must match api/startups.js
 const DELAY_MS  = 3200;  // 3.2s between pages → ~18 req/min (limit is 20)
 
 async function kv(method, path, body) {

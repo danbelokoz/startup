@@ -1,8 +1,9 @@
 // Stale-while-revalidate pattern
-// Cache: stored permanently in Redis (no TTL). Freshness flag: 1 hour.
+// Cache: stored permanently in Redis (no TTL). Freshness flag: 23 hours.
 // Returns stale data instantly + triggers background update when stale.
+// Cron refreshes at 3am daily — data stays fresh all day.
 
-const FRESH_TTL = 3600;            // 1 hour freshness window
+const FRESH_TTL = 82800;           // 23 hour freshness window — cron refreshes at 3am
 
 async function kv(method, path, body) {
   const url = `${process.env.KV_REST_API_URL}${path}`;
