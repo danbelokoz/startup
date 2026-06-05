@@ -44,13 +44,29 @@
   .contact-locked { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; }
   .contact-locked svg { flex-shrink: 0; color: var(--text3); }
   .contact-locked span { flex: 1; font-size: 13px; color: var(--text2); }
+  /* Blurred seller data */
+  .contact-blur-wrap { position: relative; border-radius: var(--radius-sm); overflow: hidden; margin-bottom: 12px; }
+  .contact-blur-inner { filter: blur(5px); user-select: none; pointer-events: none; padding: 12px 16px; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+  .contact-blur-item { font-size: 14px; color: var(--text2); margin-bottom: 4px; }
+  .contact-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
+  .contact-overlay-note { font-size: 11px; color: var(--text3); }
+  /* Tech stack */
+  .tech-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 32px; }
+  .tech-tag { padding: 4px 12px; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; font-size: 13px; color: var(--text2); }
+  /* Fav button on detail page */
+  .fav-detail { background: none; border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 16px; color: var(--text3); transition: all 0.15s; font-family: 'Manrope', sans-serif; }
+  .fav-detail:hover, .fav-detail.active { color: var(--red); border-color: var(--red); }
+  .badge-green { background: rgba(0,194,122,0.1); color: var(--green); border: 1px solid rgba(0,194,122,0.2); }
   </style>
 </head>
 <body>
 <div id="navPlaceholder"></div>
 <div id="modalPlaceholder"></div>
 <div class="page-wrap">
-  <a href="/" class="back-link" id="backLink">← Back</a>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+    <a href="/" class="back-link" id="backLink">← Back</a>
+    <button class="fav-detail" id="favBtn" onclick="toggleDetailFav()" title="Добавить в избранное">♡</button>
+  </div>
   <div id="content"><div class="loading-state"><h3>Loading...</h3></div></div>
 </div>
 <footer><span id="footerText"></span> <a href="https://trustmrr.com" target="_blank">TrustMRR</a> · API v1</footer>
@@ -101,29 +117,49 @@ async function loadStartup(slug) {
 }
 
 let _startup = null;
+const LS_FAVS = 'sm_favs';
+function getFavs(){try{return JSON.parse(localStorage.getItem(LS_FAVS)||'[]');}catch{return[];}}
+function toggleDetailFav(){
+  const s=_startup; if(!s)return;
+  if(!window._access||!window._access.authenticated){location.href='/auth.html?from='+encodeURIComponent(location.pathname);return;}
+  const favs=getFavs(),idx=favs.indexOf(s.slug);
+  if(idx===-1)favs.push(s.slug);else favs.splice(idx,1);
+  try{localStorage.setItem(LS_FAVS,JSON.stringify(favs));}catch{}
+  const btn=document.getElementById('favBtn');
+  if(btn){const on=favs.includes(s.slug);btn.textContent=on?'♥':'♡';btn.classList.toggle('active',on);}
+}
+function updateFavBtn(slug){
+  const btn=document.getElementById('favBtn');if(!btn)return;
+  const on=getFavs().includes(slug);btn.textContent=on?'♥':'♡';btn.classList.toggle('active',on);
+}
 
 function renderStartup(s) {
-  document.title = `${s.name} — StartupMarket`;
+  document.title = `${s.name} — MRRket`;
   document.getElementById('backLink').textContent = '← ' + t('startupPage','back');
+  _startup = s;
+  updateFavBtn(s.slug);
 
   const fb = escHtml(s.name.charAt(0));
-  const icon = s.icon ? `<img src="${escHtml(s.icon)}" data-fb="${fb}" onerror="this.parentElement.textContent=this.getAttribute('data-fb')" />` : `<span>${fb}</span>`;
-  const g = s.growth30d;
-  const gStr = g != null ? `<span class="${g>0?'growth-positive':g<0?'growth-negative':''}">${g>0?'+':''}${parseFloat(g).toFixed(1)}%</span>` : '—';
-  const gMrr = s.growthMRR30d != null ? `<span class="${s.growthMRR30d>0?'growth-positive':s.growthMRR30d<0?'growth-negative':''}">${s.growthMRR30d>0?'+':''}${parseFloat(s.growthMRR30d).toFixed(1)}%</span>` : '—';
+  const icon = s.icon ? `<img src="${escHtml(s.icon)}" data-fb="${fb}" onerror="this.parentElement.textContent=this.getAttribute('data-fb')"/>` : `<span>${fb}</span>`;
+  const g    = s.growth30d;
+  const gStr = g!=null?`<span class="${g>0?'growth-positive':g<0?'growth-negative':''}">${g>0?'+':''}${parseFloat(g).toFixed(1)}%</span>`:'—';
+  const gMrr = s.growthMRR30d!=null?`<span class="${s.growthMRR30d>0?'growth-positive':s.growthMRR30d<0?'growth-negative':''}">${s.growthMRR30d>0?'+':''}${parseFloat(s.growthMRR30d).toFixed(1)}%</span>`:'—';
+  const website = s.website?`<a href="${escHtml(s.website)}" target="_blank" style="color:var(--accent)">${s.website.replace(/^https?:\/\//,'')}</a>`:'—';
 
-  _startup = s;
-  const saleBlock = s.onSale && s.askingPrice ? `
+  // Tech stack
+  const techHtml = s.techStack&&s.techStack.length
+    ? `<div class="section-title">Tech Stack</div><div class="tech-tags">${s.techStack.map(t=>`<span class="tech-tag">${escHtml(t)}</span>`).join('')}</div>`
+    : '';
+
+  const saleBlock = s.onSale&&s.askingPrice ? `
     <div class="sale-box">
       <div class="sale-box-title">${t('startupPage','forSale')}</div>
       <div class="sale-price-row">
         <div class="sale-price">${formatMoney(s.askingPrice)}</div>
-        ${s.multiple ? `<div class="sale-multiple">${parseFloat(s.multiple).toFixed(2)}x ${t('startupPage','multiple')}</div>` : ''}
+        ${s.multiple?`<div class="sale-multiple">${parseFloat(s.multiple).toFixed(2)}x ${t('startupPage','multiple')}</div>`:''}
       </div>
-      <div id="contactSection" class="sale-actions"></div>
+      <div id="contactSection"></div>
     </div>` : `<div class="not-sale-box">${t('startupPage','notForSale')}</div>`;
-
-  const website = s.website ? `<a href="${escHtml(s.website)}" target="_blank" style="color:var(--accent)">${s.website.replace(/^https?:\/\//,'')}</a>` : '—';
 
   document.getElementById('content').innerHTML = `
     <div class="startup-header">
@@ -131,111 +167,117 @@ function renderStartup(s) {
       <div class="startup-header-meta">
         <h1>${escHtml(s.name)}</h1>
         <div class="header-badges">
-          ${s.category ? `<span class="badge badge-cat">${s.category}</span>` : ''}
-          ${s.onSale ? `<span class="badge badge-sale">${t('startupPage','forSale')}</span>` : ''}
-          ${s.paymentProvider ? `<span class="badge badge-green">${s.paymentProvider}</span>` : ''}
-          ${s.rank ? `<span class="badge badge-cat">#${s.rank}</span>` : ''}
+          ${s.category?`<span class="badge badge-cat">${s.category}</span>`:''}
+          ${s.onSale?`<span class="badge badge-sale">${t('startupPage','forSale')}</span>`:''}
+          ${s.paymentProvider?`<span class="badge badge-green">${s.paymentProvider}</span>`:''}
+          ${s.rank?`<span class="badge badge-cat">#${s.rank}</span>`:''}
         </div>
-        ${s.website ? `<div style="font-size:14px">${website}</div>` : ''}
+        ${s.website?`<div style="font-size:14px;margin-top:4px;">${website}</div>`:''}
       </div>
     </div>
 
-    ${s.description ? `<div class="startup-desc">${escHtml(s.description)}</div>` : ''}
+    ${s.description?`<div class="startup-desc">${escHtml(s.description)}</div>`:''}
 
     ${saleBlock}
 
     <div class="section-title">Revenue metrics</div>
     <div class="metrics-grid">
-      <div class="metric-card"><div class="metric-card-label">${t('startupPage','mrr')}</div><div class="metric-card-value">${formatMoney(s.revenue?.mrr)}</div><div class="metric-card-sub">MRR growth: ${gMrr}</div></div>
-      <div class="metric-card"><div class="metric-card-label">${t('startupPage','rev30')}</div><div class="metric-card-value">${formatMoney(s.revenue?.last30Days)}</div><div class="metric-card-sub">${t('startupPage','growth')}: ${gStr}</div></div>
-      <div class="metric-card"><div class="metric-card-label">${t('startupPage','totalRev')}</div><div class="metric-card-value">${formatMoney(s.revenue?.total)}</div><div class="metric-card-sub">all time</div></div>
-      ${s.profitMarginLast30Days != null ? `<div class="metric-card"><div class="metric-card-label">${t('startupPage','margin')}</div><div class="metric-card-value">${Math.round(s.profitMarginLast30Days)}%</div></div>` : ''}
+      <div class="metric-card"><div class="metric-card-label">${t('startupPage','mrr')}</div><div class="metric-card-value">${formatMoney(s.revenue&&s.revenue.mrr)}</div><div class="metric-card-sub">MRR growth: ${gMrr}</div></div>
+      <div class="metric-card"><div class="metric-card-label">${t('startupPage','rev30')}</div><div class="metric-card-value">${formatMoney(s.revenue&&s.revenue.last30Days)}</div><div class="metric-card-sub">${t('startupPage','growth')}: ${gStr}</div></div>
+      <div class="metric-card"><div class="metric-card-label">${t('startupPage','totalRev')}</div><div class="metric-card-value">${formatMoney(s.revenue&&s.revenue.total)}</div><div class="metric-card-sub">all time</div></div>
+      ${s.profitMarginLast30Days!=null?`<div class="metric-card"><div class="metric-card-label">${t('startupPage','margin')}</div><div class="metric-card-value">${Math.round(s.profitMarginLast30Days)}%</div></div>`:''}
       <div class="metric-card"><div class="metric-card-label">${t('startupPage','customers')}</div><div class="metric-card-value">${(s.customers||0).toLocaleString()}</div></div>
       <div class="metric-card"><div class="metric-card-label">${t('startupPage','subs')}</div><div class="metric-card-value">${(s.activeSubscriptions||0).toLocaleString()}</div></div>
-      ${s.visitorsLast30Days ? `<div class="metric-card"><div class="metric-card-label">${t('startupPage','visitors')}</div><div class="metric-card-value">${s.visitorsLast30Days.toLocaleString()}</div></div>` : ''}
-      ${s.rank ? `<div class="metric-card"><div class="metric-card-label">${t('startupPage','rank')}</div><div class="metric-card-value">#${s.rank}</div></div>` : ''}
+      ${s.visitorsLast30Days?`<div class="metric-card"><div class="metric-card-label">${t('startupPage','visitors')}</div><div class="metric-card-value">${s.visitorsLast30Days.toLocaleString()}</div></div>`:''}
+      ${s.rank?`<div class="metric-card"><div class="metric-card-label">${t('startupPage','rank')}</div><div class="metric-card-value">#${s.rank}</div></div>`:''}
     </div>
 
     <div class="section-title">Info</div>
     <table class="info-table">
-      ${s.foundedDate ? `<tr><td>${t('startupPage','founded')}</td><td>${new Date(s.foundedDate).getFullYear()}</td></tr>` : ''}
-      ${s.country ? `<tr><td>${t('startupPage','country')}</td><td>${s.country}</td></tr>` : ''}
-      ${s.targetAudience ? `<tr><td>${t('startupPage','audience')}</td><td>${s.targetAudience.toUpperCase()}</td></tr>` : ''}
-      ${s.paymentProvider ? `<tr><td>${t('startupPage','provider')}</td><td>${s.paymentProvider}</td></tr>` : ''}
-      ${s.website ? `<tr><td>Website</td><td>${website}</td></tr>` : ''}
-    </table>`;
-  if (s.onSale) checkContacts(s);
+      ${s.foundedDate?`<tr><td>${t('startupPage','founded')}</td><td>${new Date(s.foundedDate).getFullYear()}</td></tr>`:''}
+      ${s.country?`<tr><td>${t('startupPage','country')}</td><td>${s.country}</td></tr>`:''}
+      ${s.targetAudience?`<tr><td>${t('startupPage','audience')}</td><td>${s.targetAudience.toUpperCase()}</td></tr>`:''}
+      ${s.paymentProvider?`<tr><td>${t('startupPage','provider')}</td><td>${s.paymentProvider}</td></tr>`:''}
+      ${s.website?`<tr><td>Website</td><td>${website}</td></tr>`:''}
+    </table>
+
+    ${techHtml}`;
+
+  if (s.onSale) renderContactSection(s);
 }
 
-// ── Contact gating ────────────────────────────────────────────────────────────
-function getGuestViewedSlugs() {
-  try { return JSON.parse(localStorage.getItem('sm_guest_views') || '[]'); } catch { return []; }
-}
-function addGuestViewedSlug(slug) {
-  const list = getGuestViewedSlugs();
-  if (!list.includes(slug)) {
-    list.push(slug);
-    try { localStorage.setItem('sm_guest_views', JSON.stringify(list)); } catch {}
-  }
-}
-
-async function checkContacts(s) {
+// ── Blurred seller contacts ──────────────────────────────────────────────────
+function renderContactSection(s) {
   const section = document.getElementById('contactSection');
   if (!section) return;
+  const xLine  = s.xHandle ? `<div class="contact-blur-item">𝕏 @${escHtml(s.xHandle)}</div>` : '';
+  const webLine = s.website? `<div class="contact-blur-item">🌐 ${escHtml(s.website.replace(/^https?:\/\//,''))}</div>` : '';
+  if (!xLine && !webLine) return;
+  section.innerHTML = `
+    <div class="contact-blur-wrap" id="contactWrap">
+      <div class="contact-blur-inner">${xLine}${webLine}</div>
+      <div class="contact-overlay">
+        <button class="btn btn-primary" onclick="tryReveal()" id="revealBtn">🔓 Открыть контакты продавца</button>
+        <div class="contact-overlay-note" id="revealNote">тратит 1 просмотр из вашего лимита</div>
+      </div>
+    </div>`;
+  // If user already revealed this slug in this session, show immediately
+  try { if (sessionStorage.getItem('revealed_'+s.slug)) { doReveal(s); } } catch {}
+}
+
+async function tryReveal() {
+  const s = _startup; if (!s) return;
+  const btn = document.getElementById('revealBtn');
+  if (btn) { btn.textContent='⏳ Проверяем...'; btn.disabled=true; }
 
   const access = window._access;
-  if (!access) return; // navAuthUpdated will re-trigger once auth resolves
+  if (access && access.role==='subscriber') { doReveal(s); return; }
 
-  if (access.role === 'subscriber') { showContacts(section, s); return; }
-
-  if (access.authenticated) {
-    const token = window._session?.access_token;
-    if (!token) { showContacts(section, s); return; }
+  if (access && access.authenticated) {
+    const token = window._session&&window._session.access_token;
+    if (!token) { doReveal(s); return; }
     try {
-      const r = await fetch('/api/auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ slug: s.slug }),
-      });
-      if (r.ok)              { showContacts(section, s); }
-      else if (r.status === 403) { showContactLocked(section, 'subscriber'); }
-      else                   { showContacts(section, s); } // API error → show contacts
-    } catch { showContacts(section, s); }
+      const r = await fetch('/api/auth',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({slug:s.slug})});
+      if (r.ok)            { doReveal(s); }
+      else if (r.status===403){ showLocked('subscriber'); }
+      else                 { doReveal(s); }
+    } catch { doReveal(s); }
     return;
   }
 
-  // Guest: allow up to 3 unique startups tracked in localStorage
+  // Guest
   const viewed = getGuestViewedSlugs();
-  if (viewed.includes(s.slug) || viewed.length < 3) {
-    addGuestViewedSlug(s.slug);
-    showContacts(section, s);
+  if (viewed.includes(s.slug)||viewed.length<3) { addGuestViewedSlug(s.slug); doReveal(s); }
+  else showLocked('user');
+}
+
+function doReveal(s) {
+  try { sessionStorage.setItem('revealed_'+s.slug,'1'); } catch {}
+  const wrap = document.getElementById('contactWrap'); if (!wrap) return;
+  wrap.innerHTML =
+    (s.xHandle?`<a href="https://x.com/${escHtml(s.xHandle)}" target="_blank" class="btn btn-primary" style="margin-right:8px;">𝕏 @${escHtml(s.xHandle)}</a>`:'') +
+    (s.website ?`<a href="${escHtml(s.website)}" target="_blank" class="btn btn-ghost">${t('startupPage','viewOriginal')} ↗</a>`:'');
+}
+
+function showLocked(type) {
+  const from=encodeURIComponent(location.pathname);
+  const wrap=document.getElementById('contactWrap'); if(!wrap)return;
+  if (type==='user') {
+    wrap.innerHTML=`<div class="contact-locked"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span>Создайте аккаунт — получите 8 просмотров в день</span><a href="/auth.html?from=${from}" class="btn btn-primary btn-sm">Зарегистрироваться</a></div>`;
   } else {
-    showContactLocked(section, 'user');
+    wrap.innerHTML=`<div class="contact-locked"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span>Оформите подписку для безлимитного доступа</span><a href="/dashboard.html" class="btn btn-primary btn-sm">Подписаться</a></div>`;
   }
 }
 
-function showContacts(section, s) {
-  section.innerHTML =
-    (s.xHandle ? `<a href="https://x.com/${escHtml(s.xHandle)}" target="_blank" class="btn btn-primary">${t('startupPage','contact')} (@${escHtml(s.xHandle)})</a>` : '') +
-    (s.website  ? `<a href="${escHtml(s.website)}" target="_blank" class="btn btn-ghost">${t('startupPage','viewOriginal')} ↗</a>` : '');
+// ── Guest view tracking ───────────────────────────────────────────────────────
+function getGuestViewedSlugs() { try{return JSON.parse(localStorage.getItem('sm_guest_views')||'[]');}catch{return[];} }
+function addGuestViewedSlug(slug) {
+  const list=getGuestViewedSlugs();
+  if(!list.includes(slug)){list.push(slug);try{localStorage.setItem('sm_guest_views',JSON.stringify(list));}catch{}}
 }
 
-function showContactLocked(section, upgradeType) {
-  const from = encodeURIComponent(location.pathname);
-  const msg  = upgradeType === 'user'
-    ? 'Create a free account to contact the seller'
-    : 'Subscribe for unlimited access';
-  const cta  = upgradeType === 'user'
-    ? `<a href="/auth.html?from=${from}" class="btn btn-primary btn-sm">Sign up free</a>`
-    : `<a href="/dashboard.html" class="btn btn-primary btn-sm">Get unlimited access</a>`;
-  section.innerHTML = `<div class="contact-locked">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-    <span>${msg}</span>${cta}
-  </div>`;
-}
-
-// Re-check contacts when auth resolves (initNavAuth is async)
-window.addEventListener('navAuthUpdated', () => { if (_startup?.onSale) checkContacts(_startup); });
+// Re-render contact section when auth resolves
+window.addEventListener('navAuthUpdated', () => { if (_startup&&_startup.onSale) renderContactSection(_startup); updateFavBtn(_startup&&_startup.slug); });
 </script>
 </body>
 </html>

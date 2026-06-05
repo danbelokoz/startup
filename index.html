@@ -12,74 +12,46 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="/shared.js"></script>
 <style>
-/* HERO */
 .hero { padding: 32px 28px 20px; max-width: 1200px; margin: 0 auto; text-align: center; }
 .hero-title { font-size: 34px; font-weight: 700; letter-spacing: -1px; color: var(--text); margin-bottom: 6px; }
 .hero-title em { font-style: normal; color: var(--accent); }
 .hero-sub { font-size: 14px; color: var(--text2); margin-bottom: 20px; }
 
-/* PROVIDER ICONS — real logos via Clearbit */
+/* Provider logos — Google S2 favicons (reliable) */
 .provider-icons { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 28px; flex-wrap: wrap; }
 .provider-wrap { position: relative; }
-.provider-icon {
-  width: 42px; height: 42px; border-radius: 10px; background: var(--bg2);
-  border: 1px solid var(--border); display: flex; align-items: center; justify-content: center;
-  overflow: hidden; transition: transform 0.15s, box-shadow 0.15s;
-}
-.provider-icon img { width: 28px; height: 28px; object-fit: contain; display: block; }
+.provider-icon { width: 42px; height: 42px; border-radius: 10px; background: var(--bg2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; overflow: hidden; transition: transform 0.15s, box-shadow 0.15s; }
+.provider-icon img { width: 28px; height: 28px; object-fit: contain; }
 .provider-wrap:hover .provider-icon { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
-.provider-tip {
-  display: none; position: absolute; bottom: calc(100% + 6px); left: 50%;
-  transform: translateX(-50%); background: var(--text); color: white;
-  font-size: 11px; padding: 4px 8px; border-radius: 5px;
-  white-space: nowrap; font-weight: 500; pointer-events: none; z-index: 50;
-}
-.provider-tip::after {
-  content: ''; position: absolute; top: 100%; left: 50%;
-  transform: translateX(-50%); border: 4px solid transparent; border-top-color: var(--text);
-}
+.provider-tip { display: none; position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: var(--text); color: white; font-size: 11px; padding: 4px 8px; border-radius: 5px; white-space: nowrap; font-weight: 500; pointer-events: none; z-index: 50; }
+.provider-tip::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 4px solid transparent; border-top-color: var(--text); }
 .provider-wrap:hover .provider-tip { display: block; }
 
-/* STATS BAR — 4 items */
-.stats-bar {
-  display: flex; border: 1px solid var(--border); border-radius: 14px;
-  overflow: hidden; background: var(--bg2); max-width: 740px;
-  margin: 0 auto; box-shadow: var(--shadow);
-}
-.stat-item {
-  flex: 1; padding: 20px 12px; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; text-align: center;
-  border-right: 1px solid var(--border);
-}
+.stats-bar { display: flex; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; background: var(--bg2); max-width: 740px; margin: 0 auto; box-shadow: var(--shadow); }
+.stat-item { flex: 1; padding: 18px 10px; display: flex; flex-direction: column; align-items: center; text-align: center; border-right: 1px solid var(--border); }
 .stat-item:last-child { border-right: none; }
-.stat-n { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; color: var(--text); margin-bottom: 4px; line-height: 1; }
+.stat-n { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; color: var(--text); margin-bottom: 4px; line-height: 1; }
 .stat-l { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.07em; line-height: 1.35; }
 
-/* BODY LAYOUT */
 .body { display: grid; grid-template-columns: 210px 1fr; gap: 20px; padding: 24px 28px 80px; max-width: 1200px; margin: 0 auto; }
 
-/* SIDEBAR */
-.sidebar-block { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; position: sticky; top: 70px; box-shadow: var(--shadow); }
-.sb-header { padding: 11px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.sidebar-block { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; position: sticky; top: 70px; box-shadow: var(--shadow); max-height: calc(100vh - 90px); overflow-y: auto; }
+.sb-header { padding: 11px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--bg2); z-index: 1; }
 .sb-title { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text3); }
 .sb-reset { font-size: 11px; color: var(--accent); cursor: pointer; font-weight: 500; }
-.sb-section { padding: 11px 14px; border-bottom: 1px solid var(--border); }
+.sb-section { padding: 10px 14px; border-bottom: 1px solid var(--border); }
 .sb-section:last-child { border-bottom: none; }
 .sb-label { font-size: 11px; font-weight: 500; color: var(--text2); margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
-select.sb-select {
-  width: 100%; background: var(--bg3); border: 1px solid var(--border);
-  border-radius: 7px; padding: 6px 26px 6px 9px; font-family: 'Manrope', sans-serif;
-  font-size: 12px; color: var(--text2); outline: none; appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238888a0' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat; background-position: right 8px center; cursor: pointer;
-}
+.search-wrap { position: relative; }
+.search-wrap svg { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); color: var(--text3); pointer-events: none; }
+input.search-input { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: 7px; padding: 6px 8px 6px 28px; font-family: 'Manrope', sans-serif; font-size: 12px; color: var(--text); outline: none; }
+input.search-input:focus { border-color: var(--accent); background: var(--bg2); }
+input.search-input::placeholder { color: var(--text3); }
+select.sb-select { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: 7px; padding: 6px 26px 6px 9px; font-family: 'Manrope', sans-serif; font-size: 12px; color: var(--text2); outline: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238888a0' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; cursor: pointer; }
 select.sb-select:focus { border-color: var(--accent); outline: none; }
-.range-row { display: grid; grid-template-columns: 1fr 12px 1fr; align-items: center; gap: 3px; }
+.range-row { display: grid; grid-template-columns: 1fr 10px 1fr; align-items: center; gap: 3px; }
 .range-sep { text-align: center; font-size: 11px; color: var(--text3); }
-input.sb-input {
-  width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: 7px;
-  padding: 6px 8px; font-family: 'Manrope', sans-serif; font-size: 12px; color: var(--text); outline: none;
-}
+input.sb-input { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: 7px; padding: 6px 8px; font-family: 'Manrope', sans-serif; font-size: 12px; color: var(--text); outline: none; }
 input.sb-input::placeholder { color: var(--text3); font-size: 11px; }
 input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
 .status-opts { display: flex; flex-direction: column; gap: 2px; }
@@ -90,15 +62,11 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
 .apply-btn { width: 100%; padding: 8px; background: var(--accent); color: white; border: none; border-radius: 7px; font-family: 'Manrope', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.12s; margin-top: 4px; }
 .apply-btn:hover { background: var(--accent2); }
 
-/* GRID */
 .grid-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .grid-count { font-size: 13px; color: var(--text3); }
 .sort-btn { display: flex; align-items: center; gap: 5px; padding: 5px 10px; background: var(--bg2); border: 1px solid var(--border2); border-radius: 7px; font-size: 12px; color: var(--text2); cursor: pointer; font-family: 'Manrope', sans-serif; }
-
-/* CARDS GRID */
 .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 
-/* CARD */
 .card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; cursor: pointer; transition: all 0.15s; text-decoration: none; color: inherit; display: flex; flex-direction: column; }
 .card:hover { border-color: var(--border2); box-shadow: 0 4px 16px rgba(0,0,0,0.07); transform: translateY(-1px); }
 .card-head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
@@ -107,9 +75,12 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
 .card-head-info { flex: 1; min-width: 0; }
 .card-name { font-size: 14px; font-weight: 600; letter-spacing: -0.2px; color: var(--text); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .card-badges { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 3px; }
+.card-actions { display: flex; align-items: center; gap: 6px; margin-left: auto; flex-shrink: 0; padding-left: 6px; }
+.card-views { font-size: 11px; color: var(--text3); white-space: nowrap; }
+.fav-btn { background: none; border: none; cursor: pointer; font-size: 15px; color: var(--text3); padding: 2px; line-height: 1; transition: color 0.1s, transform 0.1s; }
+.fav-btn:hover { color: var(--red); transform: scale(1.2); }
+.fav-btn.active { color: var(--red); }
 .card-desc { font-size: 12px; color: var(--text3); line-height: 1.45; margin-bottom: 10px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; flex: 1; min-height: 32px; }
-
-/* FIX #6: align-items: flex-start (was flex-end → caused uneven row heights) */
 .card-metrics { display: flex; border-top: 1px solid var(--border); padding-top: 10px; margin-top: auto; align-items: flex-start; }
 .cm { flex: 1; }
 .cm + .cm { border-left: 1px solid var(--border); padding-left: 10px; margin-left: 10px; }
@@ -119,17 +90,9 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
 .up { color: var(--accent); }
 .dn { color: var(--red); }
 
-@media (max-width: 900px) { .body { grid-template-columns: 1fr; } .sidebar-block { position: static; } }
-@media (max-width: 640px) {
-  .hero { padding: 24px 16px 16px; }
-  .hero-title { font-size: 26px; }
-  .cards { grid-template-columns: 1fr; }
-  .body { padding: 12px 16px 60px; }
-  .stats-bar { max-width: 100%; }
-  .stat-n { font-size: 18px; }
-  .stat-l { font-size: 9px; }
-  .stat-item { padding: 14px 8px; }
-}
+@keyframes loadpulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+@media (max-width: 900px) { .body { grid-template-columns: 1fr; } .sidebar-block { position: static; max-height: none; } }
+@media (max-width: 640px) { .hero { padding: 24px 16px 16px; } .hero-title { font-size: 26px; } .cards { grid-template-columns: 1fr; } .body { padding: 12px 16px 60px; } .stat-n { font-size: 18px; } .stat-l { font-size: 9px; } .stat-item { padding: 14px 8px; } }
 </style>
 </head>
 <body>
@@ -140,60 +103,23 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
   <div class="hero-title">Найди <em>верифицированный</em><br>стартап с выручкой</div>
   <div class="hero-sub">Только подтверждённые данные. Каждый показатель проверен через платёжные провайдеры напрямую.</div>
 
-  <!-- FIX #4: real logos from Clearbit -->
+  <!-- Google S2 favicons — guaranteed to load -->
   <div class="provider-icons">
-    <div class="provider-wrap">
-      <div class="provider-icon"><img src="https://logo.clearbit.com/stripe.com" alt="Stripe"/></div>
-      <div class="provider-tip">Stripe</div>
-    </div>
-    <div class="provider-wrap">
-      <div class="provider-icon"><img src="https://logo.clearbit.com/lemonsqueezy.com" alt="LemonSqueezy"/></div>
-      <div class="provider-tip">LemonSqueezy</div>
-    </div>
-    <div class="provider-wrap">
-      <div class="provider-icon"><img src="https://logo.clearbit.com/polar.sh" alt="Polar"/></div>
-      <div class="provider-tip">Polar</div>
-    </div>
-    <div class="provider-wrap">
-      <div class="provider-icon"><img src="https://logo.clearbit.com/revenuecat.com" alt="RevenueCat"/></div>
-      <div class="provider-tip">RevenueCat</div>
-    </div>
-    <div class="provider-wrap">
-      <div class="provider-icon"><img src="https://logo.clearbit.com/paddle.com" alt="Paddle"/></div>
-      <div class="provider-tip">Paddle</div>
-    </div>
-    <div class="provider-wrap">
-      <div class="provider-icon"><img src="https://logo.clearbit.com/chargebee.com" alt="Chargebee"/></div>
-      <div class="provider-tip">Chargebee</div>
-    </div>
-    <div class="provider-wrap">
-      <div class="provider-icon"><img src="https://logo.clearbit.com/braintreepayments.com" alt="Braintree"/></div>
-      <div class="provider-tip">Braintree</div>
-    </div>
-    <div class="provider-wrap">
-      <div class="provider-icon"><img src="https://logo.clearbit.com/fastspring.com" alt="FastSpring"/></div>
-      <div class="provider-tip">FastSpring</div>
-    </div>
+    <div class="provider-wrap"><div class="provider-icon"><img src="https://www.google.com/s2/favicons?domain=stripe.com&sz=64" alt="Stripe"/></div><div class="provider-tip">Stripe</div></div>
+    <div class="provider-wrap"><div class="provider-icon"><img src="https://www.google.com/s2/favicons?domain=lemonsqueezy.com&sz=64" alt="LemonSqueezy"/></div><div class="provider-tip">LemonSqueezy</div></div>
+    <div class="provider-wrap"><div class="provider-icon"><img src="https://www.google.com/s2/favicons?domain=polar.sh&sz=64" alt="Polar"/></div><div class="provider-tip">Polar</div></div>
+    <div class="provider-wrap"><div class="provider-icon"><img src="https://www.google.com/s2/favicons?domain=revenuecat.com&sz=64" alt="RevenueCat"/></div><div class="provider-tip">RevenueCat</div></div>
+    <div class="provider-wrap"><div class="provider-icon"><img src="https://www.google.com/s2/favicons?domain=paddle.com&sz=64" alt="Paddle"/></div><div class="provider-tip">Paddle</div></div>
+    <div class="provider-wrap"><div class="provider-icon"><img src="https://www.google.com/s2/favicons?domain=chargebee.com&sz=64" alt="Chargebee"/></div><div class="provider-tip">Chargebee</div></div>
+    <div class="provider-wrap"><div class="provider-icon"><img src="https://www.google.com/s2/favicons?domain=braintreepayments.com&sz=64" alt="Braintree"/></div><div class="provider-tip">Braintree</div></div>
+    <div class="provider-wrap"><div class="provider-icon"><img src="https://www.google.com/s2/favicons?domain=fastspring.com&sz=64" alt="FastSpring"/></div><div class="provider-tip">FastSpring</div></div>
   </div>
 
-  <!-- FIX #8: added total revenue stat -->
   <div class="stats-bar">
-    <div class="stat-item">
-      <div class="stat-n" id="statTotal">—</div>
-      <div class="stat-l">Стартапов в базе</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-n" id="statSale">—</div>
-      <div class="stat-l">На продаже</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-n" id="statRevenue">—</div>
-      <div class="stat-l">Выручка (30д)</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-n" id="statMRR">—</div>
-      <div class="stat-l">Суммарный MRR</div>
-    </div>
+    <div class="stat-item"><div class="stat-n" id="statTotal">—</div><div class="stat-l">Стартапов в базе</div></div>
+    <div class="stat-item"><div class="stat-n" id="statSale">—</div><div class="stat-l">На продаже</div></div>
+    <div class="stat-item"><div class="stat-n" id="statRevenue">—</div><div class="stat-l">Выручка (30д)</div></div>
+    <div class="stat-item"><div class="stat-n" id="statMRR">—</div><div class="stat-l">Суммарный MRR</div></div>
   </div>
 </div>
 
@@ -203,6 +129,12 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
       <div class="sb-header">
         <span class="sb-title">Фильтры</span>
         <span class="sb-reset" onclick="resetFilters()">Сбросить</span>
+      </div>
+      <div class="sb-section">
+        <div class="search-wrap">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input class="search-input" id="searchInput" type="text" placeholder="Поиск по названию..." oninput="onSearch(this.value)"/>
+        </div>
       </div>
       <div class="sb-section">
         <div class="sb-label">Статус</div>
@@ -221,24 +153,45 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
         </select>
       </div>
       <div class="sb-section">
-        <div class="sb-label">Выручка 30 дней <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box">Суммарная выручка за последние 30 дней, подтверждённая платёжным провайдером</span></span></div>
-        <div class="range-row">
-          <input class="sb-input" id="rev30Min" type="text" placeholder="$ Min">
-          <div class="range-sep">—</div>
-          <input class="sb-input" id="rev30Max" type="text" placeholder="$ Max">
-        </div>
+        <div class="sb-label">Выручка 30 дней <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box">Суммарная выручка за последние 30 дней</span></span></div>
+        <div class="range-row"><input class="sb-input" id="rev30Min" type="text" placeholder="$ Min"><div class="range-sep">—</div><input class="sb-input" id="rev30Max" type="text" placeholder="$ Max"></div>
       </div>
       <div class="sb-section">
-        <div class="sb-label">Цена продажи <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box">Запрашиваемая цена за 100% доли стартапа</span></span></div>
-        <div class="range-row">
-          <input class="sb-input" id="priceMin" type="text" placeholder="$ Min">
-          <div class="range-sep">—</div>
-          <input class="sb-input" id="priceMax" type="text" placeholder="$ Max">
-        </div>
+        <div class="sb-label">MRR <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box">Monthly Recurring Revenue</span></span></div>
+        <div class="range-row"><input class="sb-input" id="mrrMin" type="text" placeholder="$ Min"><div class="range-sep">—</div><input class="sb-input" id="mrrMax" type="text" placeholder="$ Max"></div>
       </div>
       <div class="sb-section">
-        <button class="apply-btn" onclick="applyFilters()">Применить фильтры</button>
+        <div class="sb-label">Рост 30 дней <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box">Изменение MRR за 30 дней в %</span></span></div>
+        <div class="range-row"><input class="sb-input" id="growthMin" type="text" placeholder="Min %"><div class="range-sep">—</div><input class="sb-input" id="growthMax" type="text" placeholder="Max %"></div>
       </div>
+      <div class="sb-section">
+        <div class="sb-label">Цена продажи <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box">Запрашиваемая цена за 100% доли</span></span></div>
+        <div class="range-row"><input class="sb-input" id="priceMin" type="text" placeholder="$ Min"><div class="range-sep">—</div><input class="sb-input" id="priceMax" type="text" placeholder="$ Max"></div>
+      </div>
+      <div class="sb-section">
+        <div class="sb-label">Мультипликатор <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box">Цена / годовой MRR</span></span></div>
+        <select class="sb-select" id="multipleSelect">
+          <option value="">Любой</option><option value="1">До 1×</option><option value="2">До 2×</option>
+          <option value="3">До 3×</option><option value="5">До 5×</option><option value="10">До 10×</option>
+        </select>
+      </div>
+      <div class="sb-section">
+        <div class="sb-label">Маржа прибыли <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box">Чистая прибыль как % от выручки</span></span></div>
+        <div class="range-row"><input class="sb-input" id="marginMin" type="text" placeholder="Min %"><div class="range-sep">—</div><input class="sb-input" id="marginMax" type="text" placeholder="Max %"></div>
+      </div>
+      <div class="sb-section">
+        <div class="sb-label">Аудитория</div>
+        <select class="sb-select" id="audienceSelect">
+          <option value="">Любая</option><option value="b2b">B2B</option><option value="b2c">B2C</option><option value="b2b2c">B2B2C</option>
+        </select>
+      </div>
+      <div class="sb-section">
+        <div class="sb-label">Мобильное приложение</div>
+        <select class="sb-select" id="mobileSelect">
+          <option value="">Любое</option><option value="yes">Есть</option><option value="no">Нет</option>
+        </select>
+      </div>
+      <div class="sb-section"><button class="apply-btn" onclick="applyFilters()">Применить фильтры</button></div>
     </div>
   </aside>
 
@@ -250,296 +203,308 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
         <span id="sortLabel">Выручка ↓</span>
       </button>
     </div>
-    <!-- FIX #7: no pagination, just sentinel for infinite scroll -->
     <div class="cards" id="cards">
       <div style="grid-column:1/-1;text-align:center;padding:60px 0;">
         <div style="font-size:14px;color:var(--text2);margin-bottom:16px;">Загружаем стартапы...</div>
-        <div style="width:200px;height:3px;background:var(--border);border-radius:2px;margin:0 auto;overflow:hidden;">
-          <div id="loadBar" style="height:100%;width:8%;background:var(--accent);border-radius:2px;transition:width 0.5s;"></div>
-        </div>
-        <div style="font-size:11px;color:var(--text3);margin-top:10px;" id="loadCount"></div>
+        <div style="width:160px;height:3px;background:var(--border);border-radius:2px;margin:0 auto;overflow:hidden;"><div style="height:100%;width:40%;background:var(--accent);border-radius:2px;animation:loadpulse 1.5s ease-in-out infinite;"></div></div>
       </div>
     </div>
-    <div id="scroll-sentinel" style="height:1px;margin-top:20px;"></div>
+    <div id="scroll-sentinel" style="height:1px;margin-top:24px;"></div>
   </main>
 </div>
 
 <footer>TrustMRR · API v1 &nbsp;·&nbsp; <a href="#">Условия</a> &nbsp;·&nbsp; <a href="#">Конфиденциальность</a></footer>
 
 <script>
-// ── FIX #2 & #5: nav with lang switcher + auth ────────────────────────────────
 applyLangToDoc();
 document.getElementById('navPlaceholder').innerHTML = buildNavHTML('home');
 initNavAuth();
 
-// ── STATE ─────────────────────────────────────────────────────────────────────
-const API_BASE = '/api';
-const PAGE_SIZE = 18;
-const DELAY_MS = 3200;
-const STALE_MS = 23 * 3600 * 1000;
+/* ── CONSTANTS ─────────────────────────────────────────────────────────────── */
+const API   = '/api';
+const LIMIT = 50;
+const LS_KEY  = 'sm_v5_p1';   // bump version to clear old caches
+const LS_FAVS = 'sm_favs';
+const CACHE_TTL  = 24 * 3600 * 1000;
+const FRESH_TTL  =      3600 * 1000; // after 1h: silently refresh
 
-let allStartups = [], cacheLoaded = false;
-let filteredData = [], displayedCount = 0;
-let filters = { onSale: true, category: '', sort: 'revenue-desc', rev30Min: 0, rev30Max: Infinity, priceMin: 0, priceMax: Infinity };
-let scrollObserver = null;
+/* ── STATE ─────────────────────────────────────────────────────────────────── */
+let loadedItems  = [];   // all items received from API across pages
+let displayItems = [];   // after client-side filters
+let apiPage      = 0;
+let hasMore      = false;
+let isLoading    = false;
+let apiMeta      = null; // last meta from API { total, hasMore }
+let searchTimer;
 
-// ── FIX #1: robust IDB cache — filter nulls + save every 5 pages ──────────────
-async function loadAll() {
-  const cached = await idbGetAll();
-  if (cached && cached.length > 0) {
-    allStartups = cached;
-    cacheLoaded = true;
-    updateStats();
-    renderView();
-    // Only refresh in background if truly stale
-    const lastUpdate = await idbGetLastUpdate();
-    if (!lastUpdate || Date.now() - lastUpdate > STALE_MS) {
-      refreshInBackground();
-    }
-    return;
+let filters = {
+  onSale:true, category:'', sort:'revenue-desc',
+  search:'',
+  mrrMin:0, mrrMax:0, rev30Min:0, rev30Max:0,
+  priceMin:0, priceMax:0, growthMin:'', growthMax:'',
+  multipleMax:0, marginMin:0, marginMax:0,
+  audience:'', mobile:''
+};
+
+/* ── CACHE ─────────────────────────────────────────────────────────────────── */
+function cacheRead() {
+  try { const c=JSON.parse(localStorage.getItem(LS_KEY)||'null'); return c&&c.data&&c.ts?c:null; } catch{return null;}
+}
+function cacheWrite(data,hasMore,total) {
+  try { localStorage.setItem(LS_KEY,JSON.stringify({data,hasMore,total,ts:Date.now()})); } catch{}
+}
+function isDefault() { return filters.onSale===true&&!filters.category&&filters.sort==='revenue-desc'; }
+
+/* ── FAVOURITES ────────────────────────────────────────────────────────────── */
+function getFavs() { try{return JSON.parse(localStorage.getItem(LS_FAVS)||'[]');}catch{return[];} }
+function isFav(slug) { return getFavs().includes(slug); }
+function toggleFav(e, slug) {
+  e.preventDefault(); e.stopPropagation();
+  if (!window._access || !window._access.authenticated) {
+    location.href='/auth.html?from='+encodeURIComponent(location.pathname); return;
   }
-  // First ever load
-  await fetchAllPages();
+  const favs=getFavs(), idx=favs.indexOf(slug);
+  if(idx===-1) favs.push(slug); else favs.splice(idx,1);
+  try{localStorage.setItem(LS_FAVS,JSON.stringify(favs));}catch{}
+  const btn=document.querySelector('.fav-btn[data-slug="'+slug+'"]');
+  if(btn){const on=favs.includes(slug);btn.textContent=on?'♥':'♡';btn.classList.toggle('active',on);}
 }
 
-async function fetchAllPages() {
-  try {
-    let page = 1, hasMore = true;
-    allStartups = [];
-    while (hasMore) {
-      const params = new URLSearchParams({ page, limit: 50, sort: 'revenue-desc' });
-      let res;
-      for (let i = 0; i < 3; i++) {
-        try { res = await fetch(API_BASE + '/startups?' + params); break; }
-        catch { await sleep(2000); }
-      }
-      if (!res || !res.ok) {
-        const stale = await idbGetAll();
-        if (stale && stale.length > 0) { allStartups = stale; cacheLoaded = true; updateStats(); renderView(); }
-        else showError();
-        return;
-      }
-      const { data, meta, fromCache } = await res.json();
-      // Filter out items without slug (IDB keyPath) to prevent silent transaction failure
-      allStartups = allStartups.concat((data || []).filter(s => s && s.slug));
-      hasMore = !!(meta && meta.hasMore);
-      updateProgress(allStartups.length, hasMore);
-      // Save every 5 pages so a mid-refresh still preserves partial data
-      if (page % 5 === 0) idbSaveAll(allStartups);
-      page++;
-      if (hasMore && !fromCache) await sleep(DELAY_MS);
+/* ── LOAD ──────────────────────────────────────────────────────────────────── */
+async function loadInitial() {
+  if (isDefault()) {
+    const c = cacheRead();
+    if (c && Date.now()-c.ts < CACHE_TTL) {
+      loadedItems = c.data;
+      hasMore     = c.hasMore;
+      apiPage     = 1;
+      apiMeta     = { total: c.total };
+      displayItems = applyClientFilters(loadedItems);
+      updateStats(); renderCards(); updateCount();
+      if (Date.now()-c.ts > FRESH_TTL) fetchPage(1, true);
+      return;
     }
-    cacheLoaded = true;
-    await idbSaveAll(allStartups);
-    updateStats();
-    renderView();
+  }
+  showLoading();
+  await fetchPage(1, false);
+}
+
+async function fetchPage(page, bg) {
+  if (isLoading && !bg) return;
+  isLoading = true;
+  try {
+    const p = new URLSearchParams({page, limit:LIMIT, sort:filters.sort});
+    if (filters.onSale===true) p.set('onSale','true');
+    if (filters.category) p.set('category', filters.category);
+
+    const res = await fetch(API+'/startups?'+p);
+    if (!res.ok) throw new Error('api');
+    const {data, meta} = await res.json();
+    const items = (data||[]).filter(s=>s&&s.slug);
+
+    if (page===1) {
+      loadedItems  = items;
+      hasMore      = !!(meta&&meta.hasMore);
+      apiPage      = 1;
+      apiMeta      = meta||null;
+      if (isDefault()) cacheWrite(items, hasMore, meta&&meta.total);
+      displayItems = applyClientFilters(loadedItems);
+      updateStats(); renderCards(); updateCount();
+    } else {
+      const fresh = items.filter(s=>!loadedItems.find(x=>x.slug===s.slug));
+      loadedItems  = loadedItems.concat(fresh);
+      hasMore      = !!(meta&&meta.hasMore);
+      apiPage      = page;
+      const newDisp = applyClientFilters(fresh);
+      displayItems = displayItems.concat(newDisp);
+      appendCards(newDisp);
+    }
   } catch {
-    const stale = await idbGetAll();
-    if (stale && stale.length > 0) { allStartups = stale; cacheLoaded = true; updateStats(); renderView(); }
-    else showError();
-  }
+    if (!bg && page===1) {
+      const c = cacheRead();
+      if (c&&c.data) {
+        loadedItems=c.data; hasMore=c.hasMore; apiPage=1; apiMeta={total:c.total};
+        displayItems=applyClientFilters(loadedItems);
+        updateStats(); renderCards(); updateCount();
+      } else showError();
+    }
+  } finally { isLoading=false; }
 }
 
-async function refreshInBackground() {
-  try {
-    let page = 1, hasMore = true, fresh = [];
-    while (hasMore) {
-      const params = new URLSearchParams({ page, limit: 50, sort: 'revenue-desc' });
-      const res = await fetch(API_BASE + '/startups?' + params);
-      if (!res.ok) return;
-      const { data, meta, fromCache } = await res.json();
-      fresh = fresh.concat((data || []).filter(s => s && s.slug));
-      hasMore = !!(meta && meta.hasMore);
-      page++;
-      if (hasMore && !fromCache) await sleep(DELAY_MS);
-    }
-    if (fresh.length > 0) {
-      allStartups = fresh;
-      await idbSaveAll(allStartups);
-      updateStats();
-      renderView();
-    }
-  } catch {}
-}
-
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-// ── RENDER ────────────────────────────────────────────────────────────────────
-function getFiltered() {
-  let d = allStartups;
-  if (filters.onSale === true) d = d.filter(s => s.onSale);
-  if (filters.category) d = d.filter(s => s.category === filters.category);
-  if (filters.rev30Min > 0) d = d.filter(s => (s.revenue && s.revenue.last30Days || 0) >= filters.rev30Min * 100);
-  if (filters.rev30Max < Infinity) d = d.filter(s => (s.revenue && s.revenue.last30Days || 0) <= filters.rev30Max * 100);
-  if (filters.priceMin > 0) d = d.filter(s => (s.askingPrice || 0) >= filters.priceMin * 100);
-  if (filters.priceMax < Infinity) d = d.filter(s => (s.askingPrice || 0) <= filters.priceMax * 100);
-  return [...d].sort((a, b) => {
-    if (filters.sort === 'growth-desc') return (b.growth30d || 0) - (a.growth30d || 0);
-    if (filters.sort === 'price-asc')   return (a.askingPrice || 9e9) - (b.askingPrice || 9e9);
-    if (filters.sort === 'price-desc')  return (b.askingPrice || 0) - (a.askingPrice || 0);
-    return (b.revenue && b.revenue.last30Days || 0) - (a.revenue && a.revenue.last30Days || 0);
+/* ── CLIENT-SIDE FILTERS ──────────────────────────────────────────────────── */
+function applyClientFilters(items) {
+  const q = filters.search.toLowerCase();
+  return items.filter(s => {
+    if (q && !s.name.toLowerCase().includes(q) && !(s.description||'').toLowerCase().includes(q)) return false;
+    const mrr   = s.revenue&&s.revenue.mrr||0;
+    const rev   = s.revenue&&s.revenue.last30Days||0;
+    const price = s.askingPrice||0;
+    const mult  = parseFloat(s.multiple)||0;
+    const g     = s.growth30d;
+    const margin= s.profitMarginLast30Days;
+    if (filters.mrrMin >0 && mrr  < filters.mrrMin *100) return false;
+    if (filters.mrrMax >0 && mrr  > filters.mrrMax *100) return false;
+    if (filters.rev30Min>0 && rev < filters.rev30Min*100) return false;
+    if (filters.rev30Max>0 && rev > filters.rev30Max*100) return false;
+    if (filters.priceMin>0 && price < filters.priceMin*100) return false;
+    if (filters.priceMax>0 && price > filters.priceMax*100) return false;
+    if (filters.growthMin!=='' && (g==null||g<parseFloat(filters.growthMin))) return false;
+    if (filters.growthMax!=='' && (g==null||g>parseFloat(filters.growthMax))) return false;
+    if (filters.multipleMax>0 && mult>filters.multipleMax) return false;
+    if (filters.marginMin>0 && (margin==null||margin<filters.marginMin)) return false;
+    if (filters.marginMax>0 && (margin==null||margin>filters.marginMax)) return false;
+    if (filters.audience && s.targetAudience && !s.targetAudience.toLowerCase().includes(filters.audience)) return false;
+    if (filters.mobile==='yes' && !s.hasMobileApp) return false;
+    if (filters.mobile==='no' && s.hasMobileApp) return false;
+    return true;
   });
 }
 
-function renderView() {
-  filteredData = getFiltered();
-  displayedCount = 0;
-  document.getElementById('cards').innerHTML = '';
-  if (filteredData.length === 0) {
-    document.getElementById('cards').innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px 0;color:var(--text3)">Ничего не найдено</div>';
+/* ── RENDER ────────────────────────────────────────────────────────────────── */
+function renderCards() {
+  const grid = document.getElementById('cards');
+  grid.innerHTML = '';
+  if (!displayItems.length) {
+    grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:60px 0;color:var(--text3)">Ничего не найдено</div>';
     return;
   }
-  appendBatch();
-  setupInfiniteScroll();
-  updateGridCount();
+  displayItems.forEach(s => grid.insertAdjacentHTML('beforeend', cardHTML(s)));
+  setupScroll();
 }
 
-// FIX #7: append next PAGE_SIZE items to the grid
-function appendBatch() {
-  if (displayedCount >= filteredData.length) return false;
-  const batch = filteredData.slice(displayedCount, displayedCount + PAGE_SIZE);
-  const cards = document.getElementById('cards');
-  batch.forEach(s => cards.insertAdjacentHTML('beforeend', cardHTML(s)));
-  displayedCount += batch.length;
-  return displayedCount < filteredData.length;
+function appendCards(items) {
+  const grid = document.getElementById('cards');
+  items.forEach(s => grid.insertAdjacentHTML('beforeend', cardHTML(s)));
 }
 
-// FIX #7: IntersectionObserver infinite scroll
-function setupInfiniteScroll() {
-  if (scrollObserver) scrollObserver.disconnect();
-  const sentinel = document.getElementById('scroll-sentinel');
-  if (!sentinel) return;
-  scrollObserver = new IntersectionObserver(([entry]) => {
-    if (entry.isIntersecting) {
-      const hasMore = appendBatch();
-      if (!hasMore && scrollObserver) scrollObserver.disconnect();
-    }
-  }, { rootMargin: '400px' });
-  scrollObserver.observe(sentinel);
-}
-
-function updateGridCount() {
-  const n = filteredData.length;
-  const gc = document.getElementById('gridCount');
-  if (!gc) return;
-  const s = n % 100 > 10 && n % 100 < 20 ? 'ов' : n % 10 === 1 ? '' : n % 10 < 5 ? 'а' : 'ов';
-  gc.textContent = n.toLocaleString() + ' стартап' + s + (filters.onSale === true ? ' на продаже' : '');
-}
-
-// FIX #3: save to sessionStorage on card click so detail page loads instantly
-function saveStartup(slug) {
-  const s = allStartups.find(x => x.slug === slug);
-  if (s) { try { sessionStorage.setItem('startup_detail', JSON.stringify(s)); } catch {} }
+let scrollObs = null;
+function setupScroll() {
+  if (scrollObs) scrollObs.disconnect();
+  const el = document.getElementById('scroll-sentinel');
+  if (!el) return;
+  scrollObs = new IntersectionObserver(async ([e]) => {
+    if (!e.isIntersecting||isLoading||!hasMore) return;
+    await fetchPage(apiPage+1, false);
+  }, {rootMargin:'400px'});
+  scrollObs.observe(el);
 }
 
 function cardHTML(s) {
-  const initials = s.name.split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase() || '?';
+  const init = s.name.split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase()||'?';
   const icon = s.icon
-    ? `<img src="${escHtml(s.icon)}" loading="lazy" onerror="this.parentElement.textContent='${initials}'"/>`
-    : initials;
+    ? '<img src="'+escHtml(s.icon)+'" loading="lazy" onerror="this.parentElement.textContent=\''+init+'\'"/>'
+    : init;
   const g = s.growth30d;
-  const growthHtml = g != null
-    ? ` <span class="cm-sub ${g >= 0 ? 'up' : 'dn'}">${g >= 0 ? '↑' : '↓'}${Math.abs(parseFloat(g)).toFixed(1)}%</span>`
-    : '';
-  const hasPrice = s.onSale && s.askingPrice;
-  const priceBlock = hasPrice
-    ? `<div class="cm"><div class="cm-label">Asking price</div><div class="cm-val">${formatMoney(s.askingPrice)}</div></div>
-       <div class="cm"><div class="cm-label">Multiple</div><div class="cm-val">${s.multiple ? parseFloat(s.multiple).toFixed(1) + '×' : '—'}</div></div>`
-    : `<div class="cm"><div class="cm-label">MRR</div><div class="cm-val">${formatMoney(s.revenue && s.revenue.mrr)}</div></div>`;
-  return `<a class="card" href="/startup/${escHtml(s.slug)}.html" onclick="saveStartup('${escHtml(s.slug)}')">
-    <div class="card-head">
-      <div class="card-logo">${icon}</div>
-      <div class="card-head-info">
-        <div class="card-name">${escHtml(s.name)}</div>
-        <div class="card-badges">
-          ${s.category ? `<span class="badge badge-cat">${escHtml(s.category)}</span>` : ''}
-          <span class="badge badge-verified">✓ verified</span>
-          ${s.onSale ? `<span class="badge badge-sale">На продаже</span>` : ''}
-        </div>
-      </div>
-    </div>
-    <div class="card-desc">${escHtml(s.description || '')}</div>
-    <div class="card-metrics">
-      <div class="cm"><div class="cm-label">Revenue (30d)</div><div class="cm-val">${formatMoney(s.revenue && s.revenue.last30Days)}${growthHtml}</div></div>
-      ${priceBlock}
-    </div>
-  </a>`;
+  const gh = g!=null?' <span class="cm-sub '+(g>=0?'up':'dn')+'">'+(g>=0?'↑':'↓')+Math.abs(parseFloat(g)).toFixed(1)+'%</span>':'';
+  const hasP = s.onSale&&s.askingPrice;
+  const pBlock = hasP
+    ? '<div class="cm"><div class="cm-label">Asking price</div><div class="cm-val">'+formatMoney(s.askingPrice)+'</div></div><div class="cm"><div class="cm-label">Multiple</div><div class="cm-val">'+(s.multiple?parseFloat(s.multiple).toFixed(1)+'×':'—')+'</div></div>'
+    : '<div class="cm"><div class="cm-label">MRR</div><div class="cm-val">'+formatMoney(s.revenue&&s.revenue.mrr)+'</div></div>';
+  const views = s.views?'<span class="card-views">👁 '+(s.views>999?(s.views/1000).toFixed(1)+'k':s.views)+'</span>':'';
+  const favOn = isFav(s.slug);
+  return '<a class="card" href="/startup/'+escHtml(s.slug)+'.html" onclick="saveStartup(\''+escHtml(s.slug)+'\')">'+
+    '<div class="card-head">'+
+      '<div class="card-logo">'+icon+'</div>'+
+      '<div class="card-head-info">'+
+        '<div class="card-name">'+escHtml(s.name)+'</div>'+
+        '<div class="card-badges">'+
+          (s.category?'<span class="badge badge-cat">'+escHtml(s.category)+'</span>':'')+
+          '<span class="badge badge-verified">✓ verified</span>'+
+          (s.onSale?'<span class="badge badge-sale">На продаже</span>':'')+
+        '</div>'+
+      '</div>'+
+      '<div class="card-actions">'+views+
+        '<button class="fav-btn'+(favOn?' active':'')+'" data-slug="'+escHtml(s.slug)+'" onclick="toggleFav(event,\''+escHtml(s.slug)+'\')" title="Избранное">'+(favOn?'♥':'♡')+'</button>'+
+      '</div>'+
+    '</div>'+
+    '<div class="card-desc">'+escHtml(s.description||'')+'</div>'+
+    '<div class="card-metrics">'+
+      '<div class="cm"><div class="cm-label">Revenue (30d)</div><div class="cm-val">'+formatMoney(s.revenue&&s.revenue.last30Days)+gh+'</div></div>'+
+      pBlock+
+    '</div>'+
+  '</a>';
 }
 
-// FIX #8: updateStats shows total revenue too
+function saveStartup(slug) {
+  const s=loadedItems.find(x=>x.slug===slug);
+  if(s){try{sessionStorage.setItem('startup_detail',JSON.stringify(s));}catch{}}
+}
+
+/* ── STATS ─────────────────────────────────────────────────────────────────── */
 function updateStats() {
-  const total = allStartups.length;
-  const onSaleCnt = allStartups.filter(s => s.onSale).length;
-  const totalMrr  = allStartups.reduce((sum, s) => sum + (s.revenue && s.revenue.mrr         || 0), 0);
-  const totalRev  = allStartups.reduce((sum, s) => sum + (s.revenue && s.revenue.last30Days  || 0), 0);
-  const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
-  set('statTotal',   total.toLocaleString());
-  set('statSale',    onSaleCnt.toLocaleString());
-  set('statRevenue', formatMoney(totalRev));
-  set('statMRR',     formatMoney(totalMrr));
-  set('cntAll',      total.toLocaleString());
-  set('cntSale',     onSaleCnt.toLocaleString());
+  const totalDB  = (apiMeta&&apiMeta.total) || (cacheRead()&&cacheRead().total) || loadedItems.length;
+  const onSaleCnt= loadedItems.filter(s=>s.onSale).length;
+  const rev      = loadedItems.reduce((a,s)=>a+(s.revenue&&s.revenue.last30Days||0),0);
+  const mrr      = loadedItems.reduce((a,s)=>a+(s.revenue&&s.revenue.mrr||0),0);
+  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  set('statTotal',  totalDB?totalDB.toLocaleString():'—');
+  set('statSale',   onSaleCnt.toLocaleString()+(hasMore?'+':''));
+  set('statRevenue',formatMoney(rev));
+  set('statMRR',    formatMoney(mrr));
+  set('cntSale',    onSaleCnt.toLocaleString()+(hasMore?'+':''));
+  set('cntAll',     totalDB?totalDB.toLocaleString():'—');
 }
 
-function updateProgress(count, hasMore) {
-  const bar = document.getElementById('loadBar');
-  const cnt = document.getElementById('loadCount');
-  if (bar) bar.style.width = Math.min(90, count / 100) + '%';
-  if (cnt) cnt.textContent = count.toLocaleString() + (hasMore ? '+' : '') + ' стартапов';
-  const st = document.getElementById('statTotal');
-  if (st) st.textContent = count.toLocaleString() + (hasMore ? '+' : '');
+function updateCount() {
+  const n=displayItems.length; const gc=document.getElementById('gridCount'); if(!gc)return;
+  const s=n%100>10&&n%100<20?'ов':n%10===1?'':n%10<5?'а':'ов';
+  gc.textContent=n.toLocaleString()+(hasMore?'+':'')+' стартап'+s+(filters.onSale===true?' на продаже':'');
 }
 
+function showLoading() {
+  document.getElementById('cards').innerHTML='<div style="grid-column:1/-1;text-align:center;padding:60px 0;"><div style="font-size:14px;color:var(--text2);margin-bottom:16px;">Загружаем стартапы...</div><div style="width:160px;height:3px;background:var(--border);border-radius:2px;margin:0 auto;overflow:hidden;"><div style="height:100%;width:40%;background:var(--accent);border-radius:2px;animation:loadpulse 1.5s ease-in-out infinite;"></div></div></div>';
+}
 function showError() {
-  const cards = document.getElementById('cards');
-  if (cards) cards.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px 0;color:var(--text3)"><div style="font-size:24px;margin-bottom:8px;">⚠️</div><div>Ошибка загрузки данных</div></div>';
+  document.getElementById('cards').innerHTML='<div style="grid-column:1/-1;text-align:center;padding:60px 0;color:var(--text3);"><div style="font-size:24px;margin-bottom:8px;">⚠️</div><div>Ошибка загрузки данных</div></div>';
 }
 
-// ── FILTERS ───────────────────────────────────────────────────────────────────
+/* ── FILTER HANDLERS ──────────────────────────────────────────────────────── */
+function reloadFromAPI() { loadedItems=[];displayItems=[];apiPage=0;hasMore=false;showLoading();loadInitial(); }
+
 function setStatus(el) {
-  document.querySelectorAll('.status-opt').forEach(o => o.classList.remove('sel'));
+  document.querySelectorAll('.status-opt').forEach(o=>o.classList.remove('sel'));
   el.classList.add('sel');
-  filters.onSale = el.dataset.filter === 'sale' ? true : null;
-  if (cacheLoaded) renderView();
+  filters.onSale=el.dataset.filter==='sale'?true:null;
+  reloadFromAPI();
 }
-
-function onCategoryChange(v) {
-  filters.category = v;
-  if (cacheLoaded) renderView();
-}
-
-function applyFilters() {
-  const p = id => { const v = parseFloat(document.getElementById(id) && document.getElementById(id).value); return isNaN(v) ? null : v; };
-  filters.rev30Min = p('rev30Min') || 0;
-  filters.rev30Max = p('rev30Max') || Infinity;
-  filters.priceMin = p('priceMin') || 0;
-  filters.priceMax = p('priceMax') || Infinity;
-  if (cacheLoaded) renderView();
-}
-
+function onCategoryChange(v) { filters.category=v; reloadFromAPI(); }
 function toggleSort() {
-  const sorts  = ['revenue-desc', 'growth-desc', 'price-asc', 'price-desc'];
-  const labels = ['Выручка ↓', 'Рост ↓', 'Цена ↑', 'Цена ↓'];
-  const idx = (sorts.indexOf(filters.sort) + 1) % sorts.length;
-  filters.sort = sorts[idx];
-  const lbl = document.getElementById('sortLabel');
-  if (lbl) lbl.textContent = labels[idx];
-  if (cacheLoaded) renderView();
+  const s=['revenue-desc','growth-desc','price-asc','price-desc'],l=['Выручка ↓','Рост ↓','Цена ↑','Цена ↓'];
+  const i=(s.indexOf(filters.sort)+1)%s.length; filters.sort=s[i];
+  const lb=document.getElementById('sortLabel'); if(lb)lb.textContent=l[i];
+  reloadFromAPI();
 }
-
+function onSearch(v) {
+  filters.search=v.trim(); clearTimeout(searchTimer);
+  searchTimer=setTimeout(()=>{displayItems=applyClientFilters(loadedItems);renderCards();updateCount();},300);
+}
+function applyFilters() {
+  const n=id=>{const v=parseFloat(document.getElementById(id)&&document.getElementById(id).value);return isNaN(v)?0:v;};
+  const sel=id=>{const e=document.getElementById(id);return e?e.value:'';};
+  filters.mrrMin=n('mrrMin');filters.mrrMax=n('mrrMax');
+  filters.rev30Min=n('rev30Min');filters.rev30Max=n('rev30Max');
+  filters.priceMin=n('priceMin');filters.priceMax=n('priceMax');
+  filters.growthMin=document.getElementById('growthMin').value.trim();
+  filters.growthMax=document.getElementById('growthMax').value.trim();
+  filters.multipleMax=parseFloat(sel('multipleSelect'))||0;
+  filters.marginMin=n('marginMin');filters.marginMax=n('marginMax');
+  filters.audience=sel('audienceSelect');
+  filters.mobile=sel('mobileSelect');
+  displayItems=applyClientFilters(loadedItems);
+  renderCards();updateCount();
+}
 function resetFilters() {
-  document.querySelectorAll('.sb-input').forEach(i => i.value = '');
-  const cat = document.getElementById('catSelect');
-  if (cat) cat.selectedIndex = 0;
-  document.querySelectorAll('.status-opt').forEach(o => o.classList.remove('sel'));
+  document.querySelectorAll('.sb-input').forEach(i=>i.value='');
+  document.querySelectorAll('.sb-select').forEach(s=>s.selectedIndex=0);
+  document.querySelectorAll('.status-opt').forEach(o=>o.classList.remove('sel'));
   document.querySelector('.status-opt[data-filter="sale"]').classList.add('sel');
-  filters = { onSale: true, category: '', sort: 'revenue-desc', rev30Min: 0, rev30Max: Infinity, priceMin: 0, priceMax: Infinity };
-  const lbl = document.getElementById('sortLabel');
-  if (lbl) lbl.textContent = 'Выручка ↓';
-  if (cacheLoaded) renderView();
+  const si=document.getElementById('searchInput'); if(si) si.value='';
+  const lb=document.getElementById('sortLabel'); if(lb) lb.textContent='Выручка ↓';
+  filters={onSale:true,category:'',sort:'revenue-desc',search:'',mrrMin:0,mrrMax:0,rev30Min:0,rev30Max:0,priceMin:0,priceMax:0,growthMin:'',growthMax:'',multipleMax:0,marginMin:0,marginMax:0,audience:'',mobile:''};
+  reloadFromAPI();
 }
 
-loadAll();
+loadInitial();
 </script>
 </body>
 </html>
