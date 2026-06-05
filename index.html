@@ -7,221 +7,176 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="shared.css"/>
+<link rel="stylesheet" href="/shared.css"/>
+<script src="/auth-config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="/shared.js"></script>
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-:root {
-  --ink: #0a0a0f; --ink2: #3d3d52; --ink3: #8888a0;
-  --paper: #f5f4f0; --surface: #ffffff; --surface2: #f0efe9;
-  --line: #e2e0d8; --line2: #d8d6cd;
-  --em: #00c27a; --em-bg: rgba(0,194,122,0.09); --red: #f04e37;
-}
-body { font-family: 'Manrope', sans-serif; background: var(--paper); color: var(--ink); font-size: 14px; line-height: 1.6; min-height: 100vh; }
-
-/* NAV */
-nav { display: flex; align-items: center; justify-content: space-between; padding: 0 28px; height: 54px; border-bottom: 1px solid var(--line); background: rgba(245,244,240,0.97); backdrop-filter: blur(16px); position: sticky; top: 0; z-index: 100; }
-.logo { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; color: var(--ink); display: flex; align-items: center; gap: 7px; text-decoration: none; }
-.logo-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--em); flex-shrink: 0; }
-.nav-links { display: flex; gap: 2px; }
-.nav-link { padding: 5px 12px; border-radius: 6px; font-size: 13px; color: var(--ink2); cursor: pointer; transition: all 0.12s; text-decoration: none; }
-.nav-link:hover { background: var(--surface2); }
-.nav-link.active { background: var(--ink); color: white; }
-.nav-right { display: flex; gap: 8px; align-items: center; }
-.btn { padding: 7px 14px; border-radius: 7px; font-size: 13px; font-family: 'Manrope', sans-serif; font-weight: 500; cursor: pointer; border: none; transition: all 0.12s; }
-.btn-ghost { background: var(--surface); border: 1px solid var(--line2); color: var(--ink2); }
-.btn-ghost:hover { border-color: var(--ink); color: var(--ink); }
-.btn-dark { background: var(--ink); color: white; display: inline-flex; align-items: center; gap: 6px; }
-.btn-dark:hover { background: #222230; }
-
 /* HERO */
 .hero { padding: 32px 28px 20px; max-width: 1200px; margin: 0 auto; text-align: center; }
-.hero-title { font-size: 34px; font-weight: 700; letter-spacing: -1px; color: var(--ink); margin-bottom: 6px; }
-.hero-title em { font-style: normal; color: var(--em); }
-.hero-sub { font-size: 14px; color: var(--ink2); margin-bottom: 16px; }
-.filter-tabs { display: flex; align-items: center; justify-content: center; gap: 6px; }
-.ftab { padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; color: var(--ink2); transition: all 0.12s; user-select: none; }
-.ftab:hover { background: var(--surface2); }
-.ftab.active { background: var(--ink); color: white; }
-.stats-inline { display: flex; gap: 16px; margin-left: 12px; padding-left: 12px; border-left: 1px solid var(--line2); }
-.si { font-size: 13px; color: var(--ink3); }
-.si strong { color: var(--ink); font-weight: 700; font-size: 14px; }
+.hero-title { font-size: 34px; font-weight: 700; letter-spacing: -1px; color: var(--text); margin-bottom: 6px; }
+.hero-title em { font-style: normal; color: var(--accent); }
+.hero-sub { font-size: 14px; color: var(--text2); margin-bottom: 20px; }
 
-/* BODY */
+/* PROVIDER ICONS — real logos via Clearbit */
+.provider-icons { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 28px; flex-wrap: wrap; }
+.provider-wrap { position: relative; }
+.provider-icon {
+  width: 42px; height: 42px; border-radius: 10px; background: var(--bg2);
+  border: 1px solid var(--border); display: flex; align-items: center; justify-content: center;
+  overflow: hidden; transition: transform 0.15s, box-shadow 0.15s;
+}
+.provider-icon img { width: 28px; height: 28px; object-fit: contain; display: block; }
+.provider-wrap:hover .provider-icon { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+.provider-tip {
+  display: none; position: absolute; bottom: calc(100% + 6px); left: 50%;
+  transform: translateX(-50%); background: var(--text); color: white;
+  font-size: 11px; padding: 4px 8px; border-radius: 5px;
+  white-space: nowrap; font-weight: 500; pointer-events: none; z-index: 50;
+}
+.provider-tip::after {
+  content: ''; position: absolute; top: 100%; left: 50%;
+  transform: translateX(-50%); border: 4px solid transparent; border-top-color: var(--text);
+}
+.provider-wrap:hover .provider-tip { display: block; }
+
+/* STATS BAR — 4 items */
+.stats-bar {
+  display: flex; border: 1px solid var(--border); border-radius: 14px;
+  overflow: hidden; background: var(--bg2); max-width: 740px;
+  margin: 0 auto; box-shadow: var(--shadow);
+}
+.stat-item {
+  flex: 1; padding: 20px 12px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center;
+  border-right: 1px solid var(--border);
+}
+.stat-item:last-child { border-right: none; }
+.stat-n { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; color: var(--text); margin-bottom: 4px; line-height: 1; }
+.stat-l { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.07em; line-height: 1.35; }
+
+/* BODY LAYOUT */
 .body { display: grid; grid-template-columns: 210px 1fr; gap: 20px; padding: 24px 28px 80px; max-width: 1200px; margin: 0 auto; }
 
 /* SIDEBAR */
-.sidebar-block { background: var(--surface); border: 1px solid #e2e0d8; border-radius: 12px; overflow: hidden; position: sticky; top: 70px; }
-.sb-header { padding: 11px 14px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; }
-.sb-title { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink3); }
-.sb-reset { font-size: 11px; color: var(--em); cursor: pointer; font-weight: 500; }
-.sb-section { padding: 11px 14px; border-bottom: 1px solid var(--line); }
+.sidebar-block { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; position: sticky; top: 70px; box-shadow: var(--shadow); }
+.sb-header { padding: 11px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.sb-title { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text3); }
+.sb-reset { font-size: 11px; color: var(--accent); cursor: pointer; font-weight: 500; }
+.sb-section { padding: 11px 14px; border-bottom: 1px solid var(--border); }
 .sb-section:last-child { border-bottom: none; }
-.sb-label { font-size: 11px; font-weight: 500; color: var(--ink2); margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
-select.sb-select { width: 100%; background: var(--surface2); border: 1px solid var(--line); border-radius: 7px; padding: 6px 26px 6px 9px; font-family: 'Manrope', sans-serif; font-size: 12px; color: var(--ink2); outline: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238888a0' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; cursor: pointer; }
-select.sb-select:focus { border-color: var(--em); outline: none; }
+.sb-label { font-size: 11px; font-weight: 500; color: var(--text2); margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
+select.sb-select {
+  width: 100%; background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 7px; padding: 6px 26px 6px 9px; font-family: 'Manrope', sans-serif;
+  font-size: 12px; color: var(--text2); outline: none; appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238888a0' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 8px center; cursor: pointer;
+}
+select.sb-select:focus { border-color: var(--accent); outline: none; }
 .range-row { display: grid; grid-template-columns: 1fr 12px 1fr; align-items: center; gap: 3px; }
-.range-sep { text-align: center; font-size: 11px; color: var(--ink3); }
-input.sb-input { width: 100%; background: var(--surface2); border: 1px solid var(--line); border-radius: 7px; padding: 6px 8px; font-family: 'Manrope', sans-serif; font-size: 12px; color: var(--ink); outline: none; }
-input.sb-input::placeholder { color: var(--ink3); font-size: 11px; }
-input.sb-input:focus { border-color: var(--em); background: var(--surface); }
+.range-sep { text-align: center; font-size: 11px; color: var(--text3); }
+input.sb-input {
+  width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: 7px;
+  padding: 6px 8px; font-family: 'Manrope', sans-serif; font-size: 12px; color: var(--text); outline: none;
+}
+input.sb-input::placeholder { color: var(--text3); font-size: 11px; }
+input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
 .status-opts { display: flex; flex-direction: column; gap: 2px; }
-.status-opt { display: flex; align-items: center; justify-content: space-between; padding: 6px 9px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: all 0.1s; color: var(--ink2); user-select: none; }
-.status-opt:hover { background: var(--surface2); }
-.status-opt.sel { background: var(--ink); color: white; }
+.status-opt { display: flex; align-items: center; justify-content: space-between; padding: 6px 9px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: all 0.1s; color: var(--text2); user-select: none; }
+.status-opt:hover { background: var(--bg3); }
+.status-opt.sel { background: var(--text); color: white; }
 .status-opt .cnt { font-size: 10px; opacity: 0.5; }
-.apply-btn { width: 100%; padding: 8px; background: var(--em); color: white; border: none; border-radius: 7px; font-family: 'Manrope', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.12s; margin-top: 4px; }
-.apply-btn:hover { background: #00a868; }
-
-/* TOOLTIP */
-.tip-wrap { position: relative; display: inline-flex; align-items: center; }
-.tip-icon { width: 13px; height: 13px; border-radius: 50%; border: 1px solid var(--ink3); display: inline-flex; align-items: center; justify-content: center; font-size: 8px; color: var(--ink3); cursor: default; font-weight: 600; }
-.tip-wrap:hover .tip-icon { border-color: var(--ink2); color: var(--ink2); }
-.tip-box { display: none; position: absolute; bottom: calc(100% + 7px); left: 50%; transform: translateX(-50%); background: var(--ink); color: white; font-size: 11px; line-height: 1.45; padding: 7px 10px; border-radius: 7px; z-index: 200; width: 180px; white-space: normal; font-weight: 400; }
-.tip-box::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 5px solid transparent; border-top-color: var(--ink); }
-.tip-wrap:hover .tip-box { display: block; }
+.apply-btn { width: 100%; padding: 8px; background: var(--accent); color: white; border: none; border-radius: 7px; font-family: 'Manrope', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.12s; margin-top: 4px; }
+.apply-btn:hover { background: var(--accent2); }
 
 /* GRID */
 .grid-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-.grid-count { font-size: 13px; color: var(--ink3); }
-.sort-btn { display: flex; align-items: center; gap: 5px; padding: 5px 10px; background: var(--surface); border: 1px solid var(--line2); border-radius: 7px; font-size: 12px; color: var(--ink2); cursor: pointer; font-family: 'Manrope', sans-serif; }
+.grid-count { font-size: 13px; color: var(--text3); }
+.sort-btn { display: flex; align-items: center; gap: 5px; padding: 5px 10px; background: var(--bg2); border: 1px solid var(--border2); border-radius: 7px; font-size: 12px; color: var(--text2); cursor: pointer; font-family: 'Manrope', sans-serif; }
+
+/* CARDS GRID */
 .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 
 /* CARD */
-.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; cursor: pointer; transition: all 0.15s; text-decoration: none; color: inherit; display: flex; flex-direction: column; gap: 0; }
-.card:hover { border-color: var(--line2); box-shadow: 0 4px 16px rgba(0,0,0,0.07); transform: translateY(-1px); }
-
-/* card top: logo + name + badges */
-.card-head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 6px; }
-.card-logo { width: 36px; height: 36px; border-radius: 8px; background: #f0efe9; border: 1px solid #e2e0d8; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: var(--ink2); flex-shrink: 0; overflow: hidden; }
+.card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; cursor: pointer; transition: all 0.15s; text-decoration: none; color: inherit; display: flex; flex-direction: column; }
+.card:hover { border-color: var(--border2); box-shadow: 0 4px 16px rgba(0,0,0,0.07); transform: translateY(-1px); }
+.card-head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+.card-logo { width: 36px; height: 36px; border-radius: 8px; background: var(--bg3); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: var(--text2); flex-shrink: 0; overflow: hidden; }
 .card-logo img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
 .card-head-info { flex: 1; min-width: 0; }
-.card-name { font-size: 14px; font-weight: 600; letter-spacing: -0.2px; color: var(--ink); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card-name { font-size: 14px; font-weight: 600; letter-spacing: -0.2px; color: var(--text); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .card-badges { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 3px; }
-.badge { font-size: 10px; font-weight: 500; padding: 2px 7px; border-radius: 999px; }
-.badge-cat { background: var(--surface2); color: var(--ink2); border: 1px solid var(--line); }
-.badge-sale { background: var(--ink); color: white; }
-.badge-v { background: var(--em-bg); color: #008a55; border: 1px solid rgba(0,194,122,0.2); }
-.card-views { font-size: 11px; color: var(--ink3); margin-left: auto; white-space: nowrap; flex-shrink: 0; }
+.card-desc { font-size: 12px; color: var(--text3); line-height: 1.45; margin-bottom: 10px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; flex: 1; min-height: 32px; }
 
-/* desc */
-.card-desc { font-size: 12px; color: var(--ink3); line-height: 1.45; margin-bottom: 10px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; flex: 1; }
-
-/* bottom metrics row */
-.card-metrics { display: flex; gap: 0; border-top: 1px solid #e2e0d8; padding-top: 10px; margin-top: auto; align-items: flex-end; }
+/* FIX #6: align-items: flex-start (was flex-end → caused uneven row heights) */
+.card-metrics { display: flex; border-top: 1px solid var(--border); padding-top: 10px; margin-top: auto; align-items: flex-start; }
 .cm { flex: 1; }
-.cm + .cm { border-left: 1px solid var(--line); padding-left: 10px; margin-left: 10px; }
-.cm-label { font-size: 9px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink3); margin-bottom: 1px; }
-.cm-val { font-size: 14px; font-weight: 700; letter-spacing: -0.2px; color: var(--ink); line-height: 1.2; }
-.cm-sub { font-size: 10px; font-weight: 500; margin-left: 3px; }
-.up { color: var(--em); }
+.cm + .cm { border-left: 1px solid var(--border); padding-left: 10px; margin-left: 10px; }
+.cm-label { font-size: 9px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text3); margin-bottom: 2px; }
+.cm-val { font-size: 14px; font-weight: 700; letter-spacing: -0.2px; color: var(--text); line-height: 1.2; }
+.cm-sub { font-size: 10px; font-weight: 600; margin-left: 2px; }
+.up { color: var(--accent); }
 .dn { color: var(--red); }
-.cm-price { font-size: 11px; color: var(--ink3); text-decoration: line-through; margin-right: 2px; }
-
-footer { border-top: 1px solid var(--line); padding: 16px 28px; text-align: center; font-size: 12px; color: var(--ink3); }
-footer a { color: var(--ink2); text-decoration: none; }
-
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--line2); border-radius: 3px; }
 
 @media (max-width: 900px) { .body { grid-template-columns: 1fr; } .sidebar-block { position: static; } }
-@media (max-width: 640px) { nav { padding: 0 16px; } .nav-links { display: none; } .cards { grid-template-columns: 1fr; } .body { padding: 12px 16px 60px; } }
-
-.provider-icons { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 36px; }
-.provider-wrap { position: relative; }
-.provider-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: default; transition: transform 0.15s, box-shadow 0.15s; }
-.provider-wrap:hover .provider-icon { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,0.15); }
-.provider-tip { display: none; position: absolute; bottom: calc(100% + 7px); left: 50%; transform: translateX(-50%); background: var(--ink); color: white; font-size: 11px; padding: 5px 9px; border-radius: 6px; white-space: nowrap; font-weight: 500; pointer-events: none; z-index: 50; }
-.provider-tip::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 4px solid transparent; border-top-color: var(--ink); }
-.provider-wrap:hover .provider-tip { display: block; }
-
-.stats-bar { display: flex; flex-direction: row; border: 1px solid #e2e0d8; border-radius: 14px; overflow: hidden; background: #ffffff; max-width: 600px; margin: 0 auto; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-.stat-item { flex: 1; padding: 24px 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; border-right: 1px solid #e2e0d8; }
-.stat-item:last-child { border-right: none; }
-.stat-n { font-size: 32px; font-weight: 700; letter-spacing: -1px; color: #0a0a0f; margin-bottom: 8px; line-height: 1; }
-.stat-l { font-size: 10px; color: #8888a0; text-transform: uppercase; letter-spacing: 0.07em; line-height: 1.35; }
+@media (max-width: 640px) {
+  .hero { padding: 24px 16px 16px; }
+  .hero-title { font-size: 26px; }
+  .cards { grid-template-columns: 1fr; }
+  .body { padding: 12px 16px 60px; }
+  .stats-bar { max-width: 100%; }
+  .stat-n { font-size: 18px; }
+  .stat-l { font-size: 9px; }
+  .stat-item { padding: 14px 8px; }
+}
 </style>
 </head>
 <body>
-<nav>
-  <a class="logo" href="#"><span class="logo-dot"></span>MRRket</a>
-  <div class="nav-links">
-    <a class="nav-link active" href="#">Главная</a>
-    <a class="nav-link" href="#">Купить</a>
-  </div>
-  <div class="nav-right">
-    <button class="btn btn-ghost">RU</button>
-    <button class="btn btn-ghost">Sign in</button>
-    <button class="btn btn-dark">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      Продать стартап
-    </button>
-  </div>
-</nav>
+
+<div id="navPlaceholder"></div>
 
 <div class="hero">
   <div class="hero-title">Найди <em>верифицированный</em><br>стартап с выручкой</div>
   <div class="hero-sub">Только подтверждённые данные. Каждый показатель проверен через платёжные провайдеры напрямую.</div>
-  <div class="provider-icons">
 
+  <!-- FIX #4: real logos from Clearbit -->
+  <div class="provider-icons">
     <div class="provider-wrap">
-      <div class="provider-icon" style="background:#635BFF">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.591-7.305z"/></svg>
-      </div>
+      <div class="provider-icon"><img src="https://logo.clearbit.com/stripe.com" alt="Stripe"/></div>
       <div class="provider-tip">Stripe</div>
     </div>
-
     <div class="provider-wrap">
-      <div class="provider-icon" style="background:#FFC107">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 4a2 2 0 110 4 2 2 0 010-4zm3 14H9v-2h2v-4H9v-2h4v6h2v2z"/></svg>
-      </div>
+      <div class="provider-icon"><img src="https://logo.clearbit.com/lemonsqueezy.com" alt="LemonSqueezy"/></div>
       <div class="provider-tip">LemonSqueezy</div>
     </div>
-
     <div class="provider-wrap">
-      <div class="provider-icon" style="background:#1A1A2E">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="white" opacity="0.15"/><path d="M8 8h3l2.5 4L16 8h3L14 16h-4L8 8z" fill="white"/></svg>
-      </div>
+      <div class="provider-icon"><img src="https://logo.clearbit.com/polar.sh" alt="Polar"/></div>
       <div class="provider-tip">Polar</div>
     </div>
-
     <div class="provider-wrap">
-      <div class="provider-icon" style="background:#E74C3C">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
-      </div>
+      <div class="provider-icon"><img src="https://logo.clearbit.com/revenuecat.com" alt="RevenueCat"/></div>
       <div class="provider-tip">RevenueCat</div>
     </div>
-
     <div class="provider-wrap">
-      <div class="provider-icon" style="background:#FF6B00">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-      </div>
+      <div class="provider-icon"><img src="https://logo.clearbit.com/paddle.com" alt="Paddle"/></div>
       <div class="provider-tip">Paddle</div>
     </div>
-
     <div class="provider-wrap">
-      <div class="provider-icon" style="background:#0EA5E9">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><path d="M7 15h4" stroke="#0EA5E9" stroke-width="2" stroke-linecap="round"/></svg>
-      </div>
+      <div class="provider-icon"><img src="https://logo.clearbit.com/chargebee.com" alt="Chargebee"/></div>
       <div class="provider-tip">Chargebee</div>
     </div>
-
     <div class="provider-wrap">
-      <div class="provider-icon" style="background:#10B981">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-      </div>
+      <div class="provider-icon"><img src="https://logo.clearbit.com/braintreepayments.com" alt="Braintree"/></div>
       <div class="provider-tip">Braintree</div>
     </div>
-
     <div class="provider-wrap">
-      <div class="provider-icon" style="background:#6366F1">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-      </div>
+      <div class="provider-icon"><img src="https://logo.clearbit.com/fastspring.com" alt="FastSpring"/></div>
       <div class="provider-tip">FastSpring</div>
     </div>
-
   </div>
+
+  <!-- FIX #8: added total revenue stat -->
   <div class="stats-bar">
     <div class="stat-item">
       <div class="stat-n" id="statTotal">—</div>
@@ -229,7 +184,11 @@ footer a { color: var(--ink2); text-decoration: none; }
     </div>
     <div class="stat-item">
       <div class="stat-n" id="statSale">—</div>
-      <div class="stat-l">На продаже сейчас</div>
+      <div class="stat-l">На продаже</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-n" id="statRevenue">—</div>
+      <div class="stat-l">Выручка (30д)</div>
     </div>
     <div class="stat-item">
       <div class="stat-n" id="statMRR">—</div>
@@ -254,7 +213,7 @@ footer a { color: var(--ink2); text-decoration: none; }
       </div>
       <div class="sb-section">
         <div class="sb-label">Категории</div>
-        <select class="sb-select" onchange="onCategoryChange(this.value)">
+        <select class="sb-select" id="catSelect" onchange="onCategoryChange(this.value)">
           <option value="">Все категории...</option>
           <option>AI</option><option>SaaS</option><option>Developer Tools</option>
           <option>Fintech</option><option>Marketing</option><option>E-commerce</option>
@@ -263,37 +222,23 @@ footer a { color: var(--ink2); text-decoration: none; }
       </div>
       <div class="sb-section">
         <div class="sb-label">Выручка 30 дней <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box">Суммарная выручка за последние 30 дней, подтверждённая платёжным провайдером</span></span></div>
-        <div class="range-row"><input class="sb-input" type="text" placeholder="$ Min"><div class="range-sep">—</div><input class="sb-input" type="text" placeholder="$ Max"></div>
-      </div>
-      <div class="sb-section">
-        <div class="sb-label">MRR <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box">Monthly Recurring Revenue — ежемесячный регулярный доход от подписок</span></span></div>
-        <div class="range-row"><input class="sb-input" type="text" placeholder="$ Min"><div class="range-sep">—</div><input class="sb-input" type="text" placeholder="$ Max"></div>
-      </div>
-      <div class="sb-section">
-        <div class="sb-label">Рост 30 дней <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box">Изменение MRR за последние 30 дней в процентах</span></span></div>
-        <div class="range-row"><input class="sb-input" type="text" placeholder="Min %"><div class="range-sep">—</div><input class="sb-input" type="text" placeholder="Max %"></div>
+        <div class="range-row">
+          <input class="sb-input" id="rev30Min" type="text" placeholder="$ Min">
+          <div class="range-sep">—</div>
+          <input class="sb-input" id="rev30Max" type="text" placeholder="$ Max">
+        </div>
       </div>
       <div class="sb-section">
         <div class="sb-label">Цена продажи <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box">Запрашиваемая цена за 100% доли стартапа</span></span></div>
-        <div class="range-row"><input class="sb-input" type="text" placeholder="$ Min"><div class="range-sep">—</div><input class="sb-input" type="text" placeholder="$ Max"></div>
+        <div class="range-row">
+          <input class="sb-input" id="priceMin" type="text" placeholder="$ Min">
+          <div class="range-sep">—</div>
+          <input class="sb-input" id="priceMax" type="text" placeholder="$ Max">
+        </div>
       </div>
       <div class="sb-section">
-        <div class="sb-label">Мультипликатор <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box">Цена / годовой MRR — показывает окупаемость покупки</span></span></div>
-        <select class="sb-select"><option>Любой</option><option>До 1×</option><option>До 2×</option><option>До 3×</option><option>До 5×</option><option>До 10×</option></select>
+        <button class="apply-btn" onclick="applyFilters()">Применить фильтры</button>
       </div>
-      <div class="sb-section">
-        <div class="sb-label">Маржа прибыли <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box">Чистая прибыль как процент от выручки</span></span></div>
-        <div class="range-row"><input class="sb-input" type="text" placeholder="Min %"><div class="range-sep">—</div><input class="sb-input" type="text" placeholder="Max %"></div>
-      </div>
-      <div class="sb-section">
-        <div class="sb-label">Аудитория</div>
-        <select class="sb-select"><option>Любая</option><option>B2B</option><option>B2C</option><option>B2B2C</option></select>
-      </div>
-      <div class="sb-section">
-        <div class="sb-label">Мобильное приложение</div>
-        <select class="sb-select"><option>Любое</option><option>Есть</option><option>Нет</option></select>
-      </div>
-      <div class="sb-section"><button class="apply-btn">Применить фильтры</button></div>
     </div>
   </aside>
 
@@ -305,32 +250,40 @@ footer a { color: var(--ink2); text-decoration: none; }
         <span id="sortLabel">Выручка ↓</span>
       </button>
     </div>
+    <!-- FIX #7: no pagination, just sentinel for infinite scroll -->
     <div class="cards" id="cards">
       <div style="grid-column:1/-1;text-align:center;padding:60px 0;">
-        <div style="font-size:14px;color:var(--ink2);margin-bottom:16px;">Загружаем стартапы...</div>
-        <div style="width:200px;height:3px;background:var(--line);border-radius:2px;margin:0 auto;overflow:hidden;">
-          <div id="loadBar" style="height:100%;width:8%;background:var(--em);border-radius:2px;transition:width 0.5s;"></div>
+        <div style="font-size:14px;color:var(--text2);margin-bottom:16px;">Загружаем стартапы...</div>
+        <div style="width:200px;height:3px;background:var(--border);border-radius:2px;margin:0 auto;overflow:hidden;">
+          <div id="loadBar" style="height:100%;width:8%;background:var(--accent);border-radius:2px;transition:width 0.5s;"></div>
         </div>
-        <div style="font-size:11px;color:var(--ink3);margin-top:10px;" id="loadCount"></div>
+        <div style="font-size:11px;color:var(--text3);margin-top:10px;" id="loadCount"></div>
       </div>
     </div>
-    <div id="pagination" style="display:flex;justify-content:center;gap:8px;padding:16px 0;align-items:center;"></div>
+    <div id="scroll-sentinel" style="height:1px;margin-top:20px;"></div>
   </main>
 </div>
 
 <footer>TrustMRR · API v1 &nbsp;·&nbsp; <a href="#">Условия</a> &nbsp;·&nbsp; <a href="#">Конфиденциальность</a></footer>
 
 <script>
+// ── FIX #2 & #5: nav with lang switcher + auth ────────────────────────────────
+applyLangToDoc();
+document.getElementById('navPlaceholder').innerHTML = buildNavHTML('home');
+initNavAuth();
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
 const API_BASE = '/api';
 const PAGE_SIZE = 18;
 const DELAY_MS = 3200;
 const STALE_MS = 23 * 3600 * 1000;
 
-let allStartups = [], cacheLoaded = false, currentPage = 1;
-let filters = { onSale: true, category: '', sort: 'revenue-desc' };
+let allStartups = [], cacheLoaded = false;
+let filteredData = [], displayedCount = 0;
+let filters = { onSale: true, category: '', sort: 'revenue-desc', rev30Min: 0, rev30Max: Infinity, priceMin: 0, priceMax: Infinity };
+let scrollObserver = null;
 
-// ── LOAD ──────────────────────────────────────────────────────────────────────
-
+// ── FIX #1: robust IDB cache — filter nulls + save every 5 pages ──────────────
 async function loadAll() {
   const cached = await idbGetAll();
   if (cached && cached.length > 0) {
@@ -338,13 +291,14 @@ async function loadAll() {
     cacheLoaded = true;
     updateStats();
     renderView();
+    // Only refresh in background if truly stale
     const lastUpdate = await idbGetLastUpdate();
     if (!lastUpdate || Date.now() - lastUpdate > STALE_MS) {
       refreshInBackground();
     }
     return;
   }
-  // First ever load — must fetch everything
+  // First ever load
   await fetchAllPages();
 }
 
@@ -361,15 +315,17 @@ async function fetchAllPages() {
       }
       if (!res || !res.ok) {
         const stale = await idbGetAll();
-        if (stale && stale.length > 0) {
-          allStartups = stale; cacheLoaded = true; updateStats(); renderView();
-        } else { showError(); }
+        if (stale && stale.length > 0) { allStartups = stale; cacheLoaded = true; updateStats(); renderView(); }
+        else showError();
         return;
       }
       const { data, meta, fromCache } = await res.json();
-      allStartups = allStartups.concat(data || []);
+      // Filter out items without slug (IDB keyPath) to prevent silent transaction failure
+      allStartups = allStartups.concat((data || []).filter(s => s && s.slug));
       hasMore = !!(meta && meta.hasMore);
       updateProgress(allStartups.length, hasMore);
+      // Save every 5 pages so a mid-refresh still preserves partial data
+      if (page % 5 === 0) idbSaveAll(allStartups);
       page++;
       if (hasMore && !fromCache) await sleep(DELAY_MS);
     }
@@ -379,9 +335,8 @@ async function fetchAllPages() {
     renderView();
   } catch {
     const stale = await idbGetAll();
-    if (stale && stale.length > 0) {
-      allStartups = stale; cacheLoaded = true; updateStats(); renderView();
-    } else { showError(); }
+    if (stale && stale.length > 0) { allStartups = stale; cacheLoaded = true; updateStats(); renderView(); }
+    else showError();
   }
 }
 
@@ -393,14 +348,14 @@ async function refreshInBackground() {
       const res = await fetch(API_BASE + '/startups?' + params);
       if (!res.ok) return;
       const { data, meta, fromCache } = await res.json();
-      fresh = fresh.concat(data || []);
+      fresh = fresh.concat((data || []).filter(s => s && s.slug));
       hasMore = !!(meta && meta.hasMore);
       page++;
       if (hasMore && !fromCache) await sleep(DELAY_MS);
     }
     if (fresh.length > 0) {
       allStartups = fresh;
-      await idbSaveAll(fresh);
+      await idbSaveAll(allStartups);
       updateStats();
       renderView();
     }
@@ -410,52 +365,71 @@ async function refreshInBackground() {
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
-
 function getFiltered() {
   let d = allStartups;
   if (filters.onSale === true) d = d.filter(s => s.onSale);
   if (filters.category) d = d.filter(s => s.category === filters.category);
+  if (filters.rev30Min > 0) d = d.filter(s => (s.revenue && s.revenue.last30Days || 0) >= filters.rev30Min * 100);
+  if (filters.rev30Max < Infinity) d = d.filter(s => (s.revenue && s.revenue.last30Days || 0) <= filters.rev30Max * 100);
+  if (filters.priceMin > 0) d = d.filter(s => (s.askingPrice || 0) >= filters.priceMin * 100);
+  if (filters.priceMax < Infinity) d = d.filter(s => (s.askingPrice || 0) <= filters.priceMax * 100);
   return [...d].sort((a, b) => {
     if (filters.sort === 'growth-desc') return (b.growth30d || 0) - (a.growth30d || 0);
-    if (filters.sort === 'price-asc') return (a.askingPrice || 9e9) - (b.askingPrice || 9e9);
-    if (filters.sort === 'price-desc') return (b.askingPrice || 0) - (a.askingPrice || 0);
+    if (filters.sort === 'price-asc')   return (a.askingPrice || 9e9) - (b.askingPrice || 9e9);
+    if (filters.sort === 'price-desc')  return (b.askingPrice || 0) - (a.askingPrice || 0);
     return (b.revenue && b.revenue.last30Days || 0) - (a.revenue && a.revenue.last30Days || 0);
   });
 }
 
 function renderView() {
-  const d = getFiltered();
-  const total = d.length;
-  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  if (currentPage > pages) currentPage = 1;
-  const slice = d.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
-
-  const cards = document.getElementById('cards');
-  cards.innerHTML = slice.length
-    ? slice.map(cardHTML).join('')
-    : '<div style="grid-column:1/-1;text-align:center;padding:60px 0;color:var(--ink3)">Ничего не найдено</div>';
-
-  const gc = document.getElementById('gridCount');
-  if (gc) {
-    const n = total;
-    const suffix = n % 100 > 10 && n % 100 < 20 ? 'ов' : n % 10 === 1 ? '' : n % 10 < 5 ? 'а' : 'ов';
-    const label = filters.onSale === true ? ' на продаже' : '';
-    gc.textContent = n.toLocaleString() + ' стартап' + suffix + label;
+  filteredData = getFiltered();
+  displayedCount = 0;
+  document.getElementById('cards').innerHTML = '';
+  if (filteredData.length === 0) {
+    document.getElementById('cards').innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px 0;color:var(--text3)">Ничего не найдено</div>';
+    return;
   }
-
-  const pag = document.getElementById('pagination');
-  if (pag) {
-    pag.innerHTML = pages <= 1 ? '' : `
-      <button onclick="changePage(-1)" ${currentPage <= 1 ? 'disabled' : ''} style="padding:6px 14px;border-radius:7px;border:1px solid var(--line2);background:var(--surface);font-family:'Manrope',sans-serif;font-size:13px;cursor:pointer;color:var(--ink2);">← Назад</button>
-      <span style="font-size:13px;color:var(--ink3);">Стр. ${currentPage} из ${pages}</span>
-      <button onclick="changePage(1)" ${currentPage >= pages ? 'disabled' : ''} style="padding:6px 14px;border-radius:7px;border:1px solid var(--line2);background:var(--surface);font-family:'Manrope',sans-serif;font-size:13px;cursor:pointer;color:var(--ink2);">Вперёд →</button>`;
-  }
+  appendBatch();
+  setupInfiniteScroll();
+  updateGridCount();
 }
 
-function changePage(d) {
-  currentPage += d;
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-  renderView();
+// FIX #7: append next PAGE_SIZE items to the grid
+function appendBatch() {
+  if (displayedCount >= filteredData.length) return false;
+  const batch = filteredData.slice(displayedCount, displayedCount + PAGE_SIZE);
+  const cards = document.getElementById('cards');
+  batch.forEach(s => cards.insertAdjacentHTML('beforeend', cardHTML(s)));
+  displayedCount += batch.length;
+  return displayedCount < filteredData.length;
+}
+
+// FIX #7: IntersectionObserver infinite scroll
+function setupInfiniteScroll() {
+  if (scrollObserver) scrollObserver.disconnect();
+  const sentinel = document.getElementById('scroll-sentinel');
+  if (!sentinel) return;
+  scrollObserver = new IntersectionObserver(([entry]) => {
+    if (entry.isIntersecting) {
+      const hasMore = appendBatch();
+      if (!hasMore && scrollObserver) scrollObserver.disconnect();
+    }
+  }, { rootMargin: '400px' });
+  scrollObserver.observe(sentinel);
+}
+
+function updateGridCount() {
+  const n = filteredData.length;
+  const gc = document.getElementById('gridCount');
+  if (!gc) return;
+  const s = n % 100 > 10 && n % 100 < 20 ? 'ов' : n % 10 === 1 ? '' : n % 10 < 5 ? 'а' : 'ов';
+  gc.textContent = n.toLocaleString() + ' стартап' + s + (filters.onSale === true ? ' на продаже' : '');
+}
+
+// FIX #3: save to sessionStorage on card click so detail page loads instantly
+function saveStartup(slug) {
+  const s = allStartups.find(x => x.slug === slug);
+  if (s) { try { sessionStorage.setItem('startup_detail', JSON.stringify(s)); } catch {} }
 }
 
 function cardHTML(s) {
@@ -472,14 +446,14 @@ function cardHTML(s) {
     ? `<div class="cm"><div class="cm-label">Asking price</div><div class="cm-val">${formatMoney(s.askingPrice)}</div></div>
        <div class="cm"><div class="cm-label">Multiple</div><div class="cm-val">${s.multiple ? parseFloat(s.multiple).toFixed(1) + '×' : '—'}</div></div>`
     : `<div class="cm"><div class="cm-label">MRR</div><div class="cm-val">${formatMoney(s.revenue && s.revenue.mrr)}</div></div>`;
-  return `<a class="card" href="/startup/${escHtml(s.slug)}.html">
+  return `<a class="card" href="/startup/${escHtml(s.slug)}.html" onclick="saveStartup('${escHtml(s.slug)}')">
     <div class="card-head">
       <div class="card-logo">${icon}</div>
       <div class="card-head-info">
         <div class="card-name">${escHtml(s.name)}</div>
         <div class="card-badges">
           ${s.category ? `<span class="badge badge-cat">${escHtml(s.category)}</span>` : ''}
-          <span class="badge badge-v">✓ verified</span>
+          <span class="badge badge-verified">✓ verified</span>
           ${s.onSale ? `<span class="badge badge-sale">На продаже</span>` : ''}
         </div>
       </div>
@@ -492,21 +466,20 @@ function cardHTML(s) {
   </a>`;
 }
 
-// ── STATS ─────────────────────────────────────────────────────────────────────
-
+// FIX #8: updateStats shows total revenue too
 function updateStats() {
   const total = allStartups.length;
   const onSaleCnt = allStartups.filter(s => s.onSale).length;
-  const totalMrr = allStartups.reduce((sum, s) => sum + (s.revenue && s.revenue.mrr || 0), 0);
-  const el = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
-  el('statTotal', total.toLocaleString());
-  el('statSale', onSaleCnt.toLocaleString());
-  el('statMRR', formatMoney(totalMrr));
-  el('cntAll', total.toLocaleString());
-  el('cntSale', onSaleCnt.toLocaleString());
+  const totalMrr  = allStartups.reduce((sum, s) => sum + (s.revenue && s.revenue.mrr         || 0), 0);
+  const totalRev  = allStartups.reduce((sum, s) => sum + (s.revenue && s.revenue.last30Days  || 0), 0);
+  const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  set('statTotal',   total.toLocaleString());
+  set('statSale',    onSaleCnt.toLocaleString());
+  set('statRevenue', formatMoney(totalRev));
+  set('statMRR',     formatMoney(totalMrr));
+  set('cntAll',      total.toLocaleString());
+  set('cntSale',     onSaleCnt.toLocaleString());
 }
-
-// ── LOADING STATES ────────────────────────────────────────────────────────────
 
 function updateProgress(count, hasMore) {
   const bar = document.getElementById('loadBar');
@@ -519,48 +492,50 @@ function updateProgress(count, hasMore) {
 
 function showError() {
   const cards = document.getElementById('cards');
-  if (cards) cards.innerHTML = `
-    <div style="grid-column:1/-1;text-align:center;padding:60px 0;color:var(--ink3);">
-      <div style="font-size:20px;margin-bottom:8px;">⚠️</div>
-      <div>Ошибка загрузки данных</div>
-    </div>`;
+  if (cards) cards.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px 0;color:var(--text3)"><div style="font-size:24px;margin-bottom:8px;">⚠️</div><div>Ошибка загрузки данных</div></div>';
 }
 
 // ── FILTERS ───────────────────────────────────────────────────────────────────
-
 function setStatus(el) {
   document.querySelectorAll('.status-opt').forEach(o => o.classList.remove('sel'));
   el.classList.add('sel');
   filters.onSale = el.dataset.filter === 'sale' ? true : null;
-  currentPage = 1;
   if (cacheLoaded) renderView();
 }
 
 function onCategoryChange(v) {
   filters.category = v;
-  currentPage = 1;
+  if (cacheLoaded) renderView();
+}
+
+function applyFilters() {
+  const p = id => { const v = parseFloat(document.getElementById(id) && document.getElementById(id).value); return isNaN(v) ? null : v; };
+  filters.rev30Min = p('rev30Min') || 0;
+  filters.rev30Max = p('rev30Max') || Infinity;
+  filters.priceMin = p('priceMin') || 0;
+  filters.priceMax = p('priceMax') || Infinity;
   if (cacheLoaded) renderView();
 }
 
 function toggleSort() {
-  const sorts = ['revenue-desc', 'growth-desc', 'price-asc', 'price-desc'];
+  const sorts  = ['revenue-desc', 'growth-desc', 'price-asc', 'price-desc'];
   const labels = ['Выручка ↓', 'Рост ↓', 'Цена ↑', 'Цена ↓'];
   const idx = (sorts.indexOf(filters.sort) + 1) % sorts.length;
   filters.sort = sorts[idx];
   const lbl = document.getElementById('sortLabel');
   if (lbl) lbl.textContent = labels[idx];
-  currentPage = 1;
   if (cacheLoaded) renderView();
 }
 
 function resetFilters() {
   document.querySelectorAll('.sb-input').forEach(i => i.value = '');
-  document.querySelectorAll('.sb-select').forEach(s => s.selectedIndex = 0);
+  const cat = document.getElementById('catSelect');
+  if (cat) cat.selectedIndex = 0;
   document.querySelectorAll('.status-opt').forEach(o => o.classList.remove('sel'));
-  const saleOpt = document.querySelector('.status-opt[data-filter="sale"]');
-  if (saleOpt) saleOpt.classList.add('sel');
-  filters = { onSale: true, category: '', sort: 'revenue-desc' };
-  currentPage = 1;
+  document.querySelector('.status-opt[data-filter="sale"]').classList.add('sel');
+  filters = { onSale: true, category: '', sort: 'revenue-desc', rev30Min: 0, rev30Max: Infinity, priceMin: 0, priceMax: Infinity };
+  const lbl = document.getElementById('sortLabel');
+  if (lbl) lbl.textContent = 'Выручка ↓';
   if (cacheLoaded) renderView();
 }
 

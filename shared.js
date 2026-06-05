@@ -219,7 +219,7 @@ function buildNavHTML(activePage) {
   const langNames = { en:'English', de:'Deutsch', fr:'Français', it:'Italiano', ru:'Русский', zh:'中文', ar:'العربية' };
   return `
   <nav>
-    <a class="nav-logo" href="/">⚡ StartupMarket</a>
+    <a class="nav-logo" href="/"><span class="nav-logo-dot"></span>MRRket</a>
     <div class="nav-center">
       <a href="/" class="nav-link ${activePage==='home'?'active':''}">${l.nav.home}</a>
       <a href="/acquire.html" class="nav-link ${activePage==='acquire'?'active':''}">${l.nav.acquire}</a>
