@@ -87,6 +87,22 @@ export default async function handler(req, res) {
     res.setHeader('X-Cache', 'MISS');
     return res.status(200).json({ ...data, fromCache: false });
   } catch (err) {
+    // Fallback: upstream dead. If this was an onSale=true request, try the
+    // wider (no-onSale) cache key and filter onSale items out of it so the
+    // home page keeps working from cron-warmed data.
+    if (params.get('onSale') === 'true') {
+      const fbParams = new URLSearchParams(params);
+      fbParams.delete('onSale');
+      const fbCached = await redisGet(`sm_${fbParams.toString()}`);
+      if (fbCached && Array.isArray(fbCached.data)) {
+        const filtered = {
+          ...fbCached,
+          data: fbCached.data.filter(s => s && s.onSale)
+        };
+        res.setHeader('X-Cache', 'STALE-FALLBACK');
+        return res.status(200).json({ ...filtered, fromCache: true, stale: true });
+      }
+    }
     if (err.message === '401') return res.status(503).json({ error: 'Upstream API error' });
     return res.status(500).json({ error: err.message });
   }
