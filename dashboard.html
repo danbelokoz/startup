@@ -22,6 +22,24 @@
     .fav-meta   { font-size: 12px; color: var(--text3); margin-top: 2px; }
     .fav-remove { background: none; border: none; cursor: pointer; color: var(--text3); font-size: 18px; padding: 4px 6px; line-height: 1; transition: color 0.12s; }
     .fav-remove:hover { color: var(--red); }
+    /* Pro modal */
+    .pro-modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center; padding: 24px; z-index: 1000; }
+    .pro-modal-bg.open { display: flex; }
+    .pro-modal { background: var(--bg2); border-radius: 16px; padding: 28px; width: 100%; max-width: 440px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); position: relative; }
+    .pro-modal h2 { font-size: 22px; font-weight: 700; margin-bottom: 6px; letter-spacing: -0.4px; }
+    .pro-modal p { font-size: 13px; color: var(--text2); margin-bottom: 18px; line-height: 1.5; }
+    .pro-modal ul { list-style: none; padding: 0; margin: 0 0 18px; }
+    .pro-modal ul li { font-size: 13px; color: var(--text2); padding: 6px 0; display: flex; align-items: flex-start; gap: 8px; }
+    .pro-modal ul li::before { content: '✓'; color: var(--accent); font-weight: 700; flex-shrink: 0; }
+    .pro-price { font-size: 28px; font-weight: 700; margin-bottom: 4px; letter-spacing: -0.5px; }
+    .pro-price small { font-size: 13px; font-weight: 500; color: var(--text3); }
+    .pro-row { display: flex; gap: 8px; }
+    .pro-row input { flex: 1; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; font-family: 'Manrope', sans-serif; font-size: 13px; outline: none; }
+    .pro-row input:focus { border-color: var(--accent); }
+    .pro-close { position: absolute; top: 14px; right: 14px; background: none; border: none; cursor: pointer; color: var(--text3); font-size: 22px; line-height: 1; padding: 4px 8px; border-radius: 6px; }
+    .pro-close:hover { background: var(--bg3); color: var(--text); }
+    .pro-success { background: var(--green-bg); border: 1px solid rgba(0,194,122,0.25); color: var(--green); padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-top: 10px; display: none; }
+    .pro-success.show { display: block; }
     .user-row   { display: flex; align-items: center; gap: 14px; }
     .user-avatar { width: 48px; height: 48px; border-radius: 50%; background: rgba(108,99,255,0.12); color: var(--accent); display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700; flex-shrink: 0; }
     .user-name  { font-size: 15px; font-weight: 600; margin-bottom: 5px; }
@@ -48,13 +66,60 @@
   <div class="loading-state">Loading your account...</div>
 </div>
 
+<!-- Pro upgrade modal -->
+<div class="pro-modal-bg" id="proModal" onclick="if(event.target===this)closeProModal()">
+  <div class="pro-modal">
+    <button class="pro-close" onclick="closeProModal()">×</button>
+    <div class="pro-price">$9<small>/мес</small></div>
+    <h2>MRRket Pro</h2>
+    <p>Подписка временно недоступна — мы готовим запуск платных тарифов. Оставь email и сообщим, как только Pro станет доступен.</p>
+    <ul>
+      <li>Безлимитное открытие контактов продавцов</li>
+      <li>AI-бриф по каждому стартапу (анализ рисков и потенциала)</li>
+      <li>Email-алерты о новых листингах по твоим фильтрам</li>
+      <li>Экспорт результатов поиска в CSV</li>
+      <li>Полная история изменения цен и сравнение с похожими сделками</li>
+    </ul>
+    <form class="pro-row" onsubmit="submitProWaitlist(event)">
+      <input type="email" id="proEmail" placeholder="you@email.com" required>
+      <button type="submit" class="btn btn-primary">Уведомить</button>
+    </form>
+    <div class="pro-success" id="proSuccess">Готово — мы напишем тебе на этот email.</div>
+  </div>
+</div>
+
 <!-- Supabase SDK + shared scripts -->
 <script src="/auth-config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="/shared.js"></script>
 <script>
-// Set this to your Stripe / LemonSqueezy checkout URL once payment is configured.
-const UPGRADE_URL = '#';
+// Once a Stripe / LemonSqueezy checkout is configured, set CHECKOUT_URL and
+// the modal's "Notify me" form can be replaced with a direct redirect.
+const CHECKOUT_URL = null;
+
+function openProModal() {
+  document.getElementById('proModal').classList.add('open');
+  setTimeout(() => { const i = document.getElementById('proEmail'); if (i) i.focus(); }, 50);
+}
+function closeProModal() {
+  document.getElementById('proModal').classList.remove('open');
+  const s = document.getElementById('proSuccess'); if (s) s.classList.remove('show');
+}
+async function submitProWaitlist(e) {
+  e.preventDefault();
+  const email = document.getElementById('proEmail').value.trim();
+  if (!email) return;
+  // Persist locally so the user isn't lost if we add server-side later
+  try {
+    const list = JSON.parse(localStorage.getItem('sm_pro_waitlist') || '[]');
+    if (!list.includes(email)) { list.push(email); localStorage.setItem('sm_pro_waitlist', JSON.stringify(list)); }
+  } catch {}
+  // Best-effort server save (endpoint optional)
+  try { await fetch('/api/waitlist', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email, source: 'dashboard-pro' }) }); } catch {}
+  document.getElementById('proSuccess').classList.add('show');
+  setTimeout(closeProModal, 1800);
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeProModal(); });
 
 window.addEventListener('DOMContentLoaded', async () => {
   applyLangToDoc();
@@ -137,7 +202,7 @@ function renderDash(session, access) {
           <li>Full contact access on every listing</li>
           <li>Cancel anytime</li>
         </ul>
-        <a href="${escHtml(UPGRADE_URL)}" class="btn btn-primary" style="display:inline-flex;">Get Pro access &rarr;</a>
+        <button type="button" class="btn btn-primary" style="display:inline-flex;" onclick="${CHECKOUT_URL ? `location.href='${CHECKOUT_URL}'` : 'openProModal()'}">Get Pro access &rarr;</button>
        </div>`;
 
   // ── Favorites card ────────────────────────────────────────────────────────────
