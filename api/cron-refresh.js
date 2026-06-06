@@ -70,6 +70,7 @@ export default async function handler(req, res) {
 
   // Write today's snapshots to Supabase for historical chart on detail page.
   let snapshotsWritten = 0;
+  let snapshotsPruned = 0;
   if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY && allStartups.length) {
     const today = new Date().toISOString().slice(0, 10);
     const rows = allStartups
@@ -86,24 +87,38 @@ export default async function handler(req, res) {
         visitors_30d: s.visitorsLast30Days ?? null,
       }));
 
+    const supaHeaders = {
+      'Content-Type': 'application/json',
+      'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY,
+      'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+    };
+
     const batchSize = 500;
     for (let i = 0; i < rows.length; i += batchSize) {
       const batch = rows.slice(i, i + batchSize);
       try {
         const r = await fetch(`${process.env.SUPABASE_URL}/rest/v1/daily_snapshots?on_conflict=slug,snap_date`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY,
-            'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
-            'Prefer': 'resolution=merge-duplicates,return=minimal',
-          },
+          headers: { ...supaHeaders, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
           body: JSON.stringify(batch),
         });
         if (r.ok) snapshotsWritten += batch.length;
       } catch {}
     }
+
+    // Prune snapshots older than 60 days to stay well within the Supabase free tier.
+    try {
+      const cutoff = new Date(Date.now() - 60 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+      const r = await fetch(`${process.env.SUPABASE_URL}/rest/v1/daily_snapshots?snap_date=lt.${cutoff}`, {
+        method: 'DELETE',
+        headers: { ...supaHeaders, 'Prefer': 'return=representation,count=exact' },
+      });
+      if (r.ok) {
+        const range = r.headers.get('content-range');
+        if (range) snapshotsPruned = parseInt(range.split('/')[1], 10) || 0;
+      }
+    } catch {}
   }
 
-  return res.status(200).json({ ok: true, pages: page - 1, startups: totalStartups, snapshots: snapshotsWritten });
+  return res.status(200).json({ ok: true, pages: page - 1, startups: totalStartups, snapshots: snapshotsWritten, pruned: snapshotsPruned });
 }

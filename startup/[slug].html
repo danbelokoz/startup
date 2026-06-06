@@ -261,29 +261,49 @@ function renderStartup(s) {
 }
 
 // ── Daily metrics chart ───────────────────────────────────────────────────────
-const CHART_METRICS = [
-  { key: 'mrr_cents',    label: 'MRR',           kind: 'money' },
-  { key: 'rev30d_cents', label: 'Revenue (30d)', kind: 'money' },
+// MRR / Revenue can be backfilled with a synthetic projection from growth30d
+// when fewer than 2 real snapshots are available — clearly labelled "estimated".
+// Asking price comes from a separate scrape of trustmrr.com (asking-price changes
+// don't make it into the TrustMRR API).
+const CHART_METRICS_ALL = [
+  { key: 'mrr_cents',    label: 'MRR',           kind: 'money', projectFrom: 'mrr',    growthField: 'growthMRR30d' },
+  { key: 'rev30d_cents', label: 'Revenue (30d)', kind: 'money', projectFrom: 'rev30d', growthField: 'growth30d'    },
   { key: 'customers',    label: 'Customers',     kind: 'int'   },
   { key: 'subscriptions',label: 'Subscriptions', kind: 'int'   },
   { key: 'growth30d',    label: 'Growth %',      kind: 'pct'   },
   { key: 'visitors_30d', label: 'Visitors',      kind: 'int'   },
+  { key: 'asking_price', label: 'Asking price',  kind: 'money', source: 'price-history', requiresOnSale: true },
 ];
-let _chartData = [];
-let _chartMetric = 'mrr_cents';
+let _chartMetrics  = CHART_METRICS_ALL;
+let _chartData     = [];
+let _priceHistory  = [];
+let _chartStartup  = null;
+let _chartMetric   = 'mrr_cents';
 
 async function initChart(s) {
+  _chartStartup = s;
+  _chartMetrics = CHART_METRICS_ALL.filter(m => !m.requiresOnSale || s.onSale);
+
   const tabsEl = document.getElementById('chartTabs');
   if (tabsEl) {
-    tabsEl.innerHTML = CHART_METRICS.map(m =>
+    tabsEl.innerHTML = _chartMetrics.map(m =>
       `<div class="chart-tab${m.key===_chartMetric?' active':''}" data-metric="${m.key}" onclick="selectChartMetric('${m.key}')">${m.label}</div>`
     ).join('');
   }
-  try {
-    const r = await fetch('/api/history?slug=' + encodeURIComponent(s.slug) + '&days=90');
-    const j = await r.json();
-    _chartData = Array.isArray(j.data) ? j.data : [];
-  } catch { _chartData = []; }
+
+  const tasks = [
+    fetch('/api/history?slug=' + encodeURIComponent(s.slug) + '&days=90')
+      .then(r => r.json()).then(j => { _chartData = Array.isArray(j.data) ? j.data : []; })
+      .catch(() => { _chartData = []; }),
+  ];
+  if (s.onSale) {
+    tasks.push(
+      fetch('/api/price-history?slug=' + encodeURIComponent(s.slug))
+        .then(r => r.json()).then(j => { _priceHistory = Array.isArray(j.data) ? j.data : []; })
+        .catch(() => { _priceHistory = []; })
+    );
+  }
+  await Promise.all(tasks);
   renderChart();
 }
 
@@ -293,31 +313,74 @@ function selectChartMetric(key) {
   renderChart();
 }
 
+// Project a metric backwards 30 days using growth30d (% change in 30 days).
+// Returns array of {date, val, projected:true}.
+function projectFromGrowth(currentValue, growthPct) {
+  if (currentValue == null || !isFinite(growthPct)) return [];
+  const dailyRatio = Math.pow(1 + growthPct / 100, 1 / 30);
+  if (!isFinite(dailyRatio) || dailyRatio <= 0) return [];
+  const out = [];
+  const today = new Date();
+  for (let d = 29; d >= 0; d--) {
+    const date = new Date(today); date.setUTCDate(today.getUTCDate() - d);
+    const val = currentValue / Math.pow(dailyRatio, d);
+    out.push({ date: date.toISOString().slice(0, 10), val, projected: true });
+  }
+  return out;
+}
+
 function renderChart() {
   const body = document.getElementById('chartBody');
   const rangeLabel = document.getElementById('chartRangeLabel');
   if (!body) return;
-  const metric = CHART_METRICS.find(m => m.key === _chartMetric) || CHART_METRICS[0];
-  const points = _chartData
-    .map(r => ({ date: r.snap_date, val: r[metric.key] }))
-    .filter(p => p.val != null);
+  const metric = _chartMetrics.find(m => m.key === _chartMetric) || _chartMetrics[0];
+  const s = _chartStartup || {};
+
+  let points = [];
+  let projected = false;
+  let stepped = false;
+
+  if (metric.source === 'price-history') {
+    // Asking-price history scraped from trustmrr.com
+    points = (_priceHistory || []).map(p => ({ date: (p.createdAt || '').slice(0, 10), val: p.price }));
+    // Add a synthetic "today" point so the latest price extends to now
+    if (points.length && s.askingPrice != null) {
+      const last = points[points.length - 1];
+      const today = new Date().toISOString().slice(0, 10);
+      if (last.date !== today) points.push({ date: today, val: s.askingPrice });
+    }
+    stepped = true;
+  } else {
+    points = _chartData
+      .map(r => ({ date: r.snap_date, val: r[metric.key] }))
+      .filter(p => p.val != null);
+
+    // Backfill with synthetic projection when we have no real history yet
+    if (points.length < 2 && metric.projectFrom) {
+      const current = metric.projectFrom === 'mrr' ? (s.revenue && s.revenue.mrr)
+                    : metric.projectFrom === 'rev30d' ? (s.revenue && s.revenue.last30Days)
+                    : null;
+      const growth = metric.growthField ? s[metric.growthField] : null;
+      const proj = projectFromGrowth(current, growth);
+      if (proj.length) { points = proj; projected = true; }
+    }
+  }
 
   if (points.length < 2) {
     body.innerHTML = `<div class="chart-empty"><strong>${t('startupPage','chartCollecting') || 'Собираем дневные данные'}</strong><span>${t('startupPage','chartWillAppear') || 'График появится через несколько дней — каждый день в 3:00 UTC мы сохраняем снимок метрик.'}</span></div>`;
-    if (rangeLabel) rangeLabel.textContent = points.length === 1 ? '1 точка' : '';
+    if (rangeLabel) rangeLabel.textContent = '';
     return;
   }
 
   const W = 720, H = 220, PAD_L = 50, PAD_R = 12, PAD_T = 12, PAD_B = 26;
-  const xs = points.map((_, i) => i);
   const ys = points.map(p => Number(p.val) || 0);
   const yMin = Math.min(...ys);
   const yMax = Math.max(...ys);
   const yPad = (yMax - yMin) * 0.1 || (Math.abs(yMax) * 0.1) || 1;
   const yLo = yMin - yPad;
   const yHi = yMax + yPad;
-  const x = i => PAD_L + (i / (xs.length - 1)) * (W - PAD_L - PAD_R);
-  const y = v => H - PAD_B - ((v - yLo) / (yHi - yLo)) * (H - PAD_T - PAD_B);
+  const x = i => PAD_L + (i / Math.max(1, points.length - 1)) * (W - PAD_L - PAD_R);
+  const y = v => H - PAD_B - ((v - yLo) / (yHi - yLo || 1)) * (H - PAD_T - PAD_B);
 
   const fmt = (v) => {
     if (metric.kind === 'money') return formatMoney(v);
@@ -325,30 +388,37 @@ function renderChart() {
     return Number(v).toLocaleString();
   };
 
-  const linePts = points.map((p, i) => `${x(i).toFixed(1)},${y(ys[i]).toFixed(1)}`).join(' ');
+  // Stepped (asking-price) path holds each value flat until the next change
+  let linePts;
+  if (stepped) {
+    const parts = [];
+    for (let i = 0; i < points.length; i++) {
+      const px = x(i).toFixed(1), py = y(ys[i]).toFixed(1);
+      if (i === 0) parts.push(`${px},${py}`);
+      else { parts.push(`${x(i).toFixed(1)},${y(ys[i-1]).toFixed(1)}`); parts.push(`${px},${py}`); }
+    }
+    linePts = parts.join(' ');
+  } else {
+    linePts = points.map((p, i) => `${x(i).toFixed(1)},${y(ys[i]).toFixed(1)}`).join(' ');
+  }
   const areaPts = `${PAD_L},${(H-PAD_B).toFixed(1)} ${linePts} ${(W-PAD_R).toFixed(1)},${(H-PAD_B).toFixed(1)}`;
 
-  // 4 horizontal grid lines + labels
   const gridLines = [0.25, 0.5, 0.75, 1].map(f => {
     const v = yLo + (yHi - yLo) * (1 - f);
     return `<line x1="${PAD_L}" x2="${W-PAD_R}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" stroke="var(--border)" stroke-dasharray="2 4"/>
             <text x="${PAD_L-6}" y="${(y(v)+3).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--text3)">${fmt(v)}</text>`;
   }).join('');
 
-  // x-axis labels: first, middle, last
-  const xIdx = [0, Math.floor(points.length/2), points.length-1];
+  const xIdx = points.length >= 3 ? [0, Math.floor(points.length/2), points.length-1] : [0, points.length-1];
   const xLabels = xIdx.map(i => {
     const d = new Date(points[i].date);
     const lbl = d.toLocaleDateString(getLang(), { month: 'short', day: 'numeric' });
     return `<text x="${x(i).toFixed(1)}" y="${H-8}" text-anchor="middle" font-size="10" fill="var(--text3)">${lbl}</text>`;
   }).join('');
 
-  // hover circles
-  const dots = points.map((p, i) =>
-    `<circle cx="${x(i).toFixed(1)}" cy="${y(ys[i]).toFixed(1)}" r="3" fill="var(--accent)" opacity="0">
-      <title>${p.date}: ${fmt(ys[i])}</title>
-    </circle>`
-  ).join('');
+  const stroke = projected ? 'var(--text3)' : 'var(--accent)';
+  const dash   = projected ? 'stroke-dasharray="5 4"' : '';
+  const fillGrad = projected ? 'url(#chartGradMuted)' : 'url(#chartGrad)';
 
   body.innerHTML = `
     <svg class="chart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
@@ -357,14 +427,23 @@ function renderChart() {
           <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.18"/>
           <stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/>
         </linearGradient>
+        <linearGradient id="chartGradMuted" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stop-color="var(--text3)" stop-opacity="0.12"/>
+          <stop offset="100%" stop-color="var(--text3)" stop-opacity="0"/>
+        </linearGradient>
       </defs>
       ${gridLines}
-      <polygon points="${areaPts}" fill="url(#chartGrad)"/>
-      <polyline points="${linePts}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      <polygon points="${areaPts}" fill="${fillGrad}"/>
+      <polyline points="${linePts}" fill="none" stroke="${stroke}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" ${dash}/>
       ${xLabels}
       ${points.map((p, i) => `<rect x="${(x(i)-8).toFixed(1)}" y="0" width="16" height="${H-PAD_B}" fill="transparent"><title>${p.date}: ${fmt(ys[i])}</title></rect>`).join('')}
     </svg>`;
-  if (rangeLabel) rangeLabel.textContent = `${points.length} ${points.length===1?'точка':points.length<5?'точки':'точек'} · ${points[0].date} — ${points[points.length-1].date}`;
+
+  if (rangeLabel) {
+    if (projected) rangeLabel.innerHTML = `<span style="color:var(--text2);font-weight:500;">${t('startupPage','chartEstimated')||'Расчётно'}</span> · по росту 30 дн.`;
+    else if (stepped) rangeLabel.textContent = `${points.length-1} изм. · ${points[0].date} — ${points[points.length-1].date}`;
+    else rangeLabel.textContent = `${points.length} ${points.length===1?'точка':points.length<5?'точки':'точек'} · ${points[0].date} — ${points[points.length-1].date}`;
+  }
 }
 
 // ── Blurred seller contacts ──────────────────────────────────────────────────
