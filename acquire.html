@@ -85,6 +85,12 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
 .cm-val { font-size: 14px; font-weight: 700; letter-spacing: -0.2px; color: var(--text); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cm-sub { font-size: 10px; font-weight: 600; margin-left: 2px; }
 .anon-tag { font-size: 9px; color: var(--text3); font-weight: 500; letter-spacing: 0.03em; margin-left: 4px; cursor: help; border-bottom: 1px dotted var(--border2); }
+.card-extra { font-size: 11px; color: var(--text3); display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 4px; margin-bottom: 8px; }
+.card-extra-item { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
+.badge-new { background: var(--green-bg); color: var(--green); border: 1px solid rgba(0,194,122,0.25); font-weight: 600; }
+.name-blur { filter: blur(5px); transition: filter 0.2s; user-select: none; }
+.card:hover .name-blur { filter: blur(3px); }
+.logo-blur { filter: blur(4px); user-select: none; }
 .up { color: var(--accent); }
 .dn { color: var(--red); }
 
@@ -333,33 +339,57 @@ function setupScroll() {
   scrollObs.observe(el);
 }
 
+function flagEmoji(code) {
+  if (!code || typeof code !== 'string' || code.length !== 2) return '';
+  const A = 0x1F1E6;
+  const c = code.toUpperCase();
+  return String.fromCodePoint(A + (c.charCodeAt(0) - 65), A + (c.charCodeAt(1) - 65));
+}
+
 function cardHTML(s) {
   const init = s.name.split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase()||'?';
-  const icon = s.icon
+  const isAnon = (s.name||'').toLowerCase().includes('anonymous');
+  const blurName = !isAnon;
+  const blurLogo = !isAnon;
+  const iconInner = s.icon
     ? '<img src="'+escHtml(s.icon)+'" loading="lazy" onerror="this.parentElement.textContent=\''+init+'\'"/>'
     : init;
+  const icon = blurLogo ? '<div class="logo-blur">'+iconInner+'</div>' : iconInner;
+  const nameHtml = blurName ? '<span class="name-blur">'+escHtml(s.name)+'</span>' : escHtml(s.name);
   const g = s.growth30d;
   const gh = g!=null?' <span class="cm-sub '+(g>=0?'up':'dn')+'">'+(g>=0?'↑':'↓')+Math.abs(parseFloat(g)).toFixed(1)+'%</span>':'';
   const lblRev = t('idx','cardRev') || 'Rev. 30d';
   const lblAsk = t('idx','cardAsk') || 'Ask. price';
   const lblMult= t('idx','cardMult')|| 'Multiple';
   const favOn = isFav(s.slug);
-  const isAnon = (s.name||'').toLowerCase().includes('anonymous');
   const anonTag = isAnon
     ? '<span class="anon-tag" title="'+(t('idx','anonHint')||'Owner chose to stay anonymous')+'">·&nbsp;'+(t('idx','anonLabel')||'anonymous')+'</span>'
     : '';
   const desc = s.description && s.description.trim()
     ? escHtml(s.description)
     : (isAnon ? (t('idx','anonNoDesc') || 'Seller chose not to disclose product details.') : '');
+  const daysListed = s.firstListedForSaleAt
+    ? Math.floor((Date.now() - new Date(s.firstListedForSaleAt).getTime()) / 86400000)
+    : null;
+  const isNew = daysListed != null && daysListed >= 0 && daysListed < 7;
+  const flag = flagEmoji(s.country);
+  const year = s.foundedDate ? new Date(s.foundedDate).getFullYear() : null;
+  const extraBits = [];
+  if (flag) extraBits.push('<span class="card-extra-item">'+flag+' '+escHtml(s.country||'')+'</span>');
+  if (year && year > 1990) extraBits.push('<span class="card-extra-item">📅 '+year+'</span>');
+  if (s.profitMarginLast30Days != null) extraBits.push('<span class="card-extra-item">💰 '+Math.round(s.profitMarginLast30Days)+'% margin</span>');
+  if (daysListed != null && daysListed >= 0 && !isNew) extraBits.push('<span class="card-extra-item">⏱ '+daysListed+'d listed</span>');
+  const extraHtml = extraBits.length ? '<div class="card-extra">'+extraBits.join('')+'</div>' : '';
   return '<a class="card" href="/startup/'+escHtml(s.slug)+'.html" onclick="saveStartup(\''+escHtml(s.slug)+'\')">'+
     '<div class="card-head">'+
       '<div class="card-logo">'+icon+'</div>'+
       '<div class="card-head-info">'+
-        '<div class="card-name">'+escHtml(s.name)+anonTag+'</div>'+
+        '<div class="card-name">'+nameHtml+anonTag+'</div>'+
         '<div class="card-badges">'+
           (s.category?'<span class="badge badge-cat">'+escHtml(s.category)+'</span>':'')+
           '<span class="badge badge-verified">✓ verified</span>'+
           '<span class="badge badge-sale">'+(t('idx','statSale')||'For sale')+'</span>'+
+          (isNew?'<span class="badge badge-new">NEW</span>':'')+
         '</div>'+
       '</div>'+
       '<div class="card-actions">'+
@@ -367,6 +397,7 @@ function cardHTML(s) {
       '</div>'+
     '</div>'+
     '<div class="card-desc">'+desc+'</div>'+
+    extraHtml+
     '<div class="card-metrics">'+
       '<div class="cm"><div class="cm-label">'+lblAsk+'</div><div class="cm-val">'+formatMoney(s.askingPrice)+'</div></div>'+
       '<div class="cm"><div class="cm-label">'+lblMult+'</div><div class="cm-val">'+(s.multiple?parseFloat(s.multiple).toFixed(1)+'×':'—')+'</div></div>'+

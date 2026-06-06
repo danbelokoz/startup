@@ -60,6 +60,29 @@
   .fav-detail { background: none; border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 16px; color: var(--text3); transition: all 0.15s; font-family: 'Manrope', sans-serif; }
   .fav-detail:hover, .fav-detail.active { color: var(--red); border-color: var(--red); }
   .badge-green { background: rgba(0,194,122,0.1); color: var(--green); border: 1px solid rgba(0,194,122,0.2); }
+  /* Sale box — 2-column layout: price on left, contact reveal on right */
+  .sale-box-row { display: flex; gap: 20px; align-items: stretch; flex-wrap: wrap; }
+  .sale-box-left { flex: 1; min-width: 260px; }
+  .sale-box-right { flex-shrink: 0; min-width: 260px; max-width: 340px; }
+  .sale-listed { font-size: 12px; color: var(--text2); margin-top: 4px; }
+  /* Name + logo blur (paywalled until reveal) */
+  .name-blur { filter: blur(7px); user-select: none; transition: filter 0.25s; }
+  .logo-blur { filter: blur(5px); user-select: none; transition: filter 0.25s; }
+  /* Header-positioned reveal pill for non-onSale startups */
+  .header-reveal { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text2); background: var(--bg3); border: 1px solid var(--border); border-radius: 999px; padding: 4px 10px; cursor: pointer; transition: all 0.15s; font-family: 'Manrope', sans-serif; }
+  .header-reveal:hover { border-color: var(--text); color: var(--text); }
+  /* Enrichment additions */
+  .pp-section { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; margin-bottom: 16px; box-shadow: var(--shadow); }
+  .pp-section h4 { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text3); margin-bottom: 8px; }
+  .pp-section p  { font-size: 14px; color: var(--text2); line-height: 1.55; }
+  .ai-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .ai-tag  { font-size: 11px; padding: 3px 9px; background: var(--bg3); border: 1px solid var(--border); border-radius: 999px; color: var(--text2); }
+  .badge-stealth { background: rgba(34,34,34,0.08); color: var(--text); border: 1px solid var(--border2); }
+  .badge-cofounder { background: rgba(0,194,122,0.1); color: var(--green); border: 1px solid rgba(0,194,122,0.25); }
+  .badge-funding { background: rgba(255,167,38,0.1); color: #c47700; border: 1px solid rgba(255,167,38,0.25); }
+  .badge-score { background: var(--text); color: white; font-weight: 600; }
+  .analytics-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .analytics-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 3px 8px; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; color: var(--text2); }
   /* Daily metrics chart */
   .chart-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow); margin-bottom: 32px; }
   .chart-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
@@ -132,6 +155,7 @@ async function loadStartup(slug) {
 }
 
 let _startup = null;
+let _revealed = false;
 const LS_FAVS = 'sm_favs';
 function getFavs(){try{return JSON.parse(localStorage.getItem(LS_FAVS)||'[]');}catch{return[];}}
 function toggleDetailFav(){
@@ -148,18 +172,34 @@ function updateFavBtn(slug){
   const on=getFavs().includes(slug);btn.textContent=on?'♥':'♡';btn.classList.toggle('active',on);
 }
 
+// Country code → flag emoji helper (used in info table)
+function flagEmoji(code) {
+  if (!code || typeof code !== 'string' || code.length !== 2) return '';
+  const A = 0x1F1E6;
+  const c = code.toUpperCase();
+  return String.fromCodePoint(A + (c.charCodeAt(0) - 65), A + (c.charCodeAt(1) - 65));
+}
+
 function renderStartup(s) {
   document.title = `${s.name} — MRRket`;
   document.getElementById('backLink').textContent = '← ' + t('startupPage','back');
   _startup = s;
+  // If user revealed in this session, persist across re-renders (enrichment merge).
+  try { if (sessionStorage.getItem('revealed_'+s.slug)) _revealed = true; } catch {}
   updateFavBtn(s.slug);
 
   const fb = escHtml(s.name.charAt(0));
   const icon = s.icon ? `<img src="${escHtml(s.icon)}" data-fb="${fb}" onerror="this.parentElement.textContent=this.getAttribute('data-fb')"/>` : `<span>${fb}</span>`;
-  const g    = s.growth30d;
+  const g    = s.growth30d != null ? s.growth30d : s.cachedGrowth30d;
   const gStr = g!=null?`<span class="${g>0?'growth-positive':g<0?'growth-negative':''}">${g>0?'+':''}${parseFloat(g).toFixed(1)}%</span>`:'—';
-  const gMrr = s.growthMRR30d!=null?`<span class="${s.growthMRR30d>0?'growth-positive':s.growthMRR30d<0?'growth-negative':''}">${s.growthMRR30d>0?'+':''}${parseFloat(s.growthMRR30d).toFixed(1)}%</span>`:'—';
+  const gMrrRaw = s.growthMRR30d != null ? s.growthMRR30d : s.cachedGrowthMRR30d;
+  const gMrr = gMrrRaw!=null?`<span class="${gMrrRaw>0?'growth-positive':gMrrRaw<0?'growth-negative':''}">${gMrrRaw>0?'+':''}${parseFloat(gMrrRaw).toFixed(1)}%</span>`:'—';
   const website = s.website?`<a href="${escHtml(s.website)}" target="_blank" style="color:var(--accent)">${s.website.replace(/^https?:\/\//,'')}</a>`:'—';
+
+  const isAnon = (s.name||'').toLowerCase().includes('anonymous');
+  const wantBlur = !isAnon && !_revealed;
+  const blurNameCls = wantBlur ? ' name-blur' : '';
+  const blurLogoCls = wantBlur ? ' logo-blur' : '';
 
   // Tech stack — items are {slug, category} objects from TrustMRR
   const techHtml = s.techStack&&s.techStack.length
@@ -190,37 +230,68 @@ function renderStartup(s) {
     : '';
 
   const listedDate = s.firstListedForSaleAt
-    ? `<div style="font-size:12px;color:var(--text3);margin-top:4px;">First listed: ${new Date(s.firstListedForSaleAt).toLocaleDateString(getLang(),{year:'numeric',month:'short',day:'numeric'})}</div>`
+    ? `<div class="sale-listed">First listed: ${new Date(s.firstListedForSaleAt).toLocaleDateString(getLang(),{year:'numeric',month:'short',day:'numeric'})}${
+        (() => { const d = Math.floor((Date.now() - new Date(s.firstListedForSaleAt).getTime())/86400000); return d >= 0 ? ` <span style="color:var(--text3)">(${d}d ago)</span>` : ''; })()
+      }</div>`
     : '';
 
+  // Sale box now uses a 2-column row: price on the left, contact reveal on the right.
   const saleBlock = s.onSale&&s.askingPrice ? `
     <div class="sale-box">
-      <div class="sale-box-title">${t('startupPage','forSale')}</div>
-      <div class="sale-price-row">
-        <div class="sale-price">${formatMoney(s.askingPrice)}</div>
-        ${s.multiple?`<div class="sale-multiple">${parseFloat(s.multiple).toFixed(2)}x ${t('startupPage','multiple')}</div>`:''}
+      <div class="sale-box-row">
+        <div class="sale-box-left">
+          <div class="sale-box-title">${t('startupPage','forSale')}</div>
+          <div class="sale-price-row">
+            <div class="sale-price">${formatMoney(s.askingPrice)}</div>
+            ${s.multiple?`<div class="sale-multiple">${parseFloat(s.multiple).toFixed(2)}x ${t('startupPage','multiple')}</div>`:''}
+          </div>
+          ${listedDate}
+        </div>
+        <div class="sale-box-right" id="contactSection"></div>
       </div>
-      ${listedDate}
     </div>` : `<div class="not-sale-box">${t('startupPage','notForSale')}</div>`;
+
+  const ai = (s.aiEnrichment && typeof s.aiEnrichment === 'object') ? s.aiEnrichment : {};
+  const tags = Array.isArray(ai.tags) ? ai.tags : [];
+  const stealthBadge   = s.stealthMode ? `<span class="badge badge-stealth">🥷 Stealth</span>` : '';
+  const cofounderBadge = s.lookingForCofounder ? `<span class="badge badge-cofounder">Hiring cofounder</span>` : '';
+  const fundingBadge   = ai.fundingStatus && ai.fundingStatus !== 'Unknown' ? `<span class="badge badge-funding">${escHtml(ai.fundingStatus)}</span>` : '';
+  const scoreBadge     = s.acquireScore != null ? `<span class="badge badge-score">Score ${Math.round(s.acquireScore)}</span>` : '';
+  const tagBadges      = tags.slice(0, 4).map(tg => `<span class="ai-tag">${escHtml(tg)}</span>`).join('');
+  const tagsRow        = tagBadges ? `<div class="ai-tags" style="margin-top:8px;">${tagBadges}</div>` : '';
+  // Non-onSale startups get a small inline reveal pill in the header.
+  const headerReveal   = (!s.onSale && wantBlur)
+    ? `<button class="header-reveal" onclick="tryReveal()">🔒 ${t('startupPage','revealBtn')||'Reveal'}</button>`
+    : '';
 
   document.getElementById('content').innerHTML = `
     <div class="startup-header">
-      <div class="startup-icon">${icon}</div>
+      <div class="startup-icon${blurLogoCls}">${icon}</div>
       <div class="startup-header-meta">
-        <h1>${escHtml(s.name)}</h1>
-        <div class="header-badges">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <h1 class="${blurNameCls}" style="margin-bottom:0;">${escHtml(s.name)}</h1>
+          ${headerReveal}
+        </div>
+        <div class="header-badges" style="margin-top:8px;">
           ${s.category?`<span class="badge badge-cat">${s.category}</span>`:''}
           ${s.onSale?`<span class="badge badge-sale">${t('startupPage','forSale')}</span>`:''}
           ${s.paymentProvider?`<span class="badge badge-green">${s.paymentProvider}</span>`:''}
           ${s.isMerchantOfRecord?`<span class="badge badge-cat">MoR</span>`:''}
+          ${stealthBadge}
+          ${cofounderBadge}
+          ${fundingBadge}
+          ${scoreBadge}
           ${s.rank?`<span class="badge badge-cat">#${s.rank}</span>`:''}
         </div>
+        ${tagsRow}
       </div>
     </div>
 
-    ${s.description?`<div class="startup-desc">${escHtml(s.description)}</div>`:''}
+    ${(s.description && s.description.trim()) ? `<div class="startup-desc">${escHtml(s.description)}</div>` : (ai.valueProposition ? `<div class="startup-desc">${escHtml(ai.valueProposition)}</div>` : '')}
 
     ${saleBlock}
+
+    ${ai.problemSolved ? `<div class="pp-section"><h4>Problem solved</h4><p>${escHtml(ai.problemSolved)}</p></div>` : ''}
 
     <div class="section-title">Revenue metrics</div>
     <div class="metrics-grid">
@@ -234,8 +305,15 @@ function renderStartup(s) {
       ${s.googleSearchImpressionsLast30Days!=null?`<div class="metric-card"><div class="metric-card-label">Google impressions (30d)</div><div class="metric-card-value">${s.googleSearchImpressionsLast30Days.toLocaleString()}</div></div>`:''}
       ${s.revenuePerVisitor!=null?`<div class="metric-card"><div class="metric-card-label">Revenue / visitor</div><div class="metric-card-value">${formatMoney(s.revenuePerVisitor)}</div></div>`:''}
       ${s.xFollowerCount!=null?`<div class="metric-card"><div class="metric-card-label">𝕏 followers</div><div class="metric-card-value">${s.xFollowerCount.toLocaleString()}</div></div>`:''}
+      ${ai.estimatedUserCount!=null?`<div class="metric-card"><div class="metric-card-label">Est. users</div><div class="metric-card-value">${Number(ai.estimatedUserCount).toLocaleString()}</div></div>`:''}
       ${s.rank?`<div class="metric-card"><div class="metric-card-label">${t('startupPage','rank')}</div><div class="metric-card-value">#${s.rank}</div></div>`:''}
     </div>
+    ${(s.hasGA || s.hasGSC || s.hasDatafast) ? `
+    <div class="analytics-row">
+      ${s.hasGA ? '<span class="analytics-pill">📊 Google Analytics</span>' : ''}
+      ${s.hasGSC ? '<span class="analytics-pill">🔍 Google Search Console</span>' : ''}
+      ${s.hasDatafast ? '<span class="analytics-pill">⚡ Datafast</span>' : ''}
+    </div>` : ''}
 
     <div class="section-title" data-i18n="startupPage.dailyChart">Динамика по дням</div>
     <div class="chart-card" id="chartCard">
@@ -249,18 +327,38 @@ function renderStartup(s) {
     <div class="section-title">Info</div>
     <table class="info-table">
       ${s.foundedDate?`<tr><td>${t('startupPage','founded')}</td><td>${new Date(s.foundedDate).getFullYear()}</td></tr>`:''}
-      ${s.country?`<tr><td>${t('startupPage','country')}</td><td>${s.country}</td></tr>`:''}
+      ${s.country?`<tr><td>${t('startupPage','country')}</td><td>${flagEmoji(s.country)} ${s.country}</td></tr>`:''}
       ${s.targetAudience?`<tr><td>${t('startupPage','audience')}</td><td>${s.targetAudience.toUpperCase()}</td></tr>`:''}
+      ${ai.targetPersona?`<tr><td>Target persona</td><td>${escHtml(ai.targetPersona)}</td></tr>`:''}
+      ${ai.businessType && ai.businessType !== 'Unknown' ?`<tr><td>Business type</td><td>${escHtml(ai.businessType)}</td></tr>`:''}
+      ${ai.pricingModel?`<tr><td>Pricing model</td><td>${escHtml(ai.pricingModel)}</td></tr>`:''}
       ${s.paymentProvider?`<tr><td>${t('startupPage','provider')}</td><td>${s.paymentProvider}</td></tr>`:''}
+      ${s.xFounderName?`<tr><td>Founder</td><td>${escHtml(s.xFounderName)}</td></tr>`:''}
     </table>
 
     ${techHtml}
     ${channelsHtml}
-    ${cofoundersHtml}
-    <div id="contactSection"></div>`;
+    ${cofoundersHtml}`;
 
   if (s.onSale) renderContactSection(s);
   initChart(s);
+  fetchEnrichment(s.slug);
+}
+
+// Fetch parsed RSC fields from /api/enrich and merge into _startup, then re-render.
+let _enrichmentLoaded = false;
+async function fetchEnrichment(slug) {
+  if (_enrichmentLoaded) return;
+  _enrichmentLoaded = true;
+  try {
+    const r = await fetch('/api/enrich?slug=' + encodeURIComponent(slug));
+    const j = await r.json();
+    const enriched = j && j.data;
+    if (!enriched || !Object.keys(enriched).length) return;
+    Object.assign(_startup, enriched);
+    // Re-render with the new fields. Preserve already-revealed state.
+    renderStartup(_startup);
+  } catch {}
 }
 
 // ── Daily metrics chart ───────────────────────────────────────────────────────
@@ -449,13 +547,12 @@ function renderChart() {
   }
 }
 
-// ── Compact contact CTA at end of page ───────────────────────────────────────
+// ── Contact CTA — lives on the right side of the sale box ────────────────────
 function renderContactSection(s) {
   const section = document.getElementById('contactSection');
   if (!section) return;
-  if (!s.xHandle && !s.website) return;
   section.innerHTML = `
-    <div class="contact-cta" id="contactWrap">
+    <div class="contact-cta" id="contactWrap" style="height:100%;">
       <span class="contact-cta-icon">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
       </span>
@@ -465,6 +562,8 @@ function renderContactSection(s) {
       </span>
       <button class="btn btn-primary btn-sm" onclick="tryReveal()" id="revealBtn" data-i18n="startupPage.revealBtn">Открыть</button>
     </div>`;
+  // Re-apply i18n to the just-inserted content
+  if (typeof applyLangToDoc === 'function') applyLangToDoc();
   try { if (sessionStorage.getItem('revealed_'+s.slug)) { doReveal(s); } } catch {}
 }
 
@@ -496,6 +595,14 @@ async function tryReveal() {
 
 function doReveal(s) {
   try { sessionStorage.setItem('revealed_'+s.slug,'1'); } catch {}
+  _revealed = true;
+  // Unblur the header logo + name in-place (no full re-render to avoid flashing the chart)
+  document.querySelectorAll('.name-blur, .logo-blur').forEach(el => {
+    el.classList.remove('name-blur');
+    el.classList.remove('logo-blur');
+  });
+  // Remove the header-reveal pill if it's there
+  document.querySelectorAll('.header-reveal').forEach(el => el.remove());
   const wrap = document.getElementById('contactWrap'); if (!wrap) return;
   wrap.className = 'contact-revealed';
   wrap.innerHTML =
