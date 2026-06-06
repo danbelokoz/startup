@@ -76,13 +76,44 @@
   .pp-section h4 { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text3); margin-bottom: 8px; }
   .pp-section p  { font-size: 14px; color: var(--text2); line-height: 1.55; }
   .ai-tags { display: flex; flex-wrap: wrap; gap: 6px; }
-  .ai-tag  { font-size: 11px; padding: 3px 9px; background: var(--bg3); border: 1px solid var(--border); border-radius: 999px; color: var(--text2); }
+  .ai-tag  { font-size: 11px; padding: 3px 9px; background: var(--bg3); border: 1px solid var(--border); border-radius: 999px; color: var(--text2); text-decoration: none; transition: all 0.12s; display: inline-flex; align-items: center; gap: 4px; }
+  .ai-tag:hover { background: var(--text); color: white; border-color: var(--text); }
   .badge-stealth { background: rgba(34,34,34,0.08); color: var(--text); border: 1px solid var(--border2); }
   .badge-cofounder { background: rgba(0,194,122,0.1); color: var(--green); border: 1px solid rgba(0,194,122,0.25); }
   .badge-funding { background: rgba(255,167,38,0.1); color: #c47700; border: 1px solid rgba(255,167,38,0.25); }
   .badge-score { background: var(--text); color: white; font-weight: 600; }
   .analytics-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
   .analytics-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 3px 8px; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; color: var(--text2); }
+  /* Startup insights — TrustMRR-style grid of info cards */
+  .insights-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 32px; }
+  .insight-card  { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; display: flex; gap: 14px; box-shadow: var(--shadow); }
+  .insight-icon  { width: 32px; height: 32px; border-radius: 8px; background: var(--bg3); display: inline-flex; align-items: center; justify-content: center; color: var(--text2); flex-shrink: 0; }
+  .insight-body  { flex: 1; min-width: 0; }
+  .insight-label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); margin-bottom: 6px; }
+  .insight-text  { font-size: 13px; line-height: 1.55; color: var(--text); }
+  .insight-sub   { font-size: 11px; color: var(--text3); margin-top: 6px; }
+  .insight-list  { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .insight-chip  { font-size: 12px; padding: 4px 10px; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; color: var(--text2); display: inline-flex; align-items: center; gap: 5px; }
+  .insight-cat   { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 8px; margin-bottom: 4px; }
+  .insight-cat:first-child { margin-top: 0; }
+  /* Similar startups grid */
+  .similar-section { margin-top: 40px; }
+  .similar-head    { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .similar-head h3 { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; margin: 0; }
+  .similar-head a  { font-size: 13px; color: var(--text3); text-decoration: none; transition: color 0.12s; }
+  .similar-head a:hover { color: var(--text); }
+  .similar-grid    { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+  .similar-card    { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; text-decoration: none; color: inherit; transition: all 0.15s; display: flex; flex-direction: column; min-width: 0; }
+  .similar-card:hover { border-color: var(--border2); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,0,0,0.06); }
+  .similar-head-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .similar-logo    { width: 28px; height: 28px; border-radius: 6px; background: var(--bg3); border: 1px solid var(--border); display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--text2); flex-shrink: 0; overflow: hidden; }
+  .similar-logo img{ width: 100%; height: 100%; object-fit: cover; border-radius: 6px; }
+  .similar-name    { font-size: 12px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .similar-price-row { display: flex; align-items: baseline; gap: 6px; margin-top: auto; padding-top: 8px; border-top: 1px solid var(--border); }
+  .similar-price   { font-size: 14px; font-weight: 700; color: var(--text); }
+  .similar-mult    { font-size: 10px; color: var(--text3); }
+  @media (max-width: 900px) { .insights-grid { grid-template-columns: 1fr; } .similar-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 500px) { .similar-grid { grid-template-columns: 1fr; } }
   /* Daily metrics chart */
   .chart-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow); margin-bottom: 32px; }
   .chart-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
@@ -103,7 +134,7 @@
 <div class="page-wrap">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
     <a href="/" class="back-link" id="backLink">← Back</a>
-    <button class="fav-detail" id="favBtn" onclick="toggleDetailFav()" title="Добавить в избранное">♡</button>
+    <button class="fav-detail" id="favBtn" onclick="toggleDetailFav()" title="Добавить в избранное"></button>
   </div>
   <div id="content"><div class="loading-state"><h3>Loading...</h3></div></div>
 </div>
@@ -165,11 +196,11 @@ function toggleDetailFav(){
   if(idx===-1)favs.push(s.slug);else favs.splice(idx,1);
   try{localStorage.setItem(LS_FAVS,JSON.stringify(favs));}catch{}
   const btn=document.getElementById('favBtn');
-  if(btn){const on=favs.includes(s.slug);btn.textContent=on?'♥':'♡';btn.classList.toggle('active',on);}
+  if(btn){const on=favs.includes(s.slug);btn.innerHTML=icon(on?'heartFill':'heart',{size:16});btn.classList.toggle('active',on);}
 }
 function updateFavBtn(slug){
   const btn=document.getElementById('favBtn');if(!btn)return;
-  const on=getFavs().includes(slug);btn.textContent=on?'♥':'♡';btn.classList.toggle('active',on);
+  const on=getFavs().includes(slug);btn.innerHTML=icon(on?'heartFill':'heart',{size:16});btn.classList.toggle('active',on);
 }
 
 // Country code → flag emoji helper (used in info table)
@@ -201,24 +232,19 @@ function renderStartup(s) {
   const blurNameCls = wantBlur ? ' name-blur' : '';
   const blurLogoCls = wantBlur ? ' logo-blur' : '';
 
-  // Tech stack — items are {slug, category} objects from TrustMRR
-  const techHtml = s.techStack&&s.techStack.length
-    ? `<div class="section-title">Tech Stack</div><div class="tech-tags">${s.techStack.map(item=>{
-        const name = typeof item==='string' ? item : (item.slug || item.name || '');
-        const cat  = item && item.category ? ` <span style="opacity:0.6">· ${escHtml(item.category)}</span>` : '';
-        return `<span class="tech-tag">${escHtml(name)}${cat}</span>`;
-      }).join('')}</div>`
-    : '';
+  // Description: prefer real description, fall back to AI valueProposition with
+  // the brand name stripped so the paid reveal stays valuable.
+  function stripBrand(text) {
+    if (!text || !s.name) return text;
+    const safe = s.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return text.replace(new RegExp('\\b' + safe + '\\b', 'gi'), '').replace(/\s{2,}/g,' ').trim();
+  }
+  const realDesc = s.description && s.description.trim();
+  const fallback = (s.aiEnrichment && s.aiEnrichment.valueProposition) ? stripBrand(s.aiEnrichment.valueProposition) : null;
+  const descText = realDesc || fallback || '';
+  const descHtml = descText ? `<div class="startup-desc">${escHtml(descText)}</div>` : '';
 
-  // Marketing channels — array of strings or objects
-  const channelsHtml = s.marketingChannels&&s.marketingChannels.length
-    ? `<div class="section-title">Marketing channels</div><div class="tech-tags">${s.marketingChannels.map(c=>{
-        const name = typeof c==='string' ? c : (c.name || c.channel || c.slug || '');
-        return `<span class="tech-tag">${escHtml(name)}</span>`;
-      }).join('')}</div>`
-    : '';
-
-  // Cofounders — render as cards when populated
+  // Cofounders — render as chips when populated
   const cofoundersHtml = s.cofounders&&s.cofounders.length
     ? `<div class="section-title">Cofounders</div><div class="tech-tags">${s.cofounders.map(c=>{
         if (typeof c==='string') return `<span class="tech-tag">${escHtml(c)}</span>`;
@@ -253,15 +279,70 @@ function renderStartup(s) {
 
   const ai = (s.aiEnrichment && typeof s.aiEnrichment === 'object') ? s.aiEnrichment : {};
   const tags = Array.isArray(ai.tags) ? ai.tags : [];
-  const stealthBadge   = s.stealthMode ? `<span class="badge badge-stealth">🥷 Stealth</span>` : '';
-  const cofounderBadge = s.lookingForCofounder ? `<span class="badge badge-cofounder">Hiring cofounder</span>` : '';
+  const stealthBadge   = s.stealthMode ? `<span class="badge badge-stealth">${icon('ghost',{size:10})} Stealth</span>` : '';
+  const cofounderBadge = s.lookingForCofounder ? `<span class="badge badge-cofounder">${icon('handshake',{size:10})} Hiring cofounder</span>` : '';
   const fundingBadge   = ai.fundingStatus && ai.fundingStatus !== 'Unknown' ? `<span class="badge badge-funding">${escHtml(ai.fundingStatus)}</span>` : '';
-  const scoreBadge     = s.acquireScore != null ? `<span class="badge badge-score">Score ${Math.round(s.acquireScore)}</span>` : '';
-  const tagBadges      = tags.slice(0, 4).map(tg => `<span class="ai-tag">${escHtml(tg)}</span>`).join('');
+  const scoreBadge     = s.acquireScore != null ? `<span class="badge badge-score">${icon('trophy',{size:10})} Score ${(s.acquireScore * 100).toFixed(0)}</span>` : '';
+  // Tags are now clickable — link home filter by tag as a search keyword
+  const tagBadges      = tags.slice(0, 6).map(tg => `<a class="ai-tag" href="/?search=${encodeURIComponent(tg)}" title="Browse ${escHtml(tg)} startups">${icon('tag',{size:10})} ${escHtml(tg)}</a>`).join('');
   const tagsRow        = tagBadges ? `<div class="ai-tags" style="margin-top:8px;">${tagBadges}</div>` : '';
   // Non-onSale startups get a small inline reveal pill in the header.
   const headerReveal   = (!s.onSale && wantBlur)
-    ? `<button class="header-reveal" onclick="tryReveal()">🔒 ${t('startupPage','revealBtn')||'Reveal'}</button>`
+    ? `<button class="header-reveal" onclick="tryReveal()">${icon('lock',{size:12})} ${t('startupPage','revealBtn')||'Reveal'}</button>`
+    : '';
+
+  // ── Startup insights grid (TrustMRR-style) ───────────────────────────────────
+  function insightCard(iconName, label, body, subline) {
+    if (!body) return '';
+    return `<div class="insight-card">
+      <span class="insight-icon">${icon(iconName, {size:16})}</span>
+      <div class="insight-body">
+        <div class="insight-label">${escHtml(label)}</div>
+        <div class="insight-text">${body}</div>
+        ${subline ? `<div class="insight-sub">${escHtml(subline)}</div>` : ''}
+      </div>
+    </div>`;
+  }
+  // Group tech stack by category
+  const tsGroups = {};
+  if (Array.isArray(s.techStack)) {
+    for (const item of s.techStack) {
+      if (!item) continue;
+      const cat = (item.category || 'other').replace(/^./, c => c.toUpperCase());
+      (tsGroups[cat] = tsGroups[cat] || []).push(item.slug || item.name || String(item));
+    }
+  }
+  const techBody = Object.keys(tsGroups).length
+    ? Object.entries(tsGroups).map(([cat, items]) =>
+        `<div class="insight-cat">${escHtml(cat)}</div><div class="insight-list">${items.map(n =>
+          `<span class="insight-chip"><img src="https://cdn.simpleicons.org/${encodeURIComponent(n.toLowerCase().replace(/\s+/g,''))}" width="12" height="12" onerror="this.style.display='none'"/>${escHtml(n)}</span>`
+        ).join('')}</div>`
+      ).join('')
+    : '';
+  const channels = Array.isArray(s.marketingChannels) ? s.marketingChannels : [];
+  const channelsBody = channels.length
+    ? `<div class="insight-list">${channels.map(c => {
+        const name = typeof c === 'string' ? c : (c && (c.name || c.channel || c.slug)) || '';
+        return name ? `<span class="insight-chip">${escHtml(name)}</span>` : '';
+      }).join('')}</div>`
+    : '';
+  const audienceBody = (s.targetAudience || ai.targetPersona)
+    ? `${ai.targetPersona ? escHtml(ai.targetPersona) : ''}${s.targetAudience ? `<div class="insight-list" style="margin-top:6px;"><span class="insight-chip">${escHtml(s.targetAudience.toUpperCase())}</span></div>` : ''}`
+    : '';
+  const marketBody = (tags.length || s.category)
+    ? `<div class="insight-list">${(s.category?[`<span class="insight-chip">${escHtml(s.category)}</span>`]:[]).concat(tags.slice(0,8).map(tg=>`<a class="insight-chip" href="/?search=${encodeURIComponent(tg)}" style="text-decoration:none;color:inherit;">${escHtml(tg)}</a>`)).join('')}</div>`
+    : '';
+  const cards = [
+    insightCard('lightbulb', 'Value proposition', ai.valueProposition ? escHtml(ai.valueProposition) : ''),
+    insightCard('target',    'Problem solved',    ai.problemSolved    ? escHtml(ai.problemSolved)    : ''),
+    insightCard('users',     'Audience',          audienceBody),
+    insightCard('tag',       'Market',            marketBody),
+    insightCard('dollar',    'Pricing',           ai.pricingModel ? escHtml(ai.pricingModel) : ''),
+    insightCard('code',      'Tech stack',        techBody),
+    insightCard('megaphone', 'Marketing channels',channelsBody),
+  ].filter(Boolean);
+  const insightsHtml = cards.length
+    ? `<div class="section-title">Startup insights</div><div class="insights-grid">${cards.join('')}</div>`
     : '';
 
   document.getElementById('content').innerHTML = `
@@ -287,11 +368,9 @@ function renderStartup(s) {
       </div>
     </div>
 
-    ${(s.description && s.description.trim()) ? `<div class="startup-desc">${escHtml(s.description)}</div>` : (ai.valueProposition ? `<div class="startup-desc">${escHtml(ai.valueProposition)}</div>` : '')}
+    ${descHtml}
 
     ${saleBlock}
-
-    ${ai.problemSolved ? `<div class="pp-section"><h4>Problem solved</h4><p>${escHtml(ai.problemSolved)}</p></div>` : ''}
 
     <div class="section-title">Revenue metrics</div>
     <div class="metrics-grid">
@@ -310,10 +389,12 @@ function renderStartup(s) {
     </div>
     ${(s.hasGA || s.hasGSC || s.hasDatafast) ? `
     <div class="analytics-row">
-      ${s.hasGA ? '<span class="analytics-pill">📊 Google Analytics</span>' : ''}
-      ${s.hasGSC ? '<span class="analytics-pill">🔍 Google Search Console</span>' : ''}
-      ${s.hasDatafast ? '<span class="analytics-pill">⚡ Datafast</span>' : ''}
+      ${s.hasGA ? `<span class="analytics-pill">${icon('barChart',{size:11})} Google Analytics</span>` : ''}
+      ${s.hasGSC ? `<span class="analytics-pill">${icon('search',{size:11})} Google Search Console</span>` : ''}
+      ${s.hasDatafast ? `<span class="analytics-pill">${icon('zap',{size:11})} Datafast</span>` : ''}
     </div>` : ''}
+
+    ${insightsHtml}
 
     <div class="section-title" data-i18n="startupPage.dailyChart">Динамика по дням</div>
     <div class="chart-card" id="chartCard">
@@ -336,13 +417,58 @@ function renderStartup(s) {
       ${s.xFounderName?`<tr><td>Founder</td><td>${escHtml(s.xFounderName)}</td></tr>`:''}
     </table>
 
-    ${techHtml}
-    ${channelsHtml}
-    ${cofoundersHtml}`;
+    ${cofoundersHtml}
+
+    <div class="similar-section" id="similarSection"></div>`;
 
   if (s.onSale) renderContactSection(s);
   initChart(s);
   fetchEnrichment(s.slug);
+  loadSimilar(s);
+}
+
+// ── Similar startups — 8 same-category onSale cards at the page bottom ───────
+let _similarLoaded = false;
+async function loadSimilar(s) {
+  if (_similarLoaded) return;
+  _similarLoaded = true;
+  const el = document.getElementById('similarSection');
+  if (!el) return;
+  const cat = s.category || '';
+  if (!cat) { el.style.display = 'none'; return; }
+  try {
+    const p = new URLSearchParams({ page: '1', limit: '12', sort: 'revenue-desc', onSale: 'true', category: cat });
+    const r = await fetch('/api/startups?' + p);
+    const j = await r.json();
+    const items = (j.data || []).filter(x => x && x.slug && x.slug !== s.slug).slice(0, 8);
+    if (!items.length) { el.style.display = 'none'; return; }
+    el.innerHTML = `
+      <div class="similar-head">
+        <h3>More ${escHtml(cat)} startups for sale</h3>
+        <a href="/acquire.html">View marketplace ${icon('arrowRight',{size:12})}</a>
+      </div>
+      <div class="similar-grid">
+        ${items.map(it => {
+          const init = (it.name||'?').split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
+          const isAnon2 = (it.name||'').toLowerCase().includes('anonymous');
+          const blurN = !isAnon2 ? ' name-blur' : '';
+          const blurL = !isAnon2 ? ' logo-blur' : '';
+          const logo = it.icon
+            ? `<img src="${escHtml(it.icon)}" onerror="this.parentElement.textContent='${init}'"/>`
+            : init;
+          return `<a class="similar-card" href="/startup/${escHtml(it.slug)}.html">
+            <div class="similar-head-row">
+              <span class="similar-logo${blurL}">${logo}</span>
+              <span class="similar-name${blurN}">${escHtml(it.name)}</span>
+            </div>
+            <div class="similar-price-row">
+              <span class="similar-price">${formatMoney(it.askingPrice)}</span>
+              <span class="similar-mult">${it.multiple ? parseFloat(it.multiple).toFixed(1)+'×' : ''}</span>
+            </div>
+          </a>`;
+        }).join('')}
+      </div>`;
+  } catch { el.style.display = 'none'; }
 }
 
 // Fetch parsed RSC fields from /api/enrich and merge into _startup, then re-render.

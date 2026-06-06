@@ -283,7 +283,7 @@ function toggleFav(e, slug) {
   if(idx===-1) favs.push(slug); else favs.splice(idx,1);
   try{localStorage.setItem(LS_FAVS,JSON.stringify(favs));}catch{}
   const btn=document.querySelector('.fav-btn[data-slug="'+slug+'"]');
-  if(btn){const on=favs.includes(slug);btn.textContent=on?'♥':'♡';btn.classList.toggle('active',on);}
+  if(btn){const on=favs.includes(slug);btn.innerHTML=icon(on?'heartFill':'heart',{size:15});btn.classList.toggle('active',on);}
 }
 
 /* ── LOAD ──────────────────────────────────────────────────────────────────── */
@@ -436,7 +436,7 @@ function cardHTML(s) {
   const pBlock = hasP
     ? '<div class="cm"><div class="cm-label">'+lblAsk+'</div><div class="cm-val">'+formatMoney(s.askingPrice)+'</div></div><div class="cm"><div class="cm-label">'+lblMult+'</div><div class="cm-val">'+(s.multiple?parseFloat(s.multiple).toFixed(1)+'×':'—')+'</div></div>'
     : '<div class="cm"><div class="cm-label">'+lblMrr+'</div><div class="cm-val">'+formatMoney(s.revenue&&s.revenue.mrr)+'</div></div>';
-  const views = s.views?'<span class="card-views">👁 '+(s.views>999?(s.views/1000).toFixed(1)+'k':s.views)+'</span>':'';
+  const views = s.views?'<span class="card-views">'+icon('eye',{size:11})+' '+(s.views>999?(s.views/1000).toFixed(1)+'k':s.views)+'</span>':'';
   const favOn = isFav(s.slug);
   const anonTag = isAnon
     ? '<span class="anon-tag" title="'+(t('idx','anonHint')||'Owner chose to stay anonymous')+'">·&nbsp;'+(t('idx','anonLabel')||'anonymous')+'</span>'
@@ -454,9 +454,9 @@ function cardHTML(s) {
   const year = s.foundedDate ? new Date(s.foundedDate).getFullYear() : null;
   const extraBits = [];
   if (flag) extraBits.push('<span class="card-extra-item">'+flag+' '+escHtml(s.country||'')+'</span>');
-  if (year && year > 1990) extraBits.push('<span class="card-extra-item">📅 '+year+'</span>');
-  if (s.profitMarginLast30Days != null) extraBits.push('<span class="card-extra-item">💰 '+Math.round(s.profitMarginLast30Days)+'% margin</span>');
-  if (daysListed != null && daysListed >= 0 && !isNew) extraBits.push('<span class="card-extra-item">⏱ '+daysListed+'d listed</span>');
+  if (year && year > 1990) extraBits.push('<span class="card-extra-item">'+icon('calendar',{size:11})+' '+year+'</span>');
+  if (s.profitMarginLast30Days != null) extraBits.push('<span class="card-extra-item">'+icon('trending',{size:11})+' '+Math.round(s.profitMarginLast30Days)+'% margin</span>');
+  if (daysListed != null && daysListed >= 0 && !isNew) extraBits.push('<span class="card-extra-item">'+icon('clock',{size:11})+' '+daysListed+'d listed</span>');
   const extraHtml = extraBits.length ? '<div class="card-extra">'+extraBits.join('')+'</div>' : '';
   return '<a class="card" href="/startup/'+escHtml(s.slug)+'.html" onclick="saveStartup(\''+escHtml(s.slug)+'\')">'+
     '<div class="card-head">'+
@@ -471,7 +471,7 @@ function cardHTML(s) {
         '</div>'+
       '</div>'+
       '<div class="card-actions">'+views+
-        '<button class="fav-btn'+(favOn?' active':'')+'" data-slug="'+escHtml(s.slug)+'" onclick="toggleFav(event,\''+escHtml(s.slug)+'\')" title="'+(t('idx','favorites')||'Favorites')+'">'+(favOn?'♥':'♡')+'</button>'+
+        '<button class="fav-btn'+(favOn?' active':'')+'" data-slug="'+escHtml(s.slug)+'" onclick="toggleFav(event,\''+escHtml(s.slug)+'\')" title="'+(t('idx','favorites')||'Favorites')+'">'+icon(favOn?'heartFill':'heart',{size:15})+'</button>'+
       '</div>'+
     '</div>'+
     '<div class="card-desc">'+desc+'</div>'+
