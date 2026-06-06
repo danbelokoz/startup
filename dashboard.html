@@ -5,12 +5,23 @@
   <title>Dashboard — StartupMarket</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/shared.css" />
   <style>
     .dash-wrap  { max-width: 600px; margin: 0 auto; padding: 40px 24px 80px; }
     .dash-card  { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 16px; box-shadow: var(--shadow); }
     .dash-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text3); margin-bottom: 14px; }
+    .fav-list   { display: flex; flex-direction: column; gap: 8px; }
+    .fav-empty  { font-size: 13px; color: var(--text3); padding: 12px 0; text-align: center; }
+    .fav-row    { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); text-decoration: none; color: inherit; transition: border-color 0.12s, transform 0.12s; }
+    .fav-row:hover { border-color: var(--text); transform: translateY(-1px); }
+    .fav-logo   { width: 32px; height: 32px; border-radius: 7px; background: var(--bg2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: var(--text2); flex-shrink: 0; overflow: hidden; }
+    .fav-logo img { width: 100%; height: 100%; object-fit: cover; border-radius: 7px; }
+    .fav-info   { flex: 1; min-width: 0; }
+    .fav-name   { font-size: 14px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .fav-meta   { font-size: 12px; color: var(--text3); margin-top: 2px; }
+    .fav-remove { background: none; border: none; cursor: pointer; color: var(--text3); font-size: 18px; padding: 4px 6px; line-height: 1; transition: color 0.12s; }
+    .fav-remove:hover { color: var(--red); }
     .user-row   { display: flex; align-items: center; gap: 14px; }
     .user-avatar { width: 48px; height: 48px; border-radius: 50%; background: rgba(108,99,255,0.12); color: var(--accent); display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700; flex-shrink: 0; }
     .user-name  { font-size: 15px; font-weight: 600; margin-bottom: 5px; }
@@ -129,13 +140,68 @@ function renderDash(session, access) {
         <a href="${escHtml(UPGRADE_URL)}" class="btn btn-primary" style="display:inline-flex;">Get Pro access &rarr;</a>
        </div>`;
 
+  // ── Favorites card ────────────────────────────────────────────────────────────
+  const favoritesCard = `
+    <div class="dash-card">
+      <div class="dash-label" data-i18n="dash.favorites">Favorites</div>
+      <div id="favList" class="fav-list"><div class="fav-empty" data-i18n="dash.loading">Loading...</div></div>
+    </div>`;
+
   // ── Sign out card ─────────────────────────────────────────────────────────────
   const signOutCard = `
     <div class="dash-card">
       <button class="btn btn-ghost" onclick="signOutDash()" style="width:100%;justify-content:center;">Sign out</button>
     </div>`;
 
-  document.getElementById('dashWrap').innerHTML = profileCard + usageCard + planCard + signOutCard;
+  document.getElementById('dashWrap').innerHTML = profileCard + usageCard + favoritesCard + planCard + signOutCard;
+  applyLangToDoc();
+  renderFavorites();
+}
+
+const LS_FAVS = 'sm_favs';
+function getFavs() { try { return JSON.parse(localStorage.getItem(LS_FAVS) || '[]'); } catch { return []; } }
+function setFavs(list) { try { localStorage.setItem(LS_FAVS, JSON.stringify(list)); } catch {} }
+
+async function renderFavorites() {
+  const slugs = getFavs();
+  const el = document.getElementById('favList');
+  if (!el) return;
+  if (!slugs.length) {
+    el.innerHTML = `<div class="fav-empty" data-i18n="dash.favEmpty">${t('dash','favEmpty') || 'No favorites yet.'}</div>`;
+    return;
+  }
+  const items = await Promise.all(slugs.map(async slug => {
+    let s = await idbGetOne(slug);
+    if (!s) {
+      try { const r = await fetch('/api/startup?slug=' + encodeURIComponent(slug)); if (r.ok) { const j = await r.json(); s = j.data || j; } } catch {}
+    }
+    return s || { slug, name: slug, _missing: true };
+  }));
+  el.innerHTML = items.map(s => {
+    const init = (s.name || s.slug).slice(0, 2).toUpperCase();
+    const logo = s.icon
+      ? `<img src="${escHtml(s.icon)}" onerror="this.parentElement.textContent='${init}'"/>`
+      : init;
+    const rev = s.revenue && s.revenue.last30Days ? formatMoney(s.revenue.last30Days) : '—';
+    const cat = s.category ? escHtml(s.category) : '';
+    const meta = [cat, s.onSale ? 'For sale' : '', rev].filter(Boolean).join(' · ');
+    return `<div style="display:flex;align-items:stretch;gap:6px;">
+      <a class="fav-row" href="/startup/${escHtml(s.slug)}.html" style="flex:1;">
+        <div class="fav-logo">${logo}</div>
+        <div class="fav-info">
+          <div class="fav-name">${escHtml(s.name || s.slug)}</div>
+          <div class="fav-meta">${meta}</div>
+        </div>
+      </a>
+      <button class="fav-remove" title="Remove" onclick="removeFav('${escHtml(s.slug)}')">×</button>
+    </div>`;
+  }).join('');
+}
+
+function removeFav(slug) {
+  const favs = getFavs().filter(x => x !== slug);
+  setFavs(favs);
+  renderFavorites();
 }
 
 async function signOutDash() {

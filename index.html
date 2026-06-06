@@ -65,9 +65,9 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
 .grid-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .grid-count { font-size: 13px; color: var(--text3); }
 .sort-btn { display: flex; align-items: center; gap: 5px; padding: 5px 10px; background: var(--bg2); border: 1px solid var(--border2); border-radius: 7px; font-size: 12px; color: var(--text2); cursor: pointer; font-family: 'Manrope', sans-serif; }
-.cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 
-.card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; cursor: pointer; transition: all 0.15s; text-decoration: none; color: inherit; display: flex; flex-direction: column; }
+.card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; cursor: pointer; transition: all 0.15s; text-decoration: none; color: inherit; display: flex; flex-direction: column; min-width: 0; }
 .card:hover { border-color: var(--border2); box-shadow: 0 4px 16px rgba(0,0,0,0.07); transform: translateY(-1px); }
 .card-head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
 .card-logo { width: 36px; height: 36px; border-radius: 8px; background: var(--bg3); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: var(--text2); flex-shrink: 0; overflow: hidden; }
@@ -100,8 +100,8 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
 <div id="navPlaceholder"></div>
 
 <div class="hero">
-  <div class="hero-title">Найди <em>верифицированный</em><br>стартап с выручкой</div>
-  <div class="hero-sub">Только подтверждённые данные. Каждый показатель проверен через платёжные провайдеры напрямую.</div>
+  <div class="hero-title"><span data-i18n="idx.heroTitle">Найди</span> <em data-i18n="idx.heroSpan">верифицированный</em><br><span data-i18n="idx.heroEnd">стартап с выручкой</span></div>
+  <div class="hero-sub" data-i18n="idx.heroSub">Только подтверждённые данные. Каждый показатель проверен через платёжные провайдеры напрямую.</div>
 
   <div class="provider-icons">
     <div class="provider-wrap"><div class="provider-icon"><img src="https://cdn.simpleicons.org/stripe/635BFF" alt="Stripe" onerror="this.onerror=null;this.parentElement.textContent='S'"/></div><div class="provider-tip">Stripe</div></div>
@@ -115,10 +115,10 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
   </div>
 
   <div class="stats-bar">
-    <div class="stat-item"><div class="stat-n" id="statTotal">—</div><div class="stat-l">Стартапов в базе</div></div>
-    <div class="stat-item"><div class="stat-n" id="statSale">—</div><div class="stat-l">На продаже</div></div>
-    <div class="stat-item"><div class="stat-n" id="statRevenue">—</div><div class="stat-l">Выручка (30д)</div></div>
-    <div class="stat-item"><div class="stat-n" id="statMRR">—</div><div class="stat-l">Суммарный MRR</div></div>
+    <div class="stat-item"><div class="stat-n" id="statTotal">—</div><div class="stat-l" data-i18n="idx.statTotal">Стартапов в базе</div></div>
+    <div class="stat-item"><div class="stat-n" id="statSale">—</div><div class="stat-l" data-i18n="idx.statSale">На продаже</div></div>
+    <div class="stat-item"><div class="stat-n" id="statRevenue">—</div><div class="stat-l" data-i18n="idx.statRev30">Выручка (30д)</div></div>
+    <div class="stat-item"><div class="stat-n" id="statMRR">—</div><div class="stat-l" data-i18n="idx.statMrr">Суммарный MRR</div></div>
   </div>
 </div>
 
@@ -126,85 +126,85 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
   <aside>
     <div class="sidebar-block">
       <div class="sb-header">
-        <span class="sb-title">Фильтры</span>
-        <span class="sb-reset" onclick="resetFilters()">Сбросить</span>
+        <span class="sb-title" data-i18n="idx.fltTitle">Фильтры</span>
+        <span class="sb-reset" onclick="resetFilters()" data-i18n="idx.fltReset">Сбросить</span>
       </div>
       <div class="sb-section">
         <div class="search-wrap">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-          <input class="search-input" id="searchInput" type="text" placeholder="Поиск по названию..." oninput="onSearch(this.value)"/>
+          <input class="search-input" id="searchInput" type="text" data-i18n-placeholder="idx.fltSearch" placeholder="Поиск по названию..." oninput="onSearch(this.value)"/>
         </div>
       </div>
       <div class="sb-section">
-        <div class="sb-label">Статус</div>
+        <div class="sb-label" data-i18n="idx.fltStatus">Статус</div>
         <div class="status-opts">
-          <div class="status-opt sel" data-filter="sale" onclick="setStatus(this)">На продаже <span class="cnt" id="cntSale">—</span></div>
-          <div class="status-opt" data-filter="all" onclick="setStatus(this)">Все <span class="cnt" id="cntAll">—</span></div>
+          <div class="status-opt sel" data-filter="sale" onclick="setStatus(this)"><span data-i18n="idx.fltStatusSale">На продаже</span> <span class="cnt" id="cntSale">—</span></div>
+          <div class="status-opt" data-filter="all" onclick="setStatus(this)"><span data-i18n="idx.fltStatusAll">Все</span> <span class="cnt" id="cntAll">—</span></div>
         </div>
       </div>
       <div class="sb-section">
-        <div class="sb-label">Категории</div>
+        <div class="sb-label" data-i18n="idx.fltCats">Категории</div>
         <select class="sb-select" id="catSelect" onchange="onCategoryChange(this.value)">
-          <option value="">Все категории...</option>
+          <option value="" data-i18n="idx.fltCatsAll">Все категории...</option>
           <option>AI</option><option>SaaS</option><option>Developer Tools</option>
           <option>Fintech</option><option>Marketing</option><option>E-commerce</option>
           <option>Productivity</option><option>No-code</option><option>Analytics</option>
         </select>
       </div>
       <div class="sb-section">
-        <div class="sb-label">Выручка 30 дней <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box">Суммарная выручка за последние 30 дней</span></span></div>
+        <div class="sb-label"><span data-i18n="idx.fltRev30">Выручка 30 дней</span> <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box" data-i18n="idx.tipRev30">Суммарная выручка за последние 30 дней</span></span></div>
         <div class="range-row"><input class="sb-input" id="rev30Min" type="text" placeholder="$ Min"><div class="range-sep">—</div><input class="sb-input" id="rev30Max" type="text" placeholder="$ Max"></div>
       </div>
       <div class="sb-section">
-        <div class="sb-label">MRR <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box">Monthly Recurring Revenue</span></span></div>
+        <div class="sb-label">MRR <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box" data-i18n="idx.tipMrr">Monthly Recurring Revenue</span></span></div>
         <div class="range-row"><input class="sb-input" id="mrrMin" type="text" placeholder="$ Min"><div class="range-sep">—</div><input class="sb-input" id="mrrMax" type="text" placeholder="$ Max"></div>
       </div>
       <div class="sb-section">
-        <div class="sb-label">Рост 30 дней <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box">Изменение MRR за 30 дней в %</span></span></div>
+        <div class="sb-label"><span data-i18n="idx.fltGrowth">Рост 30 дней</span> <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box" data-i18n="idx.tipGrowth">Изменение MRR за 30 дней в %</span></span></div>
         <div class="range-row"><input class="sb-input" id="growthMin" type="text" placeholder="Min %"><div class="range-sep">—</div><input class="sb-input" id="growthMax" type="text" placeholder="Max %"></div>
       </div>
       <div class="sb-section">
-        <div class="sb-label">Цена продажи <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box">Запрашиваемая цена за 100% доли</span></span></div>
+        <div class="sb-label"><span data-i18n="idx.fltPrice">Цена продажи</span> <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box" data-i18n="idx.tipPrice">Запрашиваемая цена за 100% доли</span></span></div>
         <div class="range-row"><input class="sb-input" id="priceMin" type="text" placeholder="$ Min"><div class="range-sep">—</div><input class="sb-input" id="priceMax" type="text" placeholder="$ Max"></div>
       </div>
       <div class="sb-section">
-        <div class="sb-label">Мультипликатор <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box">Цена / годовой MRR</span></span></div>
+        <div class="sb-label"><span data-i18n="idx.fltMultiple">Мультипликатор</span> <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box" data-i18n="idx.tipMultiple">Цена / годовой MRR</span></span></div>
         <select class="sb-select" id="multipleSelect">
-          <option value="">Любой</option><option value="1">До 1×</option><option value="2">До 2×</option>
+          <option value="" data-i18n="idx.fltAny">Любой</option><option value="1">До 1×</option><option value="2">До 2×</option>
           <option value="3">До 3×</option><option value="5">До 5×</option><option value="10">До 10×</option>
         </select>
       </div>
       <div class="sb-section">
-        <div class="sb-label">Маржа прибыли <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box">Чистая прибыль как % от выручки</span></span></div>
+        <div class="sb-label"><span data-i18n="idx.fltMargin">Маржа прибыли</span></div>
         <div class="range-row"><input class="sb-input" id="marginMin" type="text" placeholder="Min %"><div class="range-sep">—</div><input class="sb-input" id="marginMax" type="text" placeholder="Max %"></div>
       </div>
       <div class="sb-section">
-        <div class="sb-label">Аудитория</div>
+        <div class="sb-label" data-i18n="idx.fltAudience">Аудитория</div>
         <select class="sb-select" id="audienceSelect">
-          <option value="">Любая</option><option value="b2b">B2B</option><option value="b2c">B2C</option><option value="b2b2c">B2B2C</option>
+          <option value="" data-i18n="idx.fltAny">Любая</option><option value="b2b">B2B</option><option value="b2c">B2C</option><option value="b2b2c">B2B2C</option>
         </select>
       </div>
       <div class="sb-section">
-        <div class="sb-label">Мобильное приложение</div>
+        <div class="sb-label" data-i18n="idx.fltMobile">Мобильное приложение</div>
         <select class="sb-select" id="mobileSelect">
-          <option value="">Любое</option><option value="yes">Есть</option><option value="no">Нет</option>
+          <option value="" data-i18n="idx.fltAny">Любое</option><option value="yes" data-i18n="idx.fltHas">Есть</option><option value="no" data-i18n="idx.fltNo">Нет</option>
         </select>
       </div>
-      <div class="sb-section"><button class="apply-btn" onclick="applyFilters()">Применить фильтры</button></div>
+      <div class="sb-section"><button class="apply-btn" onclick="applyFilters()" data-i18n="idx.fltApply">Применить фильтры</button></div>
     </div>
   </aside>
 
   <main>
     <div class="grid-header">
-      <span class="grid-count" id="gridCount">Загрузка...</span>
+      <span class="grid-count" id="gridCount" data-i18n="idx.loading">Загрузка...</span>
       <button class="sort-btn" onclick="toggleSort()">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="9" y2="18"/></svg>
-        <span id="sortLabel">Выручка ↓</span>
+        <span id="sortLabel" data-i18n="idx.sortRev">Выручка ↓</span>
       </button>
     </div>
     <div class="cards" id="cards">
       <div style="grid-column:1/-1;text-align:center;padding:60px 0;">
-        <div style="font-size:14px;color:var(--text2);margin-bottom:16px;">Загружаем стартапы...</div>
+        <div style="font-size:14px;color:var(--text2);margin-bottom:16px;" data-i18n="idx.loading">Загружаем стартапы...</div>
         <div style="width:160px;height:3px;background:var(--border);border-radius:2px;margin:0 auto;overflow:hidden;"><div style="height:100%;width:40%;background:var(--accent);border-radius:2px;animation:loadpulse 1.5s ease-in-out infinite;"></div></div>
       </div>
     </div>
@@ -365,7 +365,7 @@ function renderCards() {
   const grid = document.getElementById('cards');
   grid.innerHTML = '';
   if (!displayItems.length) {
-    grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:60px 0;color:var(--text3)">Ничего не найдено</div>';
+    grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:60px 0;color:var(--text3)">'+t('idx','notFound')+'</div>';
     return;
   }
   displayItems.forEach(s => grid.insertAdjacentHTML('beforeend', cardHTML(s)));
@@ -447,15 +447,18 @@ function updateStats() {
 
 function updateCount() {
   const n=displayItems.length; const gc=document.getElementById('gridCount'); if(!gc)return;
-  const s=n%100>10&&n%100<20?'ов':n%10===1?'':n%10<5?'а':'ов';
-  gc.textContent=n.toLocaleString()+(hasMore?'+':'')+' стартап'+s+(filters.onSale===true?' на продаже':'');
+  const lang=getLang();
+  let word=t('idx','countStartups');
+  if(lang==='ru'){ const s=n%100>10&&n%100<20?'ов':n%10===1?'':n%10<5?'а':'ов'; word='стартап'+s; }
+  const suffix=filters.onSale===true?' '+t('idx','countOnSale'):'';
+  gc.textContent=n.toLocaleString()+(hasMore?'+':'')+' '+word+suffix;
 }
 
 function showLoading() {
-  document.getElementById('cards').innerHTML='<div style="grid-column:1/-1;text-align:center;padding:60px 0;"><div style="font-size:14px;color:var(--text2);margin-bottom:16px;">Загружаем стартапы...</div><div style="width:160px;height:3px;background:var(--border);border-radius:2px;margin:0 auto;overflow:hidden;"><div style="height:100%;width:40%;background:var(--accent);border-radius:2px;animation:loadpulse 1.5s ease-in-out infinite;"></div></div></div>';
+  document.getElementById('cards').innerHTML='<div style="grid-column:1/-1;text-align:center;padding:60px 0;"><div style="font-size:14px;color:var(--text2);margin-bottom:16px;">'+t('idx','loading')+'</div><div style="width:160px;height:3px;background:var(--border);border-radius:2px;margin:0 auto;overflow:hidden;"><div style="height:100%;width:40%;background:var(--accent);border-radius:2px;animation:loadpulse 1.5s ease-in-out infinite;"></div></div></div>';
 }
 function showError() {
-  document.getElementById('cards').innerHTML='<div style="grid-column:1/-1;text-align:center;padding:60px 0;color:var(--text3);"><div style="font-size:24px;margin-bottom:8px;">⚠️</div><div>Ошибка загрузки данных</div></div>';
+  document.getElementById('cards').innerHTML='<div style="grid-column:1/-1;text-align:center;padding:60px 0;color:var(--text3);"><div style="font-size:24px;margin-bottom:8px;">⚠️</div><div>'+t('idx','error')+'</div></div>';
 }
 
 /* ── FILTER HANDLERS ──────────────────────────────────────────────────────── */
@@ -469,9 +472,11 @@ function setStatus(el) {
 }
 function onCategoryChange(v) { filters.category=v; reloadFromAPI(); }
 function toggleSort() {
-  const s=['revenue-desc','growth-desc','price-asc','price-desc'],l=['Выручка ↓','Рост ↓','Цена ↑','Цена ↓'];
+  const s=['revenue-desc','growth-desc','price-asc','price-desc'];
+  const keys=['sortRev','sortGrowth','sortPriceAsc','sortPriceDesc'];
   const i=(s.indexOf(filters.sort)+1)%s.length; filters.sort=s[i];
-  const lb=document.getElementById('sortLabel'); if(lb)lb.textContent=l[i];
+  const lb=document.getElementById('sortLabel');
+  if(lb){lb.dataset.i18n='idx.'+keys[i]; lb.textContent=t('idx',keys[i]);}
   reloadFromAPI();
 }
 function onSearch(v) {
@@ -499,7 +504,7 @@ function resetFilters() {
   document.querySelectorAll('.status-opt').forEach(o=>o.classList.remove('sel'));
   document.querySelector('.status-opt[data-filter="sale"]').classList.add('sel');
   const si=document.getElementById('searchInput'); if(si) si.value='';
-  const lb=document.getElementById('sortLabel'); if(lb) lb.textContent='Выручка ↓';
+  const lb=document.getElementById('sortLabel'); if(lb){lb.dataset.i18n='idx.sortRev'; lb.textContent=t('idx','sortRev');}
   filters={onSale:true,category:'',sort:'revenue-desc',search:'',mrrMin:0,mrrMax:0,rev30Min:0,rev30Max:0,priceMin:0,priceMax:0,growthMin:'',growthMax:'',multipleMax:0,marginMin:0,marginMax:0,audience:'',mobile:''};
   reloadFromAPI();
 }

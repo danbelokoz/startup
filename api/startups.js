@@ -87,21 +87,42 @@ export default async function handler(req, res) {
     res.setHeader('X-Cache', 'MISS');
     return res.status(200).json({ ...data, fromCache: false });
   } catch (err) {
-    // Fallback: upstream dead. If this was an onSale=true request, try the
-    // wider (no-onSale) cache key and filter onSale items out of it so the
-    // home page keeps working from cron-warmed data.
+    // Fallback: upstream dead. If onSale=true was requested, scan ALL cached
+    // pages of the non-onSale dataset to build an aggregate of onSale items,
+    // then paginate from it. Aggregate is cached so this scan only happens once.
     if (params.get('onSale') === 'true') {
       const fbParams = new URLSearchParams(params);
       fbParams.delete('onSale');
-      const fbCached = await redisGet(`sm_${fbParams.toString()}`);
-      if (fbCached && Array.isArray(fbCached.data)) {
-        const filtered = {
-          ...fbCached,
-          data: fbCached.data.filter(s => s && s.onSale)
-        };
-        res.setHeader('X-Cache', 'STALE-FALLBACK');
-        return res.status(200).json({ ...filtered, fromCache: true, stale: true });
+      fbParams.delete('page');
+      const sort = fbParams.get('sort') || 'revenue-desc';
+      const limit = parseInt(fbParams.get('limit') || '50', 10);
+      const aggKey = `sm_onsale_agg_${sort}`;
+      let agg = await redisGet(aggKey);
+
+      if (!agg || !Array.isArray(agg.data)) {
+        const items = [];
+        for (let p = 1; p <= 200; p++) {
+          const pp = new URLSearchParams(fbParams);
+          pp.set('page', String(p));
+          const pg = await redisGet(`sm_${pp.toString()}`);
+          if (!pg || !Array.isArray(pg.data) || pg.data.length === 0) break;
+          for (const s of pg.data) if (s && s.onSale) items.push(s);
+          if (!pg.meta || pg.meta.hasMore === false) break;
+        }
+        agg = { data: items };
+        if (items.length) await redisSet(aggKey, agg, 21600); // 6h TTL
       }
+
+      const page = parseInt(params.get('page') || '1', 10);
+      const start = (page - 1) * limit;
+      const slice = agg.data.slice(start, start + limit);
+      res.setHeader('X-Cache', 'STALE-AGG');
+      return res.status(200).json({
+        data: slice,
+        meta: { total: agg.data.length, page, limit, hasMore: start + slice.length < agg.data.length },
+        fromCache: true,
+        stale: true,
+      });
     }
     if (err.message === '401') return res.status(503).json({ error: 'Upstream API error' });
     return res.status(500).json({ error: err.message });

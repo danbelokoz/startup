@@ -33,6 +33,7 @@ export default async function handler(req, res) {
   if (!apiKey) return res.status(500).json({ error: 'TRUSTMRR_API_KEY not set' });
 
   let page = 1, totalStartups = 0, hasMore = true;
+  const allStartups = [];
 
   while (hasMore) {
     const params   = new URLSearchParams({ page, limit: 50, sort: 'revenue-desc' });
@@ -57,11 +58,52 @@ export default async function handler(req, res) {
     ]);
 
     totalStartups += data.data?.length ?? 0;
+    if (Array.isArray(data.data)) allStartups.push(...data.data);
     hasMore = data.meta?.hasMore ?? false;
     page++;
 
     if (hasMore) await sleep(DELAY_MS);
   }
 
-  return res.status(200).json({ ok: true, pages: page - 1, startups: totalStartups });
+  // Invalidate onSale aggregate so next request rebuilds from fresh data
+  try { await kv('POST', `/del/${encodeURIComponent('sm_onsale_agg_revenue-desc')}`); } catch {}
+
+  // Write today's snapshots to Supabase for historical chart on detail page.
+  let snapshotsWritten = 0;
+  if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY && allStartups.length) {
+    const today = new Date().toISOString().slice(0, 10);
+    const rows = allStartups
+      .filter(s => s && s.slug)
+      .map(s => ({
+        slug: s.slug,
+        snap_date: today,
+        mrr_cents: s.revenue && s.revenue.mrr != null ? Math.round(s.revenue.mrr) : null,
+        rev30d_cents: s.revenue && s.revenue.last30Days != null ? Math.round(s.revenue.last30Days) : null,
+        total_cents: s.revenue && s.revenue.total != null ? Math.round(s.revenue.total) : null,
+        customers: s.customers ?? null,
+        subscriptions: s.activeSubscriptions ?? null,
+        growth30d: s.growth30d ?? null,
+        visitors_30d: s.visitorsLast30Days ?? null,
+      }));
+
+    const batchSize = 500;
+    for (let i = 0; i < rows.length; i += batchSize) {
+      const batch = rows.slice(i, i + batchSize);
+      try {
+        const r = await fetch(`${process.env.SUPABASE_URL}/rest/v1/daily_snapshots?on_conflict=slug,snap_date`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY,
+            'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+            'Prefer': 'resolution=merge-duplicates,return=minimal',
+          },
+          body: JSON.stringify(batch),
+        });
+        if (r.ok) snapshotsWritten += batch.length;
+      } catch {}
+    }
+  }
+
+  return res.status(200).json({ ok: true, pages: page - 1, startups: totalStartups, snapshots: snapshotsWritten });
 }

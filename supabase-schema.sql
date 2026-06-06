@@ -233,15 +233,45 @@ END;
 $$;
 
 -- ============================================================
+-- DAILY SNAPSHOTS
+-- One row per (slug, day) — daily snapshot of revenue metrics.
+-- Cron writes once per day; chart on startup detail page reads from here.
+-- TrustMRR doesn't expose history, so we accumulate it ourselves.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS daily_snapshots (
+  slug          TEXT   NOT NULL,
+  snap_date     DATE   NOT NULL DEFAULT CURRENT_DATE,
+  mrr_cents     BIGINT,
+  rev30d_cents  BIGINT,
+  total_cents   BIGINT,
+  customers     INT,
+  subscriptions INT,
+  growth30d     NUMERIC,
+  visitors_30d  INT,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (slug, snap_date)
+);
+
+ALTER TABLE daily_snapshots ENABLE ROW LEVEL SECURITY;
+
+-- Anyone (incl. anon) can read snapshots — used by chart on public detail page
+CREATE POLICY "daily_snapshots_select_all" ON daily_snapshots
+  FOR SELECT USING (TRUE);
+
+CREATE INDEX IF NOT EXISTS idx_snap_slug_date
+  ON daily_snapshots(slug, snap_date DESC);
+
+-- ============================================================
 -- GRANTS
 -- Supabase anon/authenticated roles need USAGE on schema.
 -- Table-level access is controlled by RLS policies above.
 -- ============================================================
 GRANT USAGE ON SCHEMA public TO anon, authenticated;
 
-GRANT SELECT ON profiles       TO authenticated;
-GRANT SELECT ON subscriptions  TO authenticated;
-GRANT SELECT ON startup_views  TO authenticated;
+GRANT SELECT ON profiles         TO authenticated;
+GRANT SELECT ON subscriptions    TO authenticated;
+GRANT SELECT ON startup_views    TO authenticated;
+GRANT SELECT ON daily_snapshots  TO anon, authenticated;
 
 -- INSERT/UPDATE/DELETE on all tables is done via service role in Vercel API functions.
 -- The service role key bypasses RLS entirely — never expose it to the client.

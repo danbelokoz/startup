@@ -5,7 +5,7 @@
   <title>Startup — StartupMarket</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/shared.css" />
   <style>
     .back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--text2); font-size: 14px; text-decoration: none; padding: 8px 0; transition: color 0.15s; }
@@ -57,6 +57,18 @@
   .fav-detail { background: none; border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 16px; color: var(--text3); transition: all 0.15s; font-family: 'Manrope', sans-serif; }
   .fav-detail:hover, .fav-detail.active { color: var(--red); border-color: var(--red); }
   .badge-green { background: rgba(0,194,122,0.1); color: var(--green); border: 1px solid rgba(0,194,122,0.2); }
+  /* Daily metrics chart */
+  .chart-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow); margin-bottom: 32px; }
+  .chart-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+  .chart-tabs { display: inline-flex; flex-wrap: wrap; gap: 4px; background: var(--bg3); padding: 3px; border-radius: 9px; }
+  .chart-tab  { padding: 5px 12px; font-size: 12px; font-weight: 500; color: var(--text2); border-radius: 7px; cursor: pointer; transition: all 0.1s; user-select: none; }
+  .chart-tab:hover { color: var(--text); }
+  .chart-tab.active { background: var(--bg2); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .chart-svg  { width: 100%; height: 240px; display: block; }
+  .chart-empty { padding: 60px 16px; text-align: center; color: var(--text3); font-size: 13px; line-height: 1.55; }
+  .chart-empty strong { color: var(--text2); font-weight: 600; display: block; margin-bottom: 4px; }
+  .chart-meta { font-size: 11px; color: var(--text3); margin-top: 8px; text-align: right; }
+  .chart-tooltip { position: absolute; background: var(--text); color: white; font-size: 11px; padding: 5px 8px; border-radius: 5px; pointer-events: none; transform: translate(-50%, -120%); white-space: nowrap; }
   </style>
 </head>
 <body>
@@ -172,7 +184,6 @@ function renderStartup(s) {
           ${s.paymentProvider?`<span class="badge badge-green">${s.paymentProvider}</span>`:''}
           ${s.rank?`<span class="badge badge-cat">#${s.rank}</span>`:''}
         </div>
-        ${s.website?`<div style="font-size:14px;margin-top:4px;">${website}</div>`:''}
       </div>
     </div>
 
@@ -192,18 +203,134 @@ function renderStartup(s) {
       ${s.rank?`<div class="metric-card"><div class="metric-card-label">${t('startupPage','rank')}</div><div class="metric-card-value">#${s.rank}</div></div>`:''}
     </div>
 
+    <div class="section-title" data-i18n="startupPage.dailyChart">Динамика по дням</div>
+    <div class="chart-card" id="chartCard">
+      <div class="chart-head">
+        <div class="chart-tabs" id="chartTabs"></div>
+        <div style="font-size:11px;color:var(--text3);" id="chartRangeLabel"></div>
+      </div>
+      <div id="chartBody"><div class="chart-empty"><strong data-i18n="startupPage.chartCollecting">Собираем дневные данные</strong><span data-i18n="startupPage.chartWillAppear">График появится через несколько дней — каждый день в 3:00 UTC мы сохраняем снимок метрик.</span></div></div>
+    </div>
+
     <div class="section-title">Info</div>
     <table class="info-table">
       ${s.foundedDate?`<tr><td>${t('startupPage','founded')}</td><td>${new Date(s.foundedDate).getFullYear()}</td></tr>`:''}
       ${s.country?`<tr><td>${t('startupPage','country')}</td><td>${s.country}</td></tr>`:''}
       ${s.targetAudience?`<tr><td>${t('startupPage','audience')}</td><td>${s.targetAudience.toUpperCase()}</td></tr>`:''}
       ${s.paymentProvider?`<tr><td>${t('startupPage','provider')}</td><td>${s.paymentProvider}</td></tr>`:''}
-      ${s.website?`<tr><td>Website</td><td>${website}</td></tr>`:''}
     </table>
 
     ${techHtml}`;
 
   if (s.onSale) renderContactSection(s);
+  initChart(s);
+}
+
+// ── Daily metrics chart ───────────────────────────────────────────────────────
+const CHART_METRICS = [
+  { key: 'mrr_cents',    label: 'MRR',           kind: 'money' },
+  { key: 'rev30d_cents', label: 'Revenue (30d)', kind: 'money' },
+  { key: 'customers',    label: 'Customers',     kind: 'int'   },
+  { key: 'subscriptions',label: 'Subscriptions', kind: 'int'   },
+  { key: 'growth30d',    label: 'Growth %',      kind: 'pct'   },
+  { key: 'visitors_30d', label: 'Visitors',      kind: 'int'   },
+];
+let _chartData = [];
+let _chartMetric = 'mrr_cents';
+
+async function initChart(s) {
+  const tabsEl = document.getElementById('chartTabs');
+  if (tabsEl) {
+    tabsEl.innerHTML = CHART_METRICS.map(m =>
+      `<div class="chart-tab${m.key===_chartMetric?' active':''}" data-metric="${m.key}" onclick="selectChartMetric('${m.key}')">${m.label}</div>`
+    ).join('');
+  }
+  try {
+    const r = await fetch('/api/history?slug=' + encodeURIComponent(s.slug) + '&days=90');
+    const j = await r.json();
+    _chartData = Array.isArray(j.data) ? j.data : [];
+  } catch { _chartData = []; }
+  renderChart();
+}
+
+function selectChartMetric(key) {
+  _chartMetric = key;
+  document.querySelectorAll('.chart-tab').forEach(el => el.classList.toggle('active', el.dataset.metric === key));
+  renderChart();
+}
+
+function renderChart() {
+  const body = document.getElementById('chartBody');
+  const rangeLabel = document.getElementById('chartRangeLabel');
+  if (!body) return;
+  const metric = CHART_METRICS.find(m => m.key === _chartMetric) || CHART_METRICS[0];
+  const points = _chartData
+    .map(r => ({ date: r.snap_date, val: r[metric.key] }))
+    .filter(p => p.val != null);
+
+  if (points.length < 2) {
+    body.innerHTML = `<div class="chart-empty"><strong>${t('startupPage','chartCollecting') || 'Собираем дневные данные'}</strong><span>${t('startupPage','chartWillAppear') || 'График появится через несколько дней — каждый день в 3:00 UTC мы сохраняем снимок метрик.'}</span></div>`;
+    if (rangeLabel) rangeLabel.textContent = points.length === 1 ? '1 точка' : '';
+    return;
+  }
+
+  const W = 720, H = 220, PAD_L = 50, PAD_R = 12, PAD_T = 12, PAD_B = 26;
+  const xs = points.map((_, i) => i);
+  const ys = points.map(p => Number(p.val) || 0);
+  const yMin = Math.min(...ys);
+  const yMax = Math.max(...ys);
+  const yPad = (yMax - yMin) * 0.1 || (Math.abs(yMax) * 0.1) || 1;
+  const yLo = yMin - yPad;
+  const yHi = yMax + yPad;
+  const x = i => PAD_L + (i / (xs.length - 1)) * (W - PAD_L - PAD_R);
+  const y = v => H - PAD_B - ((v - yLo) / (yHi - yLo)) * (H - PAD_T - PAD_B);
+
+  const fmt = (v) => {
+    if (metric.kind === 'money') return formatMoney(v);
+    if (metric.kind === 'pct') return (v >= 0 ? '+' : '') + parseFloat(v).toFixed(1) + '%';
+    return Number(v).toLocaleString();
+  };
+
+  const linePts = points.map((p, i) => `${x(i).toFixed(1)},${y(ys[i]).toFixed(1)}`).join(' ');
+  const areaPts = `${PAD_L},${(H-PAD_B).toFixed(1)} ${linePts} ${(W-PAD_R).toFixed(1)},${(H-PAD_B).toFixed(1)}`;
+
+  // 4 horizontal grid lines + labels
+  const gridLines = [0.25, 0.5, 0.75, 1].map(f => {
+    const v = yLo + (yHi - yLo) * (1 - f);
+    return `<line x1="${PAD_L}" x2="${W-PAD_R}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" stroke="var(--border)" stroke-dasharray="2 4"/>
+            <text x="${PAD_L-6}" y="${(y(v)+3).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--text3)">${fmt(v)}</text>`;
+  }).join('');
+
+  // x-axis labels: first, middle, last
+  const xIdx = [0, Math.floor(points.length/2), points.length-1];
+  const xLabels = xIdx.map(i => {
+    const d = new Date(points[i].date);
+    const lbl = d.toLocaleDateString(getLang(), { month: 'short', day: 'numeric' });
+    return `<text x="${x(i).toFixed(1)}" y="${H-8}" text-anchor="middle" font-size="10" fill="var(--text3)">${lbl}</text>`;
+  }).join('');
+
+  // hover circles
+  const dots = points.map((p, i) =>
+    `<circle cx="${x(i).toFixed(1)}" cy="${y(ys[i]).toFixed(1)}" r="3" fill="var(--accent)" opacity="0">
+      <title>${p.date}: ${fmt(ys[i])}</title>
+    </circle>`
+  ).join('');
+
+  body.innerHTML = `
+    <svg class="chart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="chartGrad" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.18"/>
+          <stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      ${gridLines}
+      <polygon points="${areaPts}" fill="url(#chartGrad)"/>
+      <polyline points="${linePts}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      ${xLabels}
+      ${points.map((p, i) => `<rect x="${(x(i)-8).toFixed(1)}" y="0" width="16" height="${H-PAD_B}" fill="transparent"><title>${p.date}: ${fmt(ys[i])}</title></rect>`).join('')}
+    </svg>`;
+  if (rangeLabel) rangeLabel.textContent = `${points.length} ${points.length===1?'точка':points.length<5?'точки':'точек'} · ${points[0].date} — ${points[points.length-1].date}`;
 }
 
 // ── Blurred seller contacts ──────────────────────────────────────────────────
@@ -217,8 +344,8 @@ function renderContactSection(s) {
     <div class="contact-blur-wrap" id="contactWrap">
       <div class="contact-blur-inner">${xLine}${webLine}</div>
       <div class="contact-overlay">
-        <button class="btn btn-primary" onclick="tryReveal()" id="revealBtn">🔓 Открыть контакты продавца</button>
-        <div class="contact-overlay-note" id="revealNote">тратит 1 просмотр из вашего лимита</div>
+        <button class="btn btn-primary" onclick="tryReveal()" id="revealBtn">🔓 <span data-i18n="startupPage.reveal">Открыть контакты продавца и сайт</span></button>
+        <div class="contact-overlay-note" id="revealNote" data-i18n="startupPage.revealNote">тратит 1 просмотр из вашего лимита</div>
       </div>
     </div>`;
   // If user already revealed this slug in this session, show immediately
