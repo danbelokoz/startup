@@ -62,9 +62,12 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
 .apply-btn { width: 100%; padding: 8px; background: var(--accent); color: white; border: none; border-radius: 7px; font-family: 'Manrope', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.12s; margin-top: 4px; }
 .apply-btn:hover { background: var(--accent2); }
 
-.grid-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.grid-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; gap: 10px; }
 .grid-count { font-size: 13px; color: var(--text3); }
-.sort-btn { display: flex; align-items: center; gap: 5px; padding: 5px 10px; background: var(--bg2); border: 1px solid var(--border2); border-radius: 7px; font-size: 12px; color: var(--text2); cursor: pointer; font-family: 'Manrope', sans-serif; }
+.sort-wrap { display: flex; align-items: center; gap: 5px; background: var(--bg2); border: 1px solid var(--border2); border-radius: 7px; padding: 4px 6px 4px 10px; }
+.sort-wrap svg { color: var(--text3); flex-shrink: 0; }
+.sort-select { appearance: none; background: transparent; border: none; padding: 4px 22px 4px 4px; font-family: 'Manrope', sans-serif; font-size: 12px; color: var(--text2); cursor: pointer; outline: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238888a0' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 4px center; }
+.sort-select:focus { outline: none; }
 .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 
 .card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; cursor: pointer; transition: all 0.15s; text-decoration: none; color: inherit; display: flex; flex-direction: column; min-width: 0; }
@@ -197,10 +200,15 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
   <main>
     <div class="grid-header">
       <span class="grid-count" id="gridCount" data-i18n="idx.loading">Загрузка...</span>
-      <button class="sort-btn" onclick="toggleSort()">
+      <div class="sort-wrap">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="9" y2="18"/></svg>
-        <span id="sortLabel" data-i18n="idx.sortRev">Выручка ↓</span>
-      </button>
+        <select class="sort-select" id="sortSelect" onchange="onSortChange(this.value)">
+          <option value="revenue-desc" data-i18n="idx.sortRev">Выручка ↓</option>
+          <option value="growth-desc" data-i18n="idx.sortGrowth">Рост ↓</option>
+          <option value="price-asc" data-i18n="idx.sortPriceAsc">Цена ↑</option>
+          <option value="price-desc" data-i18n="idx.sortPriceDesc">Цена ↓</option>
+        </select>
+      </div>
     </div>
     <div class="cards" id="cards">
       <div style="grid-column:1/-1;text-align:center;padding:60px 0;">
@@ -233,7 +241,9 @@ let displayItems = [];   // after client-side filters
 let apiPage      = 0;
 let hasMore      = false;
 let isLoading    = false;
-let apiMeta      = null; // last meta from API { total, hasMore }
+let apiMeta      = null; // last meta from API { total, hasMore } — reflects current filter
+let dbTotal      = null; // total startups in DB (no filter) — for "Startups in database" stat
+let dbOnSale     = null; // total onSale items (from a dedicated count fetch)
 let searchTimer;
 
 let filters = {
@@ -432,17 +442,35 @@ function saveStartup(slug) {
 
 /* ── STATS ─────────────────────────────────────────────────────────────────── */
 function updateStats() {
-  const totalDB  = (apiMeta&&apiMeta.total) || (cacheRead()&&cacheRead().total) || loadedItems.length;
-  const onSaleCnt= loadedItems.filter(s=>s.onSale).length;
-  const rev      = loadedItems.reduce((a,s)=>a+(s.revenue&&s.revenue.last30Days||0),0);
-  const mrr      = loadedItems.reduce((a,s)=>a+(s.revenue&&s.revenue.mrr||0),0);
+  // totalDB = true DB total (no filter), comes from fetchTotalsMeta() once
+  // onSaleTotal = real onSale count, also from fetchTotalsMeta()
+  // current filter's meta (apiMeta.total) is used only as a fallback
+  const totalDB    = dbTotal || (apiMeta && !filters.onSale && apiMeta.total) || (cacheRead() && cacheRead().total) || loadedItems.length;
+  const onSaleTotal= dbOnSale != null
+    ? dbOnSale
+    : (filters.onSale===true && apiMeta ? apiMeta.total : loadedItems.filter(s=>s.onSale).length);
+  const rev = loadedItems.reduce((a,s)=>a+(s.revenue&&s.revenue.last30Days||0),0);
+  const mrr = loadedItems.reduce((a,s)=>a+(s.revenue&&s.revenue.mrr||0),0);
   const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
-  set('statTotal',  totalDB?totalDB.toLocaleString():'—');
-  set('statSale',   onSaleCnt.toLocaleString()+(hasMore?'+':''));
+  set('statTotal',  totalDB ? totalDB.toLocaleString() : '—');
+  set('statSale',   onSaleTotal != null ? onSaleTotal.toLocaleString() : '—');
   set('statRevenue',formatMoney(rev));
   set('statMRR',    formatMoney(mrr));
-  set('cntSale',    onSaleCnt.toLocaleString()+(hasMore?'+':''));
-  set('cntAll',     totalDB?totalDB.toLocaleString():'—');
+  set('cntSale',    onSaleTotal != null ? onSaleTotal.toLocaleString() : '—');
+  set('cntAll',     totalDB ? totalDB.toLocaleString() : '—');
+}
+
+// Fetch true DB total and onSale total (limit=1 — minimal payload, server cache makes this nearly free)
+async function fetchTotalsMeta() {
+  try {
+    const [a, b] = await Promise.all([
+      fetch(API+'/startups?page=1&limit=1&sort=revenue-desc').then(r=>r.json()).catch(()=>null),
+      fetch(API+'/startups?onSale=true&page=1&limit=1&sort=revenue-desc').then(r=>r.json()).catch(()=>null),
+    ]);
+    if (a && a.meta && a.meta.total != null) dbTotal  = a.meta.total;
+    if (b && b.meta && b.meta.total != null) dbOnSale = b.meta.total;
+    updateStats();
+  } catch {}
 }
 
 function updateCount() {
@@ -471,14 +499,7 @@ function setStatus(el) {
   reloadFromAPI();
 }
 function onCategoryChange(v) { filters.category=v; reloadFromAPI(); }
-function toggleSort() {
-  const s=['revenue-desc','growth-desc','price-asc','price-desc'];
-  const keys=['sortRev','sortGrowth','sortPriceAsc','sortPriceDesc'];
-  const i=(s.indexOf(filters.sort)+1)%s.length; filters.sort=s[i];
-  const lb=document.getElementById('sortLabel');
-  if(lb){lb.dataset.i18n='idx.'+keys[i]; lb.textContent=t('idx',keys[i]);}
-  reloadFromAPI();
-}
+function onSortChange(v) { filters.sort = v; reloadFromAPI(); }
 function onSearch(v) {
   filters.search=v.trim(); clearTimeout(searchTimer);
   searchTimer=setTimeout(()=>{displayItems=applyClientFilters(loadedItems);renderCards();updateCount();},300);
@@ -504,12 +525,13 @@ function resetFilters() {
   document.querySelectorAll('.status-opt').forEach(o=>o.classList.remove('sel'));
   document.querySelector('.status-opt[data-filter="sale"]').classList.add('sel');
   const si=document.getElementById('searchInput'); if(si) si.value='';
-  const lb=document.getElementById('sortLabel'); if(lb){lb.dataset.i18n='idx.sortRev'; lb.textContent=t('idx','sortRev');}
+  const ss=document.getElementById('sortSelect'); if(ss) ss.value='revenue-desc';
   filters={onSale:true,category:'',sort:'revenue-desc',search:'',mrrMin:0,mrrMax:0,rev30Min:0,rev30Max:0,priceMin:0,priceMax:0,growthMin:'',growthMax:'',multipleMax:0,marginMin:0,marginMax:0,audience:'',mobile:''};
   reloadFromAPI();
 }
 
 loadInitial();
+fetchTotalsMeta();
 </script>
 </body>
 </html>

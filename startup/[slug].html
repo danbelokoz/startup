@@ -158,9 +158,36 @@ function renderStartup(s) {
   const gMrr = s.growthMRR30d!=null?`<span class="${s.growthMRR30d>0?'growth-positive':s.growthMRR30d<0?'growth-negative':''}">${s.growthMRR30d>0?'+':''}${parseFloat(s.growthMRR30d).toFixed(1)}%</span>`:'—';
   const website = s.website?`<a href="${escHtml(s.website)}" target="_blank" style="color:var(--accent)">${s.website.replace(/^https?:\/\//,'')}</a>`:'—';
 
-  // Tech stack
+  // Tech stack — items are {slug, category} objects from TrustMRR
   const techHtml = s.techStack&&s.techStack.length
-    ? `<div class="section-title">Tech Stack</div><div class="tech-tags">${s.techStack.map(t=>`<span class="tech-tag">${escHtml(t)}</span>`).join('')}</div>`
+    ? `<div class="section-title">Tech Stack</div><div class="tech-tags">${s.techStack.map(item=>{
+        const name = typeof item==='string' ? item : (item.slug || item.name || '');
+        const cat  = item && item.category ? ` <span style="opacity:0.6">· ${escHtml(item.category)}</span>` : '';
+        return `<span class="tech-tag">${escHtml(name)}${cat}</span>`;
+      }).join('')}</div>`
+    : '';
+
+  // Marketing channels — array of strings or objects
+  const channelsHtml = s.marketingChannels&&s.marketingChannels.length
+    ? `<div class="section-title">Marketing channels</div><div class="tech-tags">${s.marketingChannels.map(c=>{
+        const name = typeof c==='string' ? c : (c.name || c.channel || c.slug || '');
+        return `<span class="tech-tag">${escHtml(name)}</span>`;
+      }).join('')}</div>`
+    : '';
+
+  // Cofounders — render as cards when populated
+  const cofoundersHtml = s.cofounders&&s.cofounders.length
+    ? `<div class="section-title">Cofounders</div><div class="tech-tags">${s.cofounders.map(c=>{
+        if (typeof c==='string') return `<span class="tech-tag">${escHtml(c)}</span>`;
+        const nm = c.name || c.fullName || c.handle || '';
+        const handle = c.xHandle || c.handle;
+        const inner = handle ? `<a href="https://x.com/${escHtml(handle)}" target="_blank" style="color:inherit;text-decoration:none">${escHtml(nm||'@'+handle)}</a>` : escHtml(nm);
+        return `<span class="tech-tag">${inner}</span>`;
+      }).join('')}</div>`
+    : '';
+
+  const listedDate = s.firstListedForSaleAt
+    ? `<div style="font-size:12px;color:var(--text3);margin-top:4px;">First listed: ${new Date(s.firstListedForSaleAt).toLocaleDateString(getLang(),{year:'numeric',month:'short',day:'numeric'})}</div>`
     : '';
 
   const saleBlock = s.onSale&&s.askingPrice ? `
@@ -170,6 +197,7 @@ function renderStartup(s) {
         <div class="sale-price">${formatMoney(s.askingPrice)}</div>
         ${s.multiple?`<div class="sale-multiple">${parseFloat(s.multiple).toFixed(2)}x ${t('startupPage','multiple')}</div>`:''}
       </div>
+      ${listedDate}
       <div id="contactSection"></div>
     </div>` : `<div class="not-sale-box">${t('startupPage','notForSale')}</div>`;
 
@@ -182,6 +210,7 @@ function renderStartup(s) {
           ${s.category?`<span class="badge badge-cat">${s.category}</span>`:''}
           ${s.onSale?`<span class="badge badge-sale">${t('startupPage','forSale')}</span>`:''}
           ${s.paymentProvider?`<span class="badge badge-green">${s.paymentProvider}</span>`:''}
+          ${s.isMerchantOfRecord?`<span class="badge badge-cat">MoR</span>`:''}
           ${s.rank?`<span class="badge badge-cat">#${s.rank}</span>`:''}
         </div>
       </div>
@@ -199,7 +228,10 @@ function renderStartup(s) {
       ${s.profitMarginLast30Days!=null?`<div class="metric-card"><div class="metric-card-label">${t('startupPage','margin')}</div><div class="metric-card-value">${Math.round(s.profitMarginLast30Days)}%</div></div>`:''}
       <div class="metric-card"><div class="metric-card-label">${t('startupPage','customers')}</div><div class="metric-card-value">${(s.customers||0).toLocaleString()}</div></div>
       <div class="metric-card"><div class="metric-card-label">${t('startupPage','subs')}</div><div class="metric-card-value">${(s.activeSubscriptions||0).toLocaleString()}</div></div>
-      ${s.visitorsLast30Days?`<div class="metric-card"><div class="metric-card-label">${t('startupPage','visitors')}</div><div class="metric-card-value">${s.visitorsLast30Days.toLocaleString()}</div></div>`:''}
+      ${s.visitorsLast30Days!=null?`<div class="metric-card"><div class="metric-card-label">${t('startupPage','visitors')}</div><div class="metric-card-value">${s.visitorsLast30Days.toLocaleString()}</div></div>`:''}
+      ${s.googleSearchImpressionsLast30Days!=null?`<div class="metric-card"><div class="metric-card-label">Google impressions (30d)</div><div class="metric-card-value">${s.googleSearchImpressionsLast30Days.toLocaleString()}</div></div>`:''}
+      ${s.revenuePerVisitor!=null?`<div class="metric-card"><div class="metric-card-label">Revenue / visitor</div><div class="metric-card-value">${formatMoney(s.revenuePerVisitor)}</div></div>`:''}
+      ${s.xFollowerCount!=null?`<div class="metric-card"><div class="metric-card-label">𝕏 followers</div><div class="metric-card-value">${s.xFollowerCount.toLocaleString()}</div></div>`:''}
       ${s.rank?`<div class="metric-card"><div class="metric-card-label">${t('startupPage','rank')}</div><div class="metric-card-value">#${s.rank}</div></div>`:''}
     </div>
 
@@ -220,7 +252,9 @@ function renderStartup(s) {
       ${s.paymentProvider?`<tr><td>${t('startupPage','provider')}</td><td>${s.paymentProvider}</td></tr>`:''}
     </table>
 
-    ${techHtml}`;
+    ${techHtml}
+    ${channelsHtml}
+    ${cofoundersHtml}`;
 
   if (s.onSale) renderContactSection(s);
   initChart(s);
