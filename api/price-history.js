@@ -33,35 +33,55 @@ async function redisSet(key, value, ttl) {
 // TrustMRR's RSC payload looks like:
 //   self.__next_f.push([1,"...escaped JSON..."])
 // JSON.parse on the second arg un-escapes it. Inside the decoded string we
-// find "askingPriceHistory":[{...},{...}].
-function extractAskingPriceHistory(html) {
+// find a startup object with "slug":"<slug>" and "askingPriceHistory":[...].
+// Multiple startups can appear on the page (main + sidebar of similar startups),
+// so we anchor on the requested slug to pick the right array.
+function extractAskingPriceHistory(html, slug) {
   const re = /self\.__next_f\.push\(\[\d+,(".+?")\]\)/gs;
-  let best = [];
+  const slugMarker = `"slug":"${slug}"`;
+  const candidates = []; // {arr, distFromOwnerSlug}
   let m;
   while ((m = re.exec(html)) !== null) {
     let decoded;
     try { decoded = JSON.parse(m[1]); } catch { continue; }
-    const idx = decoded.indexOf('"askingPriceHistory":[');
-    if (idx === -1) continue;
-    // Walk balanced brackets starting at the '[' after the key
-    let p = decoded.indexOf('[', idx);
-    let depth = 0;
-    for (let i = p; i < decoded.length; i++) {
-      const c = decoded[i];
-      if (c === '[') depth++;
-      else if (c === ']') {
-        depth--;
-        if (depth === 0) {
-          try {
-            const arr = JSON.parse(decoded.slice(p, i + 1));
-            if (Array.isArray(arr) && arr.length > best.length) best = arr;
-          } catch {}
-          break;
-        }
+
+    // Find every askingPriceHistory occurrence in this push
+    let searchFrom = 0;
+    while (true) {
+      const idx = decoded.indexOf('"askingPriceHistory":[', searchFrom);
+      if (idx === -1) break;
+      // Walk balanced brackets to extract the JSON array
+      const open = decoded.indexOf('[', idx);
+      let depth = 0, end = -1;
+      for (let i = open; i < decoded.length; i++) {
+        const c = decoded[i];
+        if (c === '[') depth++;
+        else if (c === ']') { depth--; if (depth === 0) { end = i; break; } }
       }
+      if (end === -1) break;
+      let arr;
+      try { arr = JSON.parse(decoded.slice(open, end + 1)); } catch { searchFrom = end + 1; continue; }
+      if (Array.isArray(arr)) {
+        // Find the nearest owner slug marker (within ±8000 chars).
+        // We look for `"slug":"X"` where X is not a tech-stack entry.
+        // A reliable approximation: anchor on the exact `"slug":"<requested>"` string.
+        const before = decoded.lastIndexOf(slugMarker, idx);
+        const after  = decoded.indexOf(slugMarker, idx);
+        let dist = Infinity;
+        if (before !== -1) dist = Math.min(dist, idx - before);
+        if (after  !== -1) dist = Math.min(dist, after - idx);
+        candidates.push({ arr, dist });
+      }
+      searchFrom = end + 1;
     }
   }
-  return best;
+  if (!candidates.length) return [];
+  // Prefer arrays anchored to the requested slug. If none, fall back to the
+  // first non-empty array (TrustMRR loads the main startup first in the RSC).
+  candidates.sort((a, b) => a.dist - b.dist);
+  const owned = candidates.find(c => c.dist !== Infinity);
+  if (owned) return owned.arr;
+  return candidates.find(c => c.arr.length) ? candidates.find(c => c.arr.length).arr : [];
 }
 
 export default async function handler(req, res) {
@@ -86,7 +106,7 @@ export default async function handler(req, res) {
     });
     if (!r.ok) return res.status(200).json({ data: [], note: 'fetch_failed_' + r.status });
     const html = await r.text();
-    const history = extractAskingPriceHistory(html)
+    const history = extractAskingPriceHistory(html, slug)
       .map(p => ({ price: p.price, createdAt: p.createdAt }))
       .filter(p => p.price != null && p.createdAt)
       .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
