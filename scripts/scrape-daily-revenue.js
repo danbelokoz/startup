@@ -18,7 +18,6 @@ import puppeteer from 'puppeteer';
 
 const SUPABASE_URL             = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const TRUSTMRR_API_KEY         = process.env.TRUSTMRR_API_KEY;
 const LIMIT                    = parseInt(process.env.LIMIT || '250', 10);
 const DEBUG                    = process.env.DEBUG === '1';
 const PAGE_DELAY_MS            = 2500;
@@ -214,27 +213,25 @@ async function upsertRevenue(slug, rawPoints) {
 }
 
 // ── Slug list ─────────────────────────────────────────────────────────────────
+// Uses our own Vercel API (already cached from TrustMRR) — no extra API key needed.
 
 async function getSlugs() {
-  if (!TRUSTMRR_API_KEY) throw new Error('TRUSTMRR_API_KEY not set');
-
   const slugs = [];
   let page = 1;
   const maxPages = Math.ceil(LIMIT / 50);
 
   while (page <= maxPages) {
     const r = await fetch(
-      `https://trustmrr.com/api/v1/startups?page=${page}&limit=50&sort=revenue-desc`,
-      { headers: { Authorization: `Bearer ${TRUSTMRR_API_KEY}` } }
+      `https://startup-silk-nu.vercel.app/api/startups?page=${page}&limit=50&sort=revenue-desc`
     );
-    if (!r.ok) throw new Error(`TrustMRR API ${r.status} on page ${page}`);
+    if (!r.ok) throw new Error(`Vercel API ${r.status} on page ${page}`);
     const data = await r.json();
     if (Array.isArray(data.data)) {
       slugs.push(...data.data.map(s => s.slug).filter(Boolean));
     }
     if (!data.meta?.hasMore) break;
     page++;
-    if (page <= maxPages) await sleep(3200); // TrustMRR rate limit: 20 req/min
+    await sleep(500); // наш собственный API, можно быстрее
   }
 
   return slugs.slice(0, LIMIT);
