@@ -37,7 +37,7 @@ function isUnixSec(v) {
 }
 
 function tryExtractPoints(arr) {
-  if (!Array.isArray(arr) || arr.length < 3 || arr.length > 2000) return null;
+  if (!Array.isArray(arr) || arr.length < 3) return null;
   const sample = arr[0];
   if (!sample || typeof sample !== 'object') return null;
 
