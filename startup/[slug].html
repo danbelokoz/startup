@@ -265,7 +265,8 @@ function renderStartup(s) {
   const website = s.website?`<a href="${escHtml(s.website)}" target="_blank" style="color:var(--accent)">${s.website.replace(/^https?:\/\//,'')}</a>`:'—';
 
   const isAnon = (s.name||'').toLowerCase().includes('anonymous');
-  const wantBlur = !isAnon && !_revealed;
+  const isSubscriber = window._access && window._access.role === 'subscriber';
+  const wantBlur = !isAnon && !_revealed && !isSubscriber;
   const blurNameCls = wantBlur ? ' name-blur' : '';
   const blurLogoCls = wantBlur ? ' logo-blur' : '';
 
@@ -451,8 +452,8 @@ function renderStartup(s) {
       ${ai.businessType && ai.businessType !== 'Unknown' ?`<tr><td>Business type</td><td>${escHtml(ai.businessType)}</td></tr>`:''}
       ${ai.pricingModel?`<tr><td>Pricing model</td><td>${escHtml(ai.pricingModel)}</td></tr>`:''}
       ${s.paymentProvider?`<tr><td>${t('startupPage','provider')}</td><td>${s.paymentProvider}</td></tr>`:''}
-      ${s.xFounderName?`<tr><td>Founder</td><td><span class="paywall-blur owner-blur">${escHtml(s.xFounderName)}</span></td></tr>`:''}
-      ${s.xHandle?`<tr><td>X handle</td><td><span class="paywall-blur owner-blur">@${escHtml(s.xHandle)}</span></td></tr>`:''}
+      ${s.xFounderName?`<tr><td>Founder</td><td>${wantBlur ? `<span class="paywall-blur owner-blur">${escHtml(s.xFounderName)}</span>` : escHtml(s.xFounderName)}</td></tr>`:''}
+      ${s.xHandle?`<tr><td>X handle</td><td>${wantBlur ? `<span class="paywall-blur owner-blur">@${escHtml(s.xHandle)}</span>` : '@'+escHtml(s.xHandle)}</td></tr>`:''}
     </table>
 
     ${cofoundersHtml}
@@ -579,12 +580,16 @@ function renderSiteSection() {
 }
 
 // ── Similar startups — 8 same-category onSale cards at the page bottom ───────
+// Items are cached after the first fetch so re-renders (e.g. after reveal,
+// which wipes #similarSection) replay the same content without an extra HTTP.
+let _similarItems = null;
 let _similarLoaded = false;
 async function loadSimilar(s) {
-  if (_similarLoaded) return;
-  _similarLoaded = true;
   const el = document.getElementById('similarSection');
   if (!el) return;
+  if (_similarItems) { renderSimilarInto(el, s, _similarItems); return; }
+  if (_similarLoaded) return;
+  _similarLoaded = true;
   const cat = s.category || '';
   if (!cat) { el.style.display = 'none'; return; }
   try {
@@ -593,33 +598,41 @@ async function loadSimilar(s) {
     const j = await r.json();
     const items = (j.data || []).filter(x => x && x.slug && x.slug !== s.slug).slice(0, 8);
     if (!items.length) { el.style.display = 'none'; return; }
-    el.innerHTML = `
-      <div class="similar-head">
-        <h3>More ${escHtml(cat)} startups for sale</h3>
-        <a href="/acquire.html">View marketplace ${icon('arrowRight',{size:12})}</a>
-      </div>
-      <div class="similar-grid">
-        ${items.map(it => {
-          const init = (it.name||'?').split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
-          const isAnon2 = (it.name||'').toLowerCase().includes('anonymous');
-          const blurN = !isAnon2 ? ' name-blur' : '';
-          const blurL = !isAnon2 ? ' logo-blur' : '';
-          const logo = it.icon
-            ? `<img src="${escHtml(it.icon)}" onerror="this.parentElement.textContent='${init}'"/>`
-            : init;
-          return `<a class="similar-card" href="/startup/${escHtml(it.slug)}.html">
-            <div class="similar-head-row">
-              <span class="similar-logo${blurL}">${logo}</span>
-              <span class="similar-name${blurN}">${escHtml(it.name)}</span>
-            </div>
-            <div class="similar-price-row">
-              <span class="similar-price">${formatMoney(it.askingPrice)}</span>
-              <span class="similar-mult">${it.multiple ? parseFloat(it.multiple).toFixed(1)+'×' : ''}</span>
-            </div>
-          </a>`;
-        }).join('')}
-      </div>`;
+    _similarItems = items;
+    renderSimilarInto(el, s, items);
   } catch { el.style.display = 'none'; }
+}
+function renderSimilarInto(el, s, items) {
+  const cat = s.category || '';
+  const isSubscriber = window._access && window._access.role === 'subscriber';
+  el.style.display = '';
+  el.innerHTML = `
+    <div class="similar-head">
+      <h3>More ${escHtml(cat)} startups for sale</h3>
+      <a href="/acquire.html">View marketplace ${icon('arrowRight',{size:12})}</a>
+    </div>
+    <div class="similar-grid">
+      ${items.map(it => {
+        const init = (it.name||'?').split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
+        const isAnon2 = (it.name||'').toLowerCase().includes('anonymous');
+        const wantBlur2 = !isAnon2 && !isSubscriber;
+        const blurN = wantBlur2 ? ' name-blur' : '';
+        const blurL = wantBlur2 ? ' logo-blur' : '';
+        const logo = it.icon
+          ? `<img src="${escHtml(it.icon)}" onerror="this.parentElement.textContent='${init}'"/>`
+          : init;
+        return `<a class="similar-card" href="/startup/${escHtml(it.slug)}.html">
+          <div class="similar-head-row">
+            <span class="similar-logo${blurL}">${logo}</span>
+            <span class="similar-name${blurN}">${escHtml(it.name)}</span>
+          </div>
+          <div class="similar-price-row">
+            <span class="similar-price">${formatMoney(it.askingPrice)}</span>
+            <span class="similar-mult">${it.multiple ? parseFloat(it.multiple).toFixed(1)+'×' : ''}</span>
+          </div>
+        </a>`;
+      }).join('')}
+    </div>`;
 }
 
 // Fetch parsed RSC fields from /api/enrich and merge into _startup, then re-render.
