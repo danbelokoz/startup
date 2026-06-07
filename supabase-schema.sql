@@ -262,6 +262,31 @@ CREATE INDEX IF NOT EXISTS idx_snap_slug_date
   ON daily_snapshots(slug, snap_date DESC);
 
 -- ============================================================
+-- DAILY REVENUE
+-- Per-day revenue scraped from TrustMRR chart pages via Puppeteer.
+-- Unlike daily_snapshots (which is a snapshot of current MRR), each row here
+-- represents the revenue actually earned ON that specific day (from Stripe).
+-- Written by the GitHub Actions "scrape-daily-revenue" workflow weekly.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS daily_revenue (
+  slug        TEXT         NOT NULL,
+  rev_date    DATE         NOT NULL,
+  rev_usd     NUMERIC(12,2),          -- daily revenue in USD (from TrustMRR chart)
+  charges     INT,                     -- number of charges/transactions that day
+  scraped_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (slug, rev_date)
+);
+
+ALTER TABLE daily_revenue ENABLE ROW LEVEL SECURITY;
+
+-- Public read — used by the detail page chart
+CREATE POLICY "daily_revenue_select_all" ON daily_revenue
+  FOR SELECT USING (TRUE);
+
+CREATE INDEX IF NOT EXISTS idx_daily_rev_slug_date
+  ON daily_revenue(slug, rev_date DESC);
+
+-- ============================================================
 -- GRANTS
 -- Supabase anon/authenticated roles need USAGE on schema.
 -- Table-level access is controlled by RLS policies above.
@@ -272,6 +297,7 @@ GRANT SELECT ON profiles         TO authenticated;
 GRANT SELECT ON subscriptions    TO authenticated;
 GRANT SELECT ON startup_views    TO authenticated;
 GRANT SELECT ON daily_snapshots  TO anon, authenticated;
+GRANT SELECT ON daily_revenue    TO anon, authenticated;
 
 -- INSERT/UPDATE/DELETE on all tables is done via service role in Vercel API functions.
 -- The service role key bypasses RLS entirely — never expose it to the client.
