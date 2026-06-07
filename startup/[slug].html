@@ -96,6 +96,29 @@
   .insight-chip  { font-size: 12px; padding: 4px 10px; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; color: var(--text2); display: inline-flex; align-items: center; gap: 5px; }
   .insight-cat   { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 8px; margin-bottom: 4px; }
   .insight-cat:first-child { margin-top: 0; }
+  /* Website preview section */
+  .site-section { margin-bottom: 32px; }
+  .site-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+  .site-status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text2); }
+  .site-status .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text3); }
+  .site-status.up .dot { background: var(--accent); box-shadow: 0 0 0 4px rgba(0,194,122,0.15); }
+  .site-status.down .dot { background: var(--red); }
+  .site-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+  .site-shot-wrap { aspect-ratio: 16 / 9; background: var(--bg3); position: relative; overflow: hidden; border-bottom: 1px solid var(--border); }
+  .site-shot { width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; }
+  .site-shot.blurred { filter: blur(12px); transform: scale(1.05); transition: filter 0.3s; }
+  .site-shot-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: rgba(0,0,0,0.5); font-size: 12px; pointer-events: none; }
+  .site-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+  .site-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+  .site-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; padding: 4px 9px; background: var(--bg3); border: 1px solid var(--border); border-radius: 999px; color: var(--text2); }
+  .site-pill.green { background: rgba(0,194,122,0.08); color: var(--green); border-color: rgba(0,194,122,0.2); }
+  .site-pill.accent { background: rgba(108,99,255,0.06); color: var(--accent); border-color: rgba(108,99,255,0.2); }
+  .site-pricing { display: flex; flex-wrap: wrap; gap: 6px; }
+  .site-pricing .site-pill { font-size: 12px; font-weight: 600; color: var(--text); background: var(--bg2); border-color: var(--border2); }
+  .site-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 12px; color: var(--text3); }
+  .site-row strong { color: var(--text2); font-weight: 500; }
+  .site-row a { color: var(--text2); text-decoration: none; display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; transition: all 0.12s; }
+  .site-row a:hover { color: var(--text); border-color: var(--text); }
   /* Similar startups grid */
   .similar-section { margin-top: 40px; }
   .similar-head    { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
@@ -396,6 +419,8 @@ function renderStartup(s) {
 
     ${insightsHtml}
 
+    <div id="siteSection"></div>
+
     <div class="section-title" data-i18n="startupPage.dailyChart">Динамика по дням</div>
     <div class="chart-card" id="chartCard">
       <div class="chart-head">
@@ -425,6 +450,112 @@ function renderStartup(s) {
   initChart(s);
   fetchEnrichment(s.slug);
   loadSimilar(s);
+  renderSiteSection();
+  fetchSiteData(s.website);
+}
+
+// ── Live website preview, tech stack, pricing, social ───────────────────────
+let _siteData = null;
+let _siteLoaded = false;
+
+async function fetchSiteData(url) {
+  if (_siteLoaded || !url) return;
+  _siteLoaded = true;
+  try {
+    const r = await fetch('/api/scrape-site?url=' + encodeURIComponent(url));
+    const j = await r.json();
+    _siteData = j && j.data || null;
+    renderSiteSection();
+  } catch { _siteData = null; }
+}
+
+// Mapping detected tech to a presentation label
+const TECH_LABELS = {
+  nextjs: 'Next.js', nuxt: 'Nuxt', react: 'React', vue: 'Vue', svelte: 'Svelte',
+  angular: 'Angular', remix: 'Remix', astro: 'Astro',
+  tailwind: 'Tailwind', bootstrap: 'Bootstrap',
+  stripe: 'Stripe', paddle: 'Paddle', lemonsqueezy: 'LemonSqueezy', polar: 'Polar',
+  googleAnalytics: 'Google Analytics', posthog: 'PostHog', mixpanel: 'Mixpanel',
+  plausible: 'Plausible', intercom: 'Intercom', crisp: 'Crisp',
+  cloudflare: 'Cloudflare', vercel: 'Vercel', netlify: 'Netlify', railway: 'Railway',
+};
+
+function renderSiteSection() {
+  const el = document.getElementById('siteSection');
+  if (!el) return;
+  const d = _siteData;
+  const s = _startup || {};
+  if (!s.website) { el.innerHTML = ''; return; }
+
+  // Until enrich/site data lands we still want to reserve the slot
+  if (!d) {
+    el.innerHTML = '';
+    return;
+  }
+  if (d.ok === false || d.error) {
+    const reason = d.error === 'timeout' ? 'request timed out' : (d.status ? `HTTP ${d.status}` : (d.error || 'unreachable'));
+    el.innerHTML = `<div class="site-section"><div class="section-title">Website</div>
+      <div class="pp-section"><p style="color:var(--text3);">Couldn't reach the live site (${escHtml(reason)}). The seller's URL may be down or geo-restricted.</p></div></div>`;
+    return;
+  }
+
+  const techPills = Object.entries(TECH_LABELS)
+    .filter(([k]) => d.tech && d.tech[k])
+    .map(([k, label]) => `<span class="site-pill">${escHtml(label)}</span>`)
+    .join('');
+
+  const pricingPills = Array.isArray(d.pricing) && d.pricing.length
+    ? d.pricing.slice(0, 5).map(p => `<span class="site-pill">${escHtml(p.display)}</span>`).join('')
+    : '';
+
+  const featurePills = [
+    d.hasFreeTrial ? `<span class="site-pill green">${icon('check',{size:10})} Free trial</span>` : '',
+    d.hasDemo      ? `<span class="site-pill accent">${icon('check',{size:10})} Book a demo</span>` : '',
+    d.hasPricing   ? `<span class="site-pill">${icon('dollar',{size:10})} Pricing page</span>` : '',
+    d.hasAPI       ? `<span class="site-pill">${icon('code',{size:10})} API / Docs</span>` : '',
+  ].filter(Boolean).join('');
+
+  const apps = d.apps || {};
+  const appLinks = [
+    apps.ios     ? `<a href="https://apps.apple.com/app/id${escHtml(apps.ios)}" target="_blank">${icon('externalLink',{size:11})} iOS</a>` : '',
+    apps.android ? `<a href="https://play.google.com/store/apps/details?id=${escHtml(apps.android)}" target="_blank">${icon('externalLink',{size:11})} Android</a>` : '',
+    apps.chrome  ? `<a href="https://chrome.google.com/webstore/detail/${escHtml(apps.chrome)}" target="_blank">${icon('externalLink',{size:11})} Chrome ext</a>` : '',
+  ].filter(Boolean).join('');
+
+  const socials = d.socials || {};
+  const socialLinks = [
+    socials.twitter     ? `<a href="https://x.com/${escHtml(socials.twitter)}" target="_blank">𝕏 @${escHtml(socials.twitter)}</a>` : '',
+    socials.github      ? `<a href="https://github.com/${escHtml(socials.github)}" target="_blank">${icon('code',{size:11})} GitHub</a>` : '',
+    socials.linkedin    ? `<a href="https://linkedin.com/company/${escHtml(socials.linkedin)}" target="_blank">LinkedIn</a>` : '',
+    socials.youtube     ? `<a href="https://youtube.com/${escHtml(socials.youtube)}" target="_blank">YouTube</a>` : '',
+    socials.producthunt ? `<a href="https://producthunt.com/products/${escHtml(socials.producthunt)}" target="_blank">Product Hunt</a>` : '',
+    socials.discord     ? `<a href="https://discord.gg/${escHtml(socials.discord)}" target="_blank">Discord</a>` : '',
+  ].filter(Boolean).join('');
+
+  // Blur the screenshot while the seller's identity is still paywalled
+  const shotBlur = (!_revealed && !((s.name||'').toLowerCase().includes('anonymous'))) ? ' blurred' : '';
+  const statusCls = d.ok ? 'up' : 'down';
+  const statusText = d.ok ? `Live · ${d.latencyMs || '–'}ms` : 'Down';
+
+  el.innerHTML = `
+    <div class="site-section">
+      <div class="site-head">
+        <div class="section-title" style="margin-bottom:0;border:none;padding:0;">Website</div>
+        <span class="site-status ${statusCls}"><span class="dot"></span>${escHtml(statusText)}</span>
+      </div>
+      <div class="site-card">
+        ${d.screenshotUrl ? `<div class="site-shot-wrap">
+          <img class="site-shot${shotBlur}" src="${escHtml(d.screenshotUrl)}" alt="Site preview" loading="lazy" onerror="this.parentElement.style.display='none'"/>
+        </div>` : ''}
+        <div class="site-body">
+          ${(d.ogDescription || d.description) ? `<p style="font-size:13px;color:var(--text2);line-height:1.55;margin:0;">${escHtml((d.ogDescription || d.description).slice(0,280))}</p>` : ''}
+          ${featurePills ? `<div class="site-pills">${featurePills}</div>` : ''}
+          ${pricingPills ? `<div><div class="site-row"><strong>Pricing observed:</strong></div><div class="site-pricing">${pricingPills}</div></div>` : ''}
+          ${techPills ? `<div><div class="site-row"><strong>Tech detected:</strong></div><div class="site-pills">${techPills}</div></div>` : ''}
+          ${(appLinks || socialLinks) ? `<div class="site-row">${appLinks}${socialLinks}</div>` : ''}
+        </div>
+      </div>
+    </div>`;
 }
 
 // ── Similar startups — 8 same-category onSale cards at the page bottom ───────
