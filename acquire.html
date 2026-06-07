@@ -277,17 +277,24 @@ async function fetchPage(page, bg) {
       loadedItems  = loadedItems.concat(fresh);
       hasMore      = !!(meta&&meta.hasMore);
       apiPage      = page;
-      const newDisp = applyClientFilters(fresh);
-      displayItems = displayItems.concat(newDisp);
-      appendCards(newDisp);
+      displayItems = applyClientFilters(loadedItems);
+      renderCards();
+      updateCount();
     }
   } catch { if (!bg && page===1) showError(); }
   finally { isLoading=false; }
 }
 
+function rankAnonLast(arr) {
+  return arr.slice().sort((a, b) => {
+    const aA = (a.name||'').toLowerCase().includes('anonymous') ? 1 : 0;
+    const bA = (b.name||'').toLowerCase().includes('anonymous') ? 1 : 0;
+    return aA - bA;
+  });
+}
 function applyClientFilters(items) {
   const q = filters.search.toLowerCase();
-  return items.filter(s => {
+  const filtered = items.filter(s => {
     if (q && !s.name.toLowerCase().includes(q) && !(s.description||'').toLowerCase().includes(q)) return false;
     const mrr   = s.revenue&&s.revenue.mrr||0;
     const rev   = s.revenue&&s.revenue.last30Days||0;
@@ -309,6 +316,7 @@ function applyClientFilters(items) {
     if (filters.audience && s.targetAudience && !s.targetAudience.toLowerCase().includes(filters.audience)) return false;
     return true;
   });
+  return rankAnonLast(filtered);
 }
 
 function renderCards() {

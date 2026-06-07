@@ -332,9 +332,11 @@ async function fetchPage(page, bg) {
       loadedItems  = loadedItems.concat(fresh);
       hasMore      = !!(meta&&meta.hasMore);
       apiPage      = page;
-      const newDisp = applyClientFilters(fresh);
-      displayItems = displayItems.concat(newDisp);
-      appendCards(newDisp);
+      // Re-filter the whole set so anonymous items keep sinking to the bottom
+      // even as new pages stream in via infinite scroll.
+      displayItems = applyClientFilters(loadedItems);
+      renderCards();
+      updateCount();
     }
   } catch {
     if (!bg && page===1) {
@@ -349,9 +351,18 @@ async function fetchPage(page, bg) {
 }
 
 /* ── CLIENT-SIDE FILTERS ──────────────────────────────────────────────────── */
+// Anonymous startups (name contains "anonymous") get ranked to the bottom
+// regardless of the chosen sort — buyers get to skim the named ones first.
+function rankAnonLast(arr) {
+  return arr.slice().sort((a, b) => {
+    const aA = (a.name||'').toLowerCase().includes('anonymous') ? 1 : 0;
+    const bA = (b.name||'').toLowerCase().includes('anonymous') ? 1 : 0;
+    return aA - bA;
+  });
+}
 function applyClientFilters(items) {
   const q = filters.search.toLowerCase();
-  return items.filter(s => {
+  const filtered = items.filter(s => {
     if (q && !s.name.toLowerCase().includes(q) && !(s.description||'').toLowerCase().includes(q)) return false;
     const mrr   = s.revenue&&s.revenue.mrr||0;
     const rev   = s.revenue&&s.revenue.last30Days||0;
@@ -375,6 +386,7 @@ function applyClientFilters(items) {
     if (filters.mobile==='no' && s.hasMobileApp) return false;
     return true;
   });
+  return rankAnonLast(filtered);
 }
 
 /* ── RENDER ────────────────────────────────────────────────────────────────── */
