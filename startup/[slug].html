@@ -243,7 +243,7 @@ function renderStartup(s) {
   updateFavBtn(s.slug);
 
   const fb = escHtml(s.name.charAt(0));
-  const icon = s.icon ? `<img src="${escHtml(s.icon)}" data-fb="${fb}" onerror="this.parentElement.textContent=this.getAttribute('data-fb')"/>` : `<span>${fb}</span>`;
+  const logoMarkup = s.icon ? `<img src="${escHtml(s.icon)}" data-fb="${fb}" onerror="this.parentElement.textContent=this.getAttribute('data-fb')"/>` : `<span>${fb}</span>`;
   const g    = s.growth30d != null ? s.growth30d : s.cachedGrowth30d;
   const gStr = g!=null?`<span class="${g>0?'growth-positive':g<0?'growth-negative':''}">${g>0?'+':''}${parseFloat(g).toFixed(1)}%</span>`:'—';
   const gMrrRaw = s.growthMRR30d != null ? s.growthMRR30d : s.cachedGrowthMRR30d;
@@ -370,7 +370,7 @@ function renderStartup(s) {
 
   document.getElementById('content').innerHTML = `
     <div class="startup-header">
-      <div class="startup-icon${blurLogoCls}">${icon}</div>
+      <div class="startup-icon${blurLogoCls}">${logoMarkup}</div>
       <div class="startup-header-meta">
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
           <h1 class="${blurNameCls}" style="margin-bottom:0;">${escHtml(s.name)}</h1>
