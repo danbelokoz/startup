@@ -103,17 +103,38 @@ function extractDailyRevenue(json) {
 
 // ── Puppeteer scraping ────────────────────────────────────────────────────────
 
+// Known TrustMRR revenue endpoint pattern (discovered via debug run)
+const REVENUE_RE = /\/api\/startup\/revenue\//i;
+
 async function scrapeStartup(page, slug) {
   const calls = [];
   let revenueData = null;
 
   async function onResponse(response) {
     try {
-      if (response.status() !== 200) return;
+      const url = response.url();
+      const status = response.status();
+
+      // Always capture the known revenue endpoint — log status even on non-200
+      if (REVENUE_RE.test(url)) {
+        console.log(`    revenue endpoint → ${status} ${url}`);
+        if (status !== 200) return;
+        const json = await response.json();
+        console.log(`    raw keys: ${Array.isArray(json) ? `array[${json.length}]` : Object.keys(json).join(', ')}`);
+        if (DEBUG) console.log(`    raw sample: ${JSON.stringify(json).slice(0, 600)}`);
+        const points = extractDailyRevenue(json);
+        if (points && points.length) {
+          console.log(`    extracted ${points.length} daily points`);
+          revenueData = points;
+        } else {
+          console.log(`    extraction failed — raw: ${JSON.stringify(json).slice(0, 300)}`);
+        }
+        return;
+      }
+
+      if (status !== 200) return;
       const ct = response.headers()['content-type'] || '';
       if (!ct.includes('application/json')) return;
-      const url = response.url();
-      // Skip noise: analytics, fonts, icons
       if (/google|gstatic|facebook|sentry|hotjar|logrocket|intercom|crisp/i.test(url)) return;
 
       const json = await response.json();
@@ -121,7 +142,6 @@ async function scrapeStartup(page, slug) {
 
       if (DEBUG) calls.push({ url, hasData: !!points, len: points?.length });
 
-      // Require at least 7 points (1 week) to accept as chart data
       if (points && points.length >= 7 && !revenueData) {
         console.log(`    chart data → ${url} (${points.length} points)`);
         revenueData = points;
@@ -136,10 +156,9 @@ async function scrapeStartup(page, slug) {
       waitUntil: 'networkidle2',
       timeout: 20000,
     });
-    // Extra wait: some charts lazy-load after initial render
     await sleep(3500);
   } catch (e) {
-    if (!e.message.includes('net::ERR_ABORTED')) { // aborted = blocked resource (normal)
+    if (!e.message.includes('net::ERR_ABORTED')) {
       console.log(`    nav error: ${e.message.slice(0, 100)}`);
     }
   }
@@ -147,9 +166,9 @@ async function scrapeStartup(page, slug) {
   page.off('response', onResponse);
 
   if (DEBUG && calls.length) {
-    console.log(`    intercepted ${calls.length} JSON calls:`);
-    for (const c of calls.slice(0, 8)) {
-      console.log(`      ${c.hasData ? '✓' : '·'} ${c.url}${c.hasData ? ` (${c.len})` : ''}`);
+    console.log(`    other JSON calls (${calls.length}):`);
+    for (const c of calls.slice(0, 6)) {
+      console.log(`      ${c.hasData ? '✓' : '·'} ${c.url}`);
     }
   }
 
