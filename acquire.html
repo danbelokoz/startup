@@ -17,10 +17,10 @@
 .hero-title em { font-style: normal; color: var(--accent); }
 .hero-sub { font-size: 14px; color: var(--text2); margin-bottom: 20px; }
 
-.provider-icons { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 28px; flex-wrap: wrap; }
+.provider-icons { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
 .provider-wrap { position: relative; }
-.provider-icon { width: 42px; height: 42px; border-radius: 10px; background: var(--bg2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; overflow: hidden; transition: transform 0.15s, box-shadow 0.15s; }
-.provider-icon img { width: 28px; height: 28px; object-fit: contain; }
+.provider-icon { width: 32px; height: 32px; border-radius: 8px; background: var(--bg2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; overflow: hidden; transition: transform 0.15s, box-shadow 0.15s; }
+.provider-icon img { width: 20px; height: 20px; object-fit: contain; }
 .provider-wrap:hover .provider-icon { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
 .provider-tip { display: none; position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: var(--text); color: white; font-size: 11px; padding: 4px 8px; border-radius: 5px; white-space: nowrap; font-weight: 500; pointer-events: none; z-index: 50; }
 .provider-tip::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 4px solid transparent; border-top-color: var(--text); }
@@ -286,11 +286,9 @@ async function fetchPage(page, bg) {
 }
 
 function rankAnonLast(arr) {
-  return arr.slice().sort((a, b) => {
-    const aA = (a.name||'').toLowerCase().includes('anonymous') ? 1 : 0;
-    const bA = (b.name||'').toLowerCase().includes('anonymous') ? 1 : 0;
-    return aA - bA;
-  });
+  const indexed = arr.map((s, i) => ({ s, i, anon: (s.name||'').toLowerCase().includes('anonymous') ? 1 : 0, score: dataScore(s) }));
+  indexed.sort((a, b) => (a.anon - b.anon) || (b.score - a.score) || (a.i - b.i));
+  return indexed.map(x => x.s);
 }
 function applyClientFilters(items) {
   const q = filters.search.toLowerCase();
@@ -347,11 +345,23 @@ function setupScroll() {
   scrollObs.observe(el);
 }
 
-function flagEmoji(code) {
-  if (!code || typeof code !== 'string' || code.length !== 2) return '';
-  const A = 0x1F1E6;
-  const c = code.toUpperCase();
-  return String.fromCodePoint(A + (c.charCodeAt(0) - 65), A + (c.charCodeAt(1) - 65));
+function flagBadge(code) {
+  if (!code) return '';
+  return icon('pin',{size:11}) + ' ' + escHtml(code);
+}
+function dataScore(s) {
+  let n = 0;
+  if (s && s.description && s.description.length > 20) n += 2;
+  if (s && s.icon) n += 1;
+  if (s && s.foundedDate) n += 1;
+  if (s && s.country) n += 1;
+  if (s && s.targetAudience) n += 1;
+  if (s && s.profitMarginLast30Days != null) n += 1;
+  if (s && s.growth30d != null) n += 1;
+  if (s && s.multiple != null) n += 1;
+  if (s && s.askingPrice) n += 1;
+  if (s && s.xHandle) n += 1;
+  return n;
 }
 
 function cardHTML(s) {
@@ -380,10 +390,9 @@ function cardHTML(s) {
     ? Math.floor((Date.now() - new Date(s.firstListedForSaleAt).getTime()) / 86400000)
     : null;
   const isNew = daysListed != null && daysListed >= 0 && daysListed < 7;
-  const flag = flagEmoji(s.country);
   const year = s.foundedDate ? new Date(s.foundedDate).getFullYear() : null;
   const extraBits = [];
-  if (flag) extraBits.push('<span class="card-extra-item">'+flag+' '+escHtml(s.country||'')+'</span>');
+  if (s.country) extraBits.push('<span class="card-extra-item">'+flagBadge(s.country)+'</span>');
   if (year && year > 1990) extraBits.push('<span class="card-extra-item">'+icon('calendar',{size:11})+' '+year+'</span>');
   if (s.profitMarginLast30Days != null) extraBits.push('<span class="card-extra-item">'+icon('trending',{size:11})+' '+Math.round(s.profitMarginLast30Days)+'% margin</span>');
   if (daysListed != null && daysListed >= 0 && !isNew) extraBits.push('<span class="card-extra-item">'+icon('clock',{size:11})+' '+daysListed+'d listed</span>');

@@ -384,9 +384,10 @@ function getPaywallState() {
   const a = window._access;
   if (!a || !a.authenticated) {
     return {
-      title: 'У вас доступно 3 бесплатных просмотра',
-      body: 'Войдите, чтобы открыть скрытые данные и получить 8 просмотров в день.',
-      cta: 'Войти',
+      kind: 'guest',
+      title: 'Зарегистрируйся — получи 3 бесплатных просмотра',
+      body: 'Без карты, без подписки. Просто email и пароль — и сразу 3 раскрытия в подарок.',
+      cta: 'Зарегистрироваться',
       action: 'signin',
     };
   }
@@ -395,18 +396,20 @@ function getPaywallState() {
   if (left > 0) {
     const word = left === 1 ? 'просмотр' : left < 5 ? 'просмотра' : 'просмотров';
     return {
-      title: `${left} бесплатных ${word} осталось сегодня`,
-      body: 'Откройте этот стартап одним кликом — или повысьте план (пока бесплатно) для безлимита.',
+      kind: 'user',
+      title: `У тебя осталось ${left} ${word}`,
+      body: 'Нажимая «Открыть» ты тратишь 1 просмотр и раскрываешь название, лого, сайт и контакты продавца.',
       cta: 'Открыть',
       action: 'reveal',
-      sub: 'Повысить план — бесплатно',
+      sub: 'Открой безлимит навсегда — пока бесплатно',
       subAction: 'upgrade',
     };
   }
   return {
-    title: 'Дневной лимит исчерпан',
-    body: 'Повысьте план — пока полностью бесплатно — для безлимитных просмотров.',
-    cta: 'Повысить план',
+    kind: 'limit',
+    title: 'Просмотры закончились',
+    body: 'Открой безлимит навсегда — пока полностью бесплатно во время бета-периода.',
+    cta: 'Получить безлимит',
     action: 'upgrade',
   };
 }
@@ -420,6 +423,49 @@ function handlePaywallAction(act) {
   } else if (act === 'upgrade') {
     location.href = '/dashboard.html#upgrade';
   }
+}
+
+// Paywall modal — opens on click of any blurred element. Hover tooltip stays.
+function mountPaywallModal() {
+  if (document.getElementById('paywallModalBg')) return;
+  const bg = document.createElement('div');
+  bg.id = 'paywallModalBg';
+  bg.innerHTML = '<div class="pw-modal" id="paywallModal"></div>';
+  document.body.appendChild(bg);
+  bg.addEventListener('click', (e) => { if (e.target === bg) closePaywallModal(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePaywallModal(); });
+}
+function closePaywallModal() {
+  const bg = document.getElementById('paywallModalBg'); if (bg) bg.classList.remove('open');
+}
+function openPaywallModal() {
+  mountPaywallModal();
+  const state = getPaywallState(); if (!state) return;
+  const bg = document.getElementById('paywallModalBg');
+  const modal = document.getElementById('paywallModal');
+  const iconName = state.kind === 'guest' ? 'unlock' : state.kind === 'user' ? 'eye' : 'star';
+  const offer = state.kind === 'user' ? `
+    <div class="pw-modal-offer">
+      <div class="pw-modal-offer-title">⚡ Открой безлимит навсегда</div>
+      <div class="pw-modal-offer-body">Пока бета — Pro-план полностью бесплатный. Безлимит раскрытий, экспорт и алерты по новым листингам.</div>
+      <a class="pw-modal-offer-link" data-act="upgrade">Получить безлимит →</a>
+    </div>` : '';
+  modal.innerHTML =
+    '<button class="pw-modal-close" data-act="close">×</button>' +
+    '<span class="pw-modal-icon">' + (typeof icon === 'function' ? icon(iconName,{size:22}) : '') + '</span>' +
+    '<h2>' + state.title + '</h2>' +
+    '<p>' + state.body + '</p>' +
+    '<button class="pw-modal-cta" data-act="' + state.action + '">' + state.cta + '</button>' +
+    offer;
+  modal.querySelectorAll('[data-act]').forEach(el => {
+    el.addEventListener('click', () => {
+      const act = el.dataset.act;
+      if (act === 'close') { closePaywallModal(); return; }
+      closePaywallModal();
+      handlePaywallAction(act);
+    });
+  });
+  bg.classList.add('open');
 }
 
 function mountPaywallTooltip() {
@@ -486,16 +532,15 @@ function mountPaywallTooltip() {
     if (act) { handlePaywallAction(act); tip.classList.remove('show'); }
   });
 
-  // Clicking the blurred element itself triggers the primary action.
+  // Clicking the blurred element itself opens the full paywall modal so the
+  // buyer sees an explicit "spend 1" vs "unlock forever" choice instead of
+  // silently consuming a reveal.
   document.addEventListener('click', (e) => {
     const target = e.target.closest('.paywall-blur, .name-blur, .logo-blur, .owner-blur');
     if (!target) return;
-    // Allow cards (anchor wrappers) to navigate normally — only intercept
-    // when the user clicked a standalone blurred element, not inside a card.
     if (target.closest('.card, .similar-card')) return;
     e.preventDefault();
-    const state = getPaywallState();
-    if (state) handlePaywallAction(state.action);
+    openPaywallModal();
   });
 }
 

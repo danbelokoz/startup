@@ -17,11 +17,11 @@
 .hero-title em { font-style: normal; color: var(--accent); }
 .hero-sub { font-size: 14px; color: var(--text2); margin-bottom: 20px; }
 
-/* Provider logos — Google S2 favicons (reliable) */
-.provider-icons { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 28px; flex-wrap: wrap; }
+/* Provider logos */
+.provider-icons { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
 .provider-wrap { position: relative; }
-.provider-icon { width: 42px; height: 42px; border-radius: 10px; background: var(--bg2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; overflow: hidden; transition: transform 0.15s, box-shadow 0.15s; }
-.provider-icon img { width: 28px; height: 28px; object-fit: contain; }
+.provider-icon { width: 32px; height: 32px; border-radius: 8px; background: var(--bg2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; overflow: hidden; transition: transform 0.15s, box-shadow 0.15s; }
+.provider-icon img { width: 20px; height: 20px; object-fit: contain; }
 .provider-wrap:hover .provider-icon { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
 .provider-tip { display: none; position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: var(--text); color: white; font-size: 11px; padding: 4px 8px; border-radius: 5px; white-space: nowrap; font-weight: 500; pointer-events: none; z-index: 50; }
 .provider-tip::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 4px solid transparent; border-top-color: var(--text); }
@@ -351,14 +351,13 @@ async function fetchPage(page, bg) {
 }
 
 /* ── CLIENT-SIDE FILTERS ──────────────────────────────────────────────────── */
-// Anonymous startups (name contains "anonymous") get ranked to the bottom
-// regardless of the chosen sort — buyers get to skim the named ones first.
+// Stable client-side sort — anonymous to the bottom, then by data completeness
+// descending, then the API's chosen order for ties. Buyers see the richest
+// cards first without losing the global revenue/growth/price sort.
 function rankAnonLast(arr) {
-  return arr.slice().sort((a, b) => {
-    const aA = (a.name||'').toLowerCase().includes('anonymous') ? 1 : 0;
-    const bA = (b.name||'').toLowerCase().includes('anonymous') ? 1 : 0;
-    return aA - bA;
-  });
+  const indexed = arr.map((s, i) => ({ s, i, anon: (s.name||'').toLowerCase().includes('anonymous') ? 1 : 0, score: dataScore(s) }));
+  indexed.sort((a, b) => (a.anon - b.anon) || (b.score - a.score) || (a.i - b.i));
+  return indexed.map(x => x.s);
 }
 function applyClientFilters(items) {
   const q = filters.search.toLowerCase();
@@ -418,12 +417,29 @@ function setupScroll() {
   scrollObs.observe(el);
 }
 
-// Country code → flag emoji (regional indicator letters).
-function flagEmoji(code) {
-  if (!code || typeof code !== 'string' || code.length !== 2) return '';
-  const A = 0x1F1E6;
-  const c = code.toUpperCase();
-  return String.fromCodePoint(A + (c.charCodeAt(0) - 65), A + (c.charCodeAt(1) - 65));
+// Compact, platform-neutral country chip — pin icon + ISO code (no OS-specific flag emoji).
+function flagBadge(code) {
+  if (!code) return '';
+  return icon('pin',{size:11}) + ' ' + escHtml(code);
+}
+
+// Score each startup by how many user-facing fields are populated.
+// Used as a tiebreaker so well-documented cards float above sparse anonymous-ish ones.
+function dataScore(s) {
+  let n = 0;
+  if (s && s.description && s.description.length > 20) n += 2;
+  if (s && s.icon) n += 1;
+  if (s && s.foundedDate) n += 1;
+  if (s && s.country) n += 1;
+  if (s && s.targetAudience) n += 1;
+  if (s && s.profitMarginLast30Days != null) n += 1;
+  if (s && s.growth30d != null) n += 1;
+  if (s && s.multiple != null) n += 1;
+  if (s && s.revenue && s.revenue.mrr > 0) n += 1;
+  if (s && s.visitorsLast30Days != null) n += 1;
+  if (s && s.askingPrice) n += 1;
+  if (s && s.xHandle) n += 1;
+  return n;
 }
 
 function cardHTML(s) {
@@ -462,10 +478,9 @@ function cardHTML(s) {
     : null;
   const isNew = daysListed != null && daysListed >= 0 && daysListed < 7;
   // Extra meta row: flag + year + listed/margin
-  const flag = flagEmoji(s.country);
   const year = s.foundedDate ? new Date(s.foundedDate).getFullYear() : null;
   const extraBits = [];
-  if (flag) extraBits.push('<span class="card-extra-item">'+flag+' '+escHtml(s.country||'')+'</span>');
+  if (s.country) extraBits.push('<span class="card-extra-item">'+flagBadge(s.country)+'</span>');
   if (year && year > 1990) extraBits.push('<span class="card-extra-item">'+icon('calendar',{size:11})+' '+year+'</span>');
   if (s.profitMarginLast30Days != null) extraBits.push('<span class="card-extra-item">'+icon('trending',{size:11})+' '+Math.round(s.profitMarginLast30Days)+'% margin</span>');
   if (daysListed != null && daysListed >= 0 && !isNew) extraBits.push('<span class="card-extra-item">'+icon('clock',{size:11})+' '+daysListed+'d listed</span>');
@@ -502,10 +517,12 @@ function saveStartup(slug) {
 
 /* ── STATS ─────────────────────────────────────────────────────────────────── */
 function updateStats() {
-  // totalDB = true DB total (no filter), comes from fetchTotalsMeta() once
-  // onSaleTotal = real onSale count, also from fetchTotalsMeta()
-  // current filter's meta (apiMeta.total) is used only as a fallback
-  const totalDB    = dbTotal || (apiMeta && !filters.onSale && apiMeta.total) || (cacheRead() && cacheRead().total) || loadedItems.length;
+  // totalDB = true DB total (no filter), provided exclusively by fetchTotalsMeta().
+  // Falling back to the cached/filtered total caused a flash from 1766 → 7410
+  // on page load (cache had the onSale total, not the DB total).
+  const totalDB    = dbTotal != null
+    ? dbTotal
+    : (apiMeta && !filters.onSale ? apiMeta.total : null);
   const onSaleTotal= dbOnSale != null
     ? dbOnSale
     : (filters.onSale===true && apiMeta ? apiMeta.total : loadedItems.filter(s=>s.onSale).length);

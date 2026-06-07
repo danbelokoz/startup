@@ -226,12 +226,10 @@ function updateFavBtn(slug){
   const on=getFavs().includes(slug);btn.innerHTML=icon(on?'heartFill':'heart',{size:16});btn.classList.toggle('active',on);
 }
 
-// Country code → flag emoji helper (used in info table)
-function flagEmoji(code) {
-  if (!code || typeof code !== 'string' || code.length !== 2) return '';
-  const A = 0x1F1E6;
-  const c = code.toUpperCase();
-  return String.fromCodePoint(A + (c.charCodeAt(0) - 65), A + (c.charCodeAt(1) - 65));
+// Neutral country chip (pin icon + ISO code) — used in info table
+function flagBadge(code) {
+  if (!code) return '';
+  return icon('pin',{size:12}) + ' ' + escHtml(code);
 }
 
 // Wraps every brand-name mention in plain text with a paywall-blur span and
@@ -446,7 +444,7 @@ function renderStartup(s) {
     <div class="section-title">Info</div>
     <table class="info-table">
       ${s.foundedDate?`<tr><td>${t('startupPage','founded')}</td><td>${new Date(s.foundedDate).getFullYear()}</td></tr>`:''}
-      ${s.country?`<tr><td>${t('startupPage','country')}</td><td>${flagEmoji(s.country)} ${s.country}</td></tr>`:''}
+      ${s.country?`<tr><td>${t('startupPage','country')}</td><td>${flagBadge(s.country)}</td></tr>`:''}
       ${s.targetAudience?`<tr><td>${t('startupPage','audience')}</td><td>${s.targetAudience.toUpperCase()}</td></tr>`:''}
       ${ai.targetPersona?`<tr><td>Target persona</td><td>${escHtml(ai.targetPersona)}</td></tr>`:''}
       ${ai.businessType && ai.businessType !== 'Unknown' ?`<tr><td>Business type</td><td>${escHtml(ai.businessType)}</td></tr>`:''}
