@@ -134,6 +134,46 @@ footer a { color: var(--text2); }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
 
+/* ── PAYWALL BLUR + TOOLTIP ─────────────────────────────────────────────────
+   Any element marked .paywall-blur (or the legacy aliases .name-blur,
+   .logo-blur, .owner-blur) is visually obscured until the buyer spends a
+   reveal from their daily quota. Hovering shows a unified tooltip that
+   adapts to the auth state (guest / user / subscriber). */
+.paywall-blur, .name-blur, .logo-blur, .owner-blur {
+  filter: blur(5px);
+  user-select: none;
+  cursor: pointer;
+  transition: filter 0.2s;
+}
+.name-blur { filter: blur(6px); }
+.logo-blur { filter: blur(4px); }
+.owner-blur { filter: blur(5px); display: inline-block; }
+.card:hover .name-blur, .card:hover .paywall-blur { filter: blur(3px); }
+
+#paywallTip {
+  position: fixed; z-index: 9999; pointer-events: none; opacity: 0;
+  background: var(--text); color: white; border-radius: 10px; padding: 12px 14px;
+  font-family: 'Manrope', sans-serif; font-size: 12px;
+  max-width: 280px; line-height: 1.5;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.25);
+  transform: translateY(4px);
+  transition: opacity 0.15s, transform 0.15s;
+}
+#paywallTip.show { opacity: 1; pointer-events: auto; transform: translateY(0); }
+#paywallTip .pt-title { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+#paywallTip .pt-body  { color: rgba(255,255,255,0.78); margin-bottom: 10px; }
+#paywallTip .pt-cta   {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; background: var(--accent); border-radius: 7px;
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  border: none; color: white; font-family: inherit;
+}
+#paywallTip .pt-cta:hover { background: var(--accent2); }
+#paywallTip .pt-sub-cta {
+  display: block; margin-top: 8px; font-size: 11px;
+  color: rgba(255,255,255,0.7); text-decoration: underline; cursor: pointer;
+}
+
 /* LANG SWITCHER */
 .lang-switcher { position: relative; }
 .lang-btn {

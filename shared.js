@@ -376,3 +376,131 @@ document.addEventListener('click', (e) => {
   const sw = document.getElementById('langSwitcher');
   if (sw && !sw.contains(e.target)) document.getElementById('langDropdown')?.classList.remove('open');
 });
+
+// ── PAYWALL TOOLTIP ─────────────────────────────────────────────────────────
+// Single floating tooltip wired to any .paywall-blur / .name-blur / .logo-blur
+// / .owner-blur element. Messages adapt to the auth state from window._access.
+function getPaywallState() {
+  const a = window._access;
+  if (!a || !a.authenticated) {
+    return {
+      title: 'У вас доступно 3 бесплатных просмотра',
+      body: 'Войдите, чтобы открыть скрытые данные и получить 8 просмотров в день.',
+      cta: 'Войти',
+      action: 'signin',
+    };
+  }
+  if (a.role === 'subscriber') return null;
+  const left = a.viewsLeft != null ? a.viewsLeft : 8;
+  if (left > 0) {
+    const word = left === 1 ? 'просмотр' : left < 5 ? 'просмотра' : 'просмотров';
+    return {
+      title: `${left} бесплатных ${word} осталось сегодня`,
+      body: 'Откройте этот стартап одним кликом — или повысьте план (пока бесплатно) для безлимита.',
+      cta: 'Открыть',
+      action: 'reveal',
+      sub: 'Повысить план — бесплатно',
+      subAction: 'upgrade',
+    };
+  }
+  return {
+    title: 'Дневной лимит исчерпан',
+    body: 'Повысьте план — пока полностью бесплатно — для безлимитных просмотров.',
+    cta: 'Повысить план',
+    action: 'upgrade',
+  };
+}
+
+function handlePaywallAction(act) {
+  if (act === 'signin') {
+    location.href = '/auth.html?from=' + encodeURIComponent(location.pathname);
+  } else if (act === 'reveal') {
+    if (typeof window.tryReveal === 'function') window.tryReveal();
+    else location.reload();
+  } else if (act === 'upgrade') {
+    location.href = '/dashboard.html#upgrade';
+  }
+}
+
+function mountPaywallTooltip() {
+  if (document.getElementById('paywallTip')) return;
+  const tip = document.createElement('div');
+  tip.id = 'paywallTip';
+  document.body.appendChild(tip);
+
+  let activeTarget = null;
+  let hideTimer = null;
+
+  function position(e) {
+    const padding = 14;
+    const tw = tip.offsetWidth || 280;
+    const th = tip.offsetHeight || 120;
+    let x = e.clientX + 14;
+    let y = e.clientY + 14;
+    if (x + tw + padding > window.innerWidth)  x = window.innerWidth  - tw - padding;
+    if (y + th + padding > window.innerHeight) y = e.clientY - th - 14;
+    if (x < padding) x = padding;
+    if (y < padding) y = padding;
+    tip.style.left = x + 'px';
+    tip.style.top  = y + 'px';
+  }
+
+  function show(e) {
+    const state = getPaywallState();
+    if (!state) return;
+    tip.innerHTML =
+      '<div class="pt-title">' + state.title + '</div>' +
+      '<div class="pt-body">'  + state.body  + '</div>' +
+      '<button class="pt-cta" data-act="' + state.action + '">' + state.cta + ' →</button>' +
+      (state.sub ? '<a class="pt-sub-cta" data-act="' + state.subAction + '">' + state.sub + '</a>' : '');
+    tip.classList.add('show');
+    position(e);
+  }
+
+  function hideSoon() {
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(() => { tip.classList.remove('show'); activeTarget = null; }, 180);
+  }
+
+  document.addEventListener('mouseover', (e) => {
+    const target = e.target.closest('.paywall-blur, .name-blur, .logo-blur, .owner-blur');
+    if (!target) return;
+    clearTimeout(hideTimer);
+    if (activeTarget === target) { position(e); return; }
+    activeTarget = target;
+    show(e);
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (activeTarget && activeTarget.contains(e.target)) position(e);
+  });
+  document.addEventListener('mouseout', (e) => {
+    const target = e.target.closest('.paywall-blur, .name-blur, .logo-blur, .owner-blur');
+    if (!target) return;
+    if (e.relatedTarget && (tip.contains(e.relatedTarget) || target.contains(e.relatedTarget))) return;
+    hideSoon();
+  });
+  tip.addEventListener('mouseenter', () => clearTimeout(hideTimer));
+  tip.addEventListener('mouseleave', hideSoon);
+  tip.addEventListener('click', (e) => {
+    const act = e.target.closest('[data-act]')?.dataset.act;
+    if (act) { handlePaywallAction(act); tip.classList.remove('show'); }
+  });
+
+  // Clicking the blurred element itself triggers the primary action.
+  document.addEventListener('click', (e) => {
+    const target = e.target.closest('.paywall-blur, .name-blur, .logo-blur, .owner-blur');
+    if (!target) return;
+    // Allow cards (anchor wrappers) to navigate normally — only intercept
+    // when the user clicked a standalone blurred element, not inside a card.
+    if (target.closest('.card, .similar-card')) return;
+    e.preventDefault();
+    const state = getPaywallState();
+    if (state) handlePaywallAction(state.action);
+  });
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', mountPaywallTooltip);
+} else {
+  mountPaywallTooltip();
+}

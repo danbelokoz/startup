@@ -234,6 +234,20 @@ function flagEmoji(code) {
   return String.fromCodePoint(A + (c.charCodeAt(0) - 65), A + (c.charCodeAt(1) - 65));
 }
 
+// Wraps every brand-name mention in plain text with a paywall-blur span and
+// returns safe HTML. Falls back to escHtml when revealed or anonymous.
+function maskBrand(text, brand) {
+  if (text == null) return '';
+  if (!brand || _revealed) return escHtml(text);
+  if ((brand || '').toLowerCase().includes('anonymous')) return escHtml(text);
+  const safe = brand.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const marker = ' B ';
+  const marked = String(text).replace(new RegExp('\\b' + safe + '\\b', 'gi'), marker);
+  return escHtml(marked).split(marker).join(
+    '<span class="paywall-blur" style="display:inline-block;">' + escHtml(brand) + '</span>'
+  );
+}
+
 function renderStartup(s) {
   document.title = `${s.name} — MRRket`;
   document.getElementById('backLink').textContent = '← ' + t('startupPage','back');
@@ -265,7 +279,7 @@ function renderStartup(s) {
   const realDesc = s.description && s.description.trim();
   const fallback = (s.aiEnrichment && s.aiEnrichment.valueProposition) ? stripBrand(s.aiEnrichment.valueProposition) : null;
   const descText = realDesc || fallback || '';
-  const descHtml = descText ? `<div class="startup-desc">${escHtml(descText)}</div>` : '';
+  const descHtml = descText ? `<div class="startup-desc">${maskBrand(descText, s.name)}</div>` : '';
 
   // Cofounders — render as chips when populated
   const cofoundersHtml = s.cofounders&&s.cofounders.length
@@ -417,8 +431,6 @@ function renderStartup(s) {
       ${s.hasDatafast ? `<span class="analytics-pill">${icon('zap',{size:11})} Datafast</span>` : ''}
     </div>` : ''}
 
-    ${insightsHtml}
-
     <div id="siteSection"></div>
 
     <div class="section-title" data-i18n="startupPage.dailyChart">Динамика по дням</div>
@@ -439,10 +451,13 @@ function renderStartup(s) {
       ${ai.businessType && ai.businessType !== 'Unknown' ?`<tr><td>Business type</td><td>${escHtml(ai.businessType)}</td></tr>`:''}
       ${ai.pricingModel?`<tr><td>Pricing model</td><td>${escHtml(ai.pricingModel)}</td></tr>`:''}
       ${s.paymentProvider?`<tr><td>${t('startupPage','provider')}</td><td>${s.paymentProvider}</td></tr>`:''}
-      ${s.xFounderName?`<tr><td>Founder</td><td>${escHtml(s.xFounderName)}</td></tr>`:''}
+      ${s.xFounderName?`<tr><td>Founder</td><td><span class="paywall-blur owner-blur">${escHtml(s.xFounderName)}</span></td></tr>`:''}
+      ${s.xHandle?`<tr><td>X handle</td><td><span class="paywall-blur owner-blur">@${escHtml(s.xHandle)}</span></td></tr>`:''}
     </table>
 
     ${cofoundersHtml}
+
+    ${insightsHtml}
 
     <div class="similar-section" id="similarSection"></div>`;
 
@@ -515,21 +530,26 @@ function renderSiteSection() {
     d.hasAPI       ? `<span class="site-pill">${icon('code',{size:10})} API / Docs</span>` : '',
   ].filter(Boolean).join('');
 
+  // Anything that exposes the seller's brand (handles, repo names, app IDs)
+  // stays behind the paywall blur until reveal.
+  const isAnonStartup = ((s.name||'').toLowerCase().includes('anonymous'));
+  const bClass = (!_revealed && !isAnonStartup) ? ' paywall-blur' : '';
+
   const apps = d.apps || {};
   const appLinks = [
-    apps.ios     ? `<a href="https://apps.apple.com/app/id${escHtml(apps.ios)}" target="_blank">${icon('externalLink',{size:11})} iOS</a>` : '',
-    apps.android ? `<a href="https://play.google.com/store/apps/details?id=${escHtml(apps.android)}" target="_blank">${icon('externalLink',{size:11})} Android</a>` : '',
-    apps.chrome  ? `<a href="https://chrome.google.com/webstore/detail/${escHtml(apps.chrome)}" target="_blank">${icon('externalLink',{size:11})} Chrome ext</a>` : '',
+    apps.ios     ? `<a class="${bClass.trim()}" href="https://apps.apple.com/app/id${escHtml(apps.ios)}" target="_blank">${icon('externalLink',{size:11})} iOS</a>` : '',
+    apps.android ? `<a class="${bClass.trim()}" href="https://play.google.com/store/apps/details?id=${escHtml(apps.android)}" target="_blank">${icon('externalLink',{size:11})} Android</a>` : '',
+    apps.chrome  ? `<a class="${bClass.trim()}" href="https://chrome.google.com/webstore/detail/${escHtml(apps.chrome)}" target="_blank">${icon('externalLink',{size:11})} Chrome ext</a>` : '',
   ].filter(Boolean).join('');
 
   const socials = d.socials || {};
   const socialLinks = [
-    socials.twitter     ? `<a href="https://x.com/${escHtml(socials.twitter)}" target="_blank">𝕏 @${escHtml(socials.twitter)}</a>` : '',
-    socials.github      ? `<a href="https://github.com/${escHtml(socials.github)}" target="_blank">${icon('code',{size:11})} GitHub</a>` : '',
-    socials.linkedin    ? `<a href="https://linkedin.com/company/${escHtml(socials.linkedin)}" target="_blank">LinkedIn</a>` : '',
-    socials.youtube     ? `<a href="https://youtube.com/${escHtml(socials.youtube)}" target="_blank">YouTube</a>` : '',
-    socials.producthunt ? `<a href="https://producthunt.com/products/${escHtml(socials.producthunt)}" target="_blank">Product Hunt</a>` : '',
-    socials.discord     ? `<a href="https://discord.gg/${escHtml(socials.discord)}" target="_blank">Discord</a>` : '',
+    socials.twitter     ? `<a class="${bClass.trim()}" href="https://x.com/${escHtml(socials.twitter)}" target="_blank">𝕏 @${escHtml(socials.twitter)}</a>` : '',
+    socials.github      ? `<a class="${bClass.trim()}" href="https://github.com/${escHtml(socials.github)}" target="_blank">${icon('code',{size:11})} GitHub</a>` : '',
+    socials.linkedin    ? `<a class="${bClass.trim()}" href="https://linkedin.com/company/${escHtml(socials.linkedin)}" target="_blank">LinkedIn</a>` : '',
+    socials.youtube     ? `<a class="${bClass.trim()}" href="https://youtube.com/${escHtml(socials.youtube)}" target="_blank">YouTube</a>` : '',
+    socials.producthunt ? `<a class="${bClass.trim()}" href="https://producthunt.com/products/${escHtml(socials.producthunt)}" target="_blank">Product Hunt</a>` : '',
+    socials.discord     ? `<a class="${bClass.trim()}" href="https://discord.gg/${escHtml(socials.discord)}" target="_blank">Discord</a>` : '',
   ].filter(Boolean).join('');
 
   // Blur the screenshot while the seller's identity is still paywalled
@@ -548,7 +568,7 @@ function renderSiteSection() {
           <img class="site-shot${shotBlur}" src="${escHtml(d.screenshotUrl)}" alt="Site preview" loading="lazy" onerror="this.parentElement.style.display='none'"/>
         </div>` : ''}
         <div class="site-body">
-          ${(d.ogDescription || d.description) ? `<p style="font-size:13px;color:var(--text2);line-height:1.55;margin:0;">${escHtml((d.ogDescription || d.description).slice(0,280))}</p>` : ''}
+          ${(d.ogDescription || d.description) ? `<p style="font-size:13px;color:var(--text2);line-height:1.55;margin:0;">${maskBrand((d.ogDescription || d.description).slice(0,280), s.name)}</p>` : ''}
           ${featurePills ? `<div class="site-pills">${featurePills}</div>` : ''}
           ${pricingPills ? `<div><div class="site-row"><strong>Pricing observed:</strong></div><div class="site-pricing">${pricingPills}</div></div>` : ''}
           ${techPills ? `<div><div class="site-row"><strong>Tech detected:</strong></div><div class="site-pills">${techPills}</div></div>` : ''}
@@ -853,19 +873,27 @@ async function tryReveal() {
 function doReveal(s) {
   try { sessionStorage.setItem('revealed_'+s.slug,'1'); } catch {}
   _revealed = true;
-  // Unblur the header logo + name in-place (no full re-render to avoid flashing the chart)
-  document.querySelectorAll('.name-blur, .logo-blur').forEach(el => {
+  // Strip every paywall blur class in-place (no full re-render to keep chart state)
+  document.querySelectorAll('.paywall-blur, .name-blur, .logo-blur, .owner-blur').forEach(el => {
+    el.classList.remove('paywall-blur');
     el.classList.remove('name-blur');
     el.classList.remove('logo-blur');
+    el.classList.remove('owner-blur');
   });
-  // Remove the header-reveal pill if it's there
+  // Drop the inline reveal pill if it's there
   document.querySelectorAll('.header-reveal').forEach(el => el.remove());
-  const wrap = document.getElementById('contactWrap'); if (!wrap) return;
-  wrap.className = 'contact-revealed';
-  wrap.innerHTML =
-    (s.xHandle?`<a href="https://x.com/${escHtml(s.xHandle)}" target="_blank" class="btn btn-primary btn-sm">𝕏 @${escHtml(s.xHandle)}</a>`:'') +
-    (s.website ?`<a href="${escHtml(s.website)}" target="_blank" class="btn btn-ghost btn-sm">${t('startupPage','viewOriginal')} ↗</a>`:'');
+  // Re-render description so masked brand names appear in plain text
+  renderStartup(s);
+  const wrap = document.getElementById('contactWrap');
+  if (wrap) {
+    wrap.className = 'contact-revealed';
+    wrap.innerHTML =
+      (s.xHandle?`<a href="https://x.com/${escHtml(s.xHandle)}" target="_blank" class="btn btn-primary btn-sm">𝕏 @${escHtml(s.xHandle)}</a>`:'') +
+      (s.website ?`<a href="${escHtml(s.website)}" target="_blank" class="btn btn-ghost btn-sm">${t('startupPage','viewOriginal')} ↗</a>`:'');
+  }
 }
+// Expose for the shared.js paywall tooltip CTA
+window.tryReveal = function() { return tryReveal(); };
 
 function showLocked(type) {
   const from=encodeURIComponent(location.pathname);
