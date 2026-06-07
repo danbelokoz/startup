@@ -191,13 +191,19 @@ function normalizeAmount(points) {
   }));
 }
 
+const MAX_DAYS = 180; // keep only last 180 days — protects Supabase free tier (500 MB)
+
 async function upsertRevenue(slug, rawPoints) {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     console.log('    ⚠ Supabase not configured, skipping write');
     return 0;
   }
 
-  const points = normalizeAmount(rawPoints);
+  // Trim to last MAX_DAYS before normalising — avoids pulling 2011 data etc.
+  const cutoff = new Date(Date.now() - MAX_DAYS * 86400_000).toISOString().slice(0, 10);
+  const trimmed = rawPoints.filter(p => p.date >= cutoff);
+
+  const points = normalizeAmount(trimmed);
   const rows = points
     .filter(p => /^\d{4}-\d{2}-\d{2}$/.test(p.date) && typeof p.amount_usd === 'number')
     .map(p => ({
@@ -317,6 +323,24 @@ async function main() {
     }
   } finally {
     await browser.close();
+  }
+
+  // Prune rows older than MAX_DAYS to keep Supabase free tier healthy
+  if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+    const cutoff = new Date(Date.now() - MAX_DAYS * 86400_000).toISOString().slice(0, 10);
+    try {
+      const r = await fetch(
+        `${SUPABASE_URL}/rest/v1/daily_revenue?rev_date=lt.${cutoff}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'apikey':         SUPABASE_SERVICE_ROLE_KEY,
+            'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          },
+        }
+      );
+      if (r.ok) console.log(`Pruned rows older than ${cutoff}`);
+    } catch {}
   }
 
   console.log(`\n─────────────────────────────────────`);
