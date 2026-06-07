@@ -354,7 +354,7 @@ function cardHTML(s) {
   const iconInner = s.icon
     ? '<img src="'+escHtml(s.icon)+'" loading="lazy" onerror="this.parentElement.textContent=\''+init+'\'"/>'
     : init;
-  const icon = blurLogo ? '<div class="logo-blur">'+iconInner+'</div>' : iconInner;
+  const logoMarkup = blurLogo ? '<div class="logo-blur">'+iconInner+'</div>' : iconInner;
   const nameHtml = blurName ? '<span class="name-blur">'+escHtml(s.name)+'</span>' : escHtml(s.name);
   const g = s.growth30d;
   const gh = g!=null?' <span class="cm-sub '+(g>=0?'up':'dn')+'">'+(g>=0?'↑':'↓')+Math.abs(parseFloat(g)).toFixed(1)+'%</span>':'';
@@ -382,7 +382,7 @@ function cardHTML(s) {
   const extraHtml = extraBits.length ? '<div class="card-extra">'+extraBits.join('')+'</div>' : '';
   return '<a class="card" href="/startup/'+escHtml(s.slug)+'.html" onclick="saveStartup(\''+escHtml(s.slug)+'\')">'+
     '<div class="card-head">'+
-      '<div class="card-logo">'+icon+'</div>'+
+      '<div class="card-logo">'+logoMarkup+'</div>'+
       '<div class="card-head-info">'+
         '<div class="card-name">'+nameHtml+anonTag+'</div>'+
         '<div class="card-badges">'+
