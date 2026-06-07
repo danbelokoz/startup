@@ -193,6 +193,58 @@ footer a { color: var(--text2); }
 .pw-modal-offer-link  { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: var(--accent); text-decoration: none; cursor: pointer; }
 .pw-modal-offer-link:hover { color: var(--accent2); }
 
+/* Sell startup modal */
+#sellModalBg { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 10000; display: none; align-items: flex-start; justify-content: center; padding: 40px 24px; overflow-y: auto; }
+#sellModalBg.open { display: flex; }
+.sm-modal { background: var(--bg2); border-radius: 16px; width: 100%; max-width: 540px; box-shadow: 0 24px 60px rgba(0,0,0,0.28); position: relative; font-family: 'Manrope', sans-serif; padding: 28px 28px 24px; }
+.sm-modal-close { position: absolute; top: 16px; right: 16px; background: none; border: none; cursor: pointer; color: var(--text3); font-size: 22px; line-height: 1; padding: 4px 8px; border-radius: 6px; }
+.sm-modal-close:hover { background: var(--bg3); color: var(--text); }
+.sm-modal h2 { font-size: 22px; font-weight: 700; letter-spacing: -0.4px; margin-bottom: 4px; }
+.sm-modal-sub { font-size: 13px; color: var(--text2); margin-bottom: 20px; }
+.sm-step { margin-bottom: 16px; }
+.sm-label { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+.sm-label .sm-required { color: var(--red); }
+.sm-input, .sm-select, .sm-textarea { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: 9px; padding: 10px 12px; font-family: inherit; font-size: 14px; color: var(--text); outline: none; transition: border-color 0.12s; }
+.sm-input:focus, .sm-select:focus, .sm-textarea:focus { border-color: var(--accent); background: var(--bg2); }
+.sm-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238888a0' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px; cursor: pointer; }
+.sm-hint { background: var(--bg3); border: 1px solid var(--border); border-radius: 9px; padding: 10px 12px; font-size: 12px; color: var(--text2); line-height: 1.55; margin-top: 8px; }
+.sm-hint-list { padding-left: 16px; margin-top: 4px; }
+.sm-hint-list li { margin-bottom: 2px; }
+.sm-toggle { display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; font-size: 13px; color: var(--text2); }
+.sm-toggle input { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+.sm-plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+.sm-plan { background: var(--bg2); border: 1.5px solid var(--border); border-radius: 11px; padding: 12px 10px; cursor: pointer; transition: all 0.12s; position: relative; text-align: left; font-family: inherit; }
+.sm-plan:hover { border-color: var(--border2); }
+.sm-plan.selected { border-color: var(--accent); background: rgba(0,194,122,0.04); }
+.sm-plan-price { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
+.sm-plan-tag   { font-size: 10px; color: var(--text3); margin-bottom: 8px; }
+.sm-plan-popular { position: absolute; top: -7px; right: 8px; background: var(--accent); color: white; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.05em; }
+.sm-plan-feat { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); margin-top: 3px; }
+.sm-submit { width: 100%; padding: 12px 16px; background: var(--accent); color: white; border: none; border-radius: 10px; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 8px; }
+.sm-submit:hover { background: var(--accent2); }
+.sm-submit:disabled { opacity: 0.6; cursor: wait; }
+.sm-fallback { margin-top: 14px; padding: 12px 14px; background: rgba(108,99,255,0.04); border: 1px dashed rgba(108,99,255,0.25); border-radius: 9px; font-size: 12px; color: var(--text2); line-height: 1.5; text-align: center; }
+.sm-fallback a { color: var(--accent); text-decoration: none; font-weight: 600; }
+.sm-success { padding: 18px; background: rgba(0,194,122,0.08); border: 1px solid rgba(0,194,122,0.25); border-radius: 11px; text-align: center; color: var(--green); font-size: 13px; }
+.sm-success strong { display: block; font-size: 15px; margin-bottom: 4px; color: var(--green); }
+
+/* Top startups leaderboard widget */
+.top-startups { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; max-width: 740px; margin: 16px auto 0; box-shadow: var(--shadow); }
+.top-startups-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.top-startups-head h3 { font-size: 13px; font-weight: 700; letter-spacing: -0.1px; margin: 0; color: var(--text); display: flex; align-items: center; gap: 6px; }
+.top-startups-head h3 svg { color: var(--accent); }
+.top-startups-head a { font-size: 11px; color: var(--text3); text-decoration: none; }
+.top-startups-list { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; }
+.top-startups-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; text-decoration: none; color: inherit; }
+.top-rank { font-size: 11px; color: var(--text3); font-family: 'Manrope',monospace; font-weight: 700; width: 16px; flex-shrink: 0; }
+.top-logo { width: 24px; height: 24px; border-radius: 6px; background: var(--bg3); border: 1px solid var(--border); display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: var(--text2); flex-shrink: 0; overflow: hidden; }
+.top-logo img { width: 100%; height: 100%; object-fit: cover; border-radius: 6px; }
+.top-info { flex: 1; min-width: 0; }
+.top-name { font-size: 12px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.top-mrr  { font-size: 10px; color: var(--text3); }
+.top-growth { font-size: 12px; font-weight: 700; color: var(--green); white-space: nowrap; flex-shrink: 0; }
+@media (max-width: 600px) { .top-startups-list { grid-template-columns: 1fr; } .sm-plans { grid-template-columns: 1fr; } }
+
 /* LANG SWITCHER */
 .lang-switcher { position: relative; }
 .lang-btn {

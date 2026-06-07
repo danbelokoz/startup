@@ -130,6 +130,8 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
     <div class="stat-item"><div class="stat-n" id="statRevenue">—</div><div class="stat-l" data-i18n="idx.statRev30">Выручка (30д)</div></div>
     <div class="stat-item"><div class="stat-n" id="statMRR">—</div><div class="stat-l" data-i18n="idx.statMrr">Суммарный MRR</div></div>
   </div>
+
+  <div id="topStartups"></div>
 </div>
 
 <div class="body">
@@ -609,6 +611,49 @@ function resetFilters() {
 
 loadInitial();
 fetchTotalsMeta();
+loadTopStartups();
+
+// ── Top growing startups widget (from scraped trustmrr.com homepage) ─────────
+async function loadTopStartups() {
+  const host = document.getElementById('topStartups'); if (!host) return;
+  try {
+    const r = await fetch(API + '/top-startups?limit=8');
+    const j = await r.json();
+    const items = (j.data || []).filter(x => x && x.slug);
+    if (!items.length) return;
+    host.innerHTML = `
+      <div class="top-startups">
+        <div class="top-startups-head">
+          <h3>${icon('trending',{size:14})} Top growing startups (30d)</h3>
+          <a href="/?sort=growth-desc">View all →</a>
+        </div>
+        <div class="top-startups-list">
+          ${items.map((it, i) => {
+            const init = (it.name||'?').slice(0,2).toUpperCase();
+            const logo = it.icon
+              ? `<img src="${escHtml(it.icon)}" loading="lazy" onerror="this.parentElement.textContent='${init}'"/>`
+              : init;
+            const isAnon2 = (it.name||'').toLowerCase().includes('anonymous');
+            const isSubscriber = window._access && window._access.role === 'subscriber';
+            const wantBlur2 = !isAnon2 && !isSubscriber;
+            const blurN = wantBlur2 ? ' name-blur' : '';
+            const blurL = wantBlur2 ? ' logo-blur' : '';
+            const mrr = it.mrrCents ? formatMoney(it.mrrCents) + '/mo' : '';
+            const pct = it.growth30d >= 0 ? '+' + Math.round(it.growth30d).toLocaleString() + '%' : Math.round(it.growth30d).toLocaleString() + '%';
+            return `<a class="top-startups-row" href="/startup/${escHtml(it.slug)}.html">
+              <span class="top-rank">${i+1}</span>
+              <span class="top-logo${blurL}">${logo}</span>
+              <span class="top-info">
+                <span class="top-name${blurN}">${escHtml(it.name)}</span>
+                <span class="top-mrr">${mrr}</span>
+              </span>
+              <span class="top-growth">${pct}</span>
+            </a>`;
+          }).join('')}
+        </div>
+      </div>`;
+  } catch {}
+}
 </script>
 </body>
 </html>

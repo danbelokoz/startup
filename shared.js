@@ -317,7 +317,7 @@ function buildNavHTML(activePage) {
         </div>
       </div>
       <div id="navAuth"></div>
-      <a class="btn btn-primary btn-sm" href="https://trustmrr.com/sell" target="_blank">${l.nav.sell}</a>
+      <button class="btn btn-primary btn-sm" onclick="openSellModal()">${l.nav.sell}</button>
     </div>
   </nav>`;
 }
@@ -548,4 +548,136 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', mountPaywallTooltip);
 } else {
   mountPaywallTooltip();
+}
+
+// ── SELL STARTUP MODAL ──────────────────────────────────────────────────────
+const SELL_FALLBACK_EMAIL = 'sell@mrrket.com';
+
+function mountSellModal() {
+  if (document.getElementById('sellModalBg')) return;
+  const bg = document.createElement('div');
+  bg.id = 'sellModalBg';
+  bg.innerHTML = '<div class="sm-modal" id="sellModal"></div>';
+  document.body.appendChild(bg);
+  bg.addEventListener('click', (e) => { if (e.target === bg) closeSellModal(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSellModal(); });
+}
+function closeSellModal() {
+  const bg = document.getElementById('sellModalBg'); if (bg) bg.classList.remove('open');
+}
+function openSellModal() {
+  mountSellModal();
+  const modal = document.getElementById('sellModal');
+  const planOptions = [
+    { id:'starter', price:'$19', tag:'one-time', features:['Listed in marketplace'], popular:false },
+    { id:'pro',     price:'$149',tag:'one-time', features:['Listed','Custom brand color','Newsletter feature','3× views'], popular:true },
+    { id:'premium', price:'$399',tag:'one-time', features:['Pro perks','20× views','Pinned 30 days','Buyer matching'], popular:false },
+  ];
+  modal.innerHTML = `
+    <button class="sm-modal-close" data-close>×</button>
+    <h2>List your startup</h2>
+    <div class="sm-modal-sub">Get in front of buyers actively shopping for verified MRR. Connect your payment provider — we pull revenue read-only so it stays trustworthy.</div>
+
+    <div class="sm-step">
+      <div class="sm-label">Payment provider</div>
+      <select class="sm-select" id="smProvider">
+        <option value="stripe">Stripe</option>
+        <option value="lemonsqueezy">LemonSqueezy</option>
+        <option value="polar">Polar</option>
+        <option value="paddle">Paddle</option>
+      </select>
+    </div>
+
+    <div class="sm-step">
+      <div class="sm-label">Read-only API key <span class="sm-required">*</span></div>
+      <input class="sm-input" id="smApiKey" placeholder="rk_live_…" autocomplete="off"/>
+      <div class="sm-hint">
+        We only need a <b>restricted (read-only) key</b> — your account stays safe.
+        <ol class="sm-hint-list">
+          <li>Open your provider dashboard → API keys</li>
+          <li>Create a restricted key, no write permissions</li>
+          <li>Paste it above — we never store the raw secret</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="sm-step">
+      <div class="sm-label">Asking price (USD) <span class="sm-required">*</span></div>
+      <input class="sm-input" id="smPrice" type="number" min="100" placeholder="e.g. 50000"/>
+      <div class="sm-hint">Buyers compare on revenue multiple (price ÷ annual MRR). The sweet spot for bootstrapped MRR businesses is <b>2-4×</b>. Example: $10k/yr in revenue → ask $20-40k.</div>
+    </div>
+
+    <div class="sm-step">
+      <div class="sm-label">Profit margin, last 30 days (%) <span class="sm-required">*</span></div>
+      <input class="sm-input" id="smMargin" type="number" min="0" max="100" placeholder="e.g. 65"/>
+      <div class="sm-hint">65 means you kept $65 out of every $100 in revenue after costs.</div>
+    </div>
+
+    <div class="sm-step">
+      <label class="sm-toggle"><input type="checkbox" id="smAnon"/> Stay anonymous until a buyer pays for contact</label>
+    </div>
+
+    <div class="sm-step">
+      <div class="sm-label">Listing plan</div>
+      <div class="sm-plans">
+        ${planOptions.map((p,i) => `
+          <button class="sm-plan${i===1?' selected':''}" data-plan="${p.id}" type="button">
+            ${p.popular ? '<span class="sm-plan-popular">popular</span>' : ''}
+            <div class="sm-plan-price">${p.price}</div>
+            <div class="sm-plan-tag">${p.tag}</div>
+            ${p.features.map(f => `<div class="sm-plan-feat">${icon('check',{size:10})}${f}</div>`).join('')}
+          </button>`).join('')}
+      </div>
+    </div>
+
+    <button class="sm-submit" id="smSubmit">Submit listing →</button>
+
+    <div class="sm-fallback">
+      Don't have read-only API access yet? Email <a href="mailto:${SELL_FALLBACK_EMAIL}?subject=Sell%20my%20startup">${SELL_FALLBACK_EMAIL}</a> with your numbers and we'll list it manually.
+    </div>
+  `;
+  // Plan switching
+  modal.querySelectorAll('.sm-plan').forEach(btn => {
+    btn.addEventListener('click', () => {
+      modal.querySelectorAll('.sm-plan').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+    });
+  });
+  modal.querySelector('[data-close]').addEventListener('click', closeSellModal);
+  modal.querySelector('#smSubmit').addEventListener('click', () => submitSellForm(modal));
+  document.getElementById('sellModalBg').classList.add('open');
+}
+
+async function submitSellForm(modal) {
+  const provider = modal.querySelector('#smProvider').value;
+  const apiKey   = modal.querySelector('#smApiKey').value.trim();
+  const price    = parseFloat(modal.querySelector('#smPrice').value);
+  const margin   = parseFloat(modal.querySelector('#smMargin').value);
+  const anon     = modal.querySelector('#smAnon').checked;
+  const plan     = modal.querySelector('.sm-plan.selected')?.dataset.plan || 'pro';
+
+  if (!apiKey || !price || isNaN(margin)) {
+    alert('Please fill in API key, asking price, and profit margin.');
+    return;
+  }
+  const btn = modal.querySelector('#smSubmit');
+  btn.disabled = true; btn.textContent = 'Submitting…';
+
+  const payload = { provider, apiKey, price, margin, anon, plan, ts: Date.now() };
+  try {
+    const list = JSON.parse(localStorage.getItem('sm_sell_intents') || '[]');
+    // Don't persist the raw API key on the device — replace with a safe hint.
+    list.push({ ...payload, apiKey: apiKey.slice(0,6) + '…' });
+    localStorage.setItem('sm_sell_intents', JSON.stringify(list));
+  } catch {}
+  try {
+    await fetch('/api/sell-listing-intent', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+  } catch {}
+
+  modal.innerHTML = `
+    <button class="sm-modal-close" data-close>×</button>
+    <div class="sm-success"><strong>Got it — we'll review your listing.</strong>You'll hear from us within 24 hours at the email you signed up with. Meanwhile, browse the marketplace to see how comparable startups are priced.</div>
+    <button class="sm-submit" data-close style="margin-top:14px;">Close</button>
+  `;
+  modal.querySelectorAll('[data-close]').forEach(el => el.addEventListener('click', closeSellModal));
 }
