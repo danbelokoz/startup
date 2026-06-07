@@ -28,8 +28,42 @@ async function redisSet(key, value, ttl) {
   } catch {}
 }
 
-// Walks RSC pushes, decodes each payload, and pulls every startup object that
-// has both a slug and a cachedGrowth30d field. Strongest signal of "fast grower".
+// Finds every JSON object literal in `s` that contains `marker`, by walking
+// balanced braces backwards then forwards from each marker hit. Returns parsed
+// objects (parses may fail silently, those are skipped).
+function findObjectsContaining(s, marker) {
+  const out = [];
+  let pos = -1;
+  const seenStart = new Set();
+  while ((pos = s.indexOf(marker, pos + 1)) !== -1) {
+    let depth = 0, start = -1;
+    for (let i = pos; i >= 0; i--) {
+      const c = s[i];
+      if (c === '}') depth++;
+      else if (c === '{') { if (depth === 0) { start = i; break; } depth--; }
+    }
+    if (start < 0 || seenStart.has(start)) continue;
+    seenStart.add(start);
+    depth = 0;
+    for (let j = start; j < s.length; j++) {
+      const c = s[j];
+      if (c === '{') depth++;
+      else if (c === '}') {
+        depth--;
+        if (depth === 0) {
+          const slice = s.slice(start, j + 1);
+          try { out.push(JSON.parse(slice)); } catch {}
+          break;
+        }
+      }
+    }
+  }
+  return out;
+}
+
+// Walks every RSC payload on the homepage. Inside each, finds every JSON
+// object that has both a slug and a cachedGrowth30d field — those are the
+// startup cards rendered on the homepage. Dedups by slug, sorts by growth.
 function extractTopStartups(html, limit) {
   const items = [];
   const seen = new Set();
@@ -38,27 +72,21 @@ function extractTopStartups(html, limit) {
   while ((m = re.exec(html)) !== null) {
     let decoded;
     try { decoded = JSON.parse(m[1]); } catch { continue; }
-    // Find every object that contains both "cachedGrowth30d" and "slug" within
-    // a reasonable window by walking matched balanced braces.
-    const re2 = /\{[^{}]{0,1500}"cachedGrowth30d":([\-\d.]+|null)[^{}]{0,1500}\}/g;
-    let m2;
-    while ((m2 = re2.exec(decoded)) !== null) {
-      const chunk = m2[0];
-      const slug   = (chunk.match(/"slug":"([^"]+)"/) || [])[1];
-      const name   = (chunk.match(/"name":"([^"]+)"/) || [])[1];
-      const iconU  = (chunk.match(/"icon":"([^"]+)"/) || [])[1];
-      const growth = parseFloat(m2[1]);
-      const mrr    = parseFloat((chunk.match(/"currentMrr":([\-\d.]+)/) || [])[1] || 'NaN');
-      const rev30  = parseFloat((chunk.match(/"currentLast30DaysRevenue":([\-\d.]+)/) || [])[1] || 'NaN');
-      if (!slug || !name || isNaN(growth)) continue;
-      if (seen.has(slug)) continue;
-      seen.add(slug);
+    if (!decoded.includes('"cachedGrowth30d"')) continue;
+    const objects = findObjectsContaining(decoded, '"cachedGrowth30d"');
+    for (const o of objects) {
+      if (!o || !o.slug || !o.name) continue;
+      if (typeof o.cachedGrowth30d !== 'number') continue;
+      if (seen.has(o.slug)) continue;
+      seen.add(o.slug);
       items.push({
-        slug, name,
-        icon:   iconU || null,
-        growth30d: growth,
-        mrrCents:    isNaN(mrr)   ? null : Math.round(mrr),
-        rev30dCents: isNaN(rev30) ? null : Math.round(rev30),
+        slug: o.slug,
+        name: o.name,
+        icon: o.icon || null,
+        growth30d:   o.cachedGrowth30d,
+        mrrCents:    typeof o.currentMrr === 'number' ? Math.round(o.currentMrr) : null,
+        rev30dCents: typeof o.currentLast30DaysRevenue === 'number' ? Math.round(o.currentLast30DaysRevenue) : null,
+        onSale: o.onSale === true || undefined,
       });
     }
   }
