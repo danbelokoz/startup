@@ -101,7 +101,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const limit = Math.min(50, parseInt(req.query.limit || '12', 10) || 12);
-  const cacheKey = `sm_top_startups_v1`;
+  const cacheKey = `sm_top_startups_v2`;
   const cached = await redisGet(cacheKey);
   if (cached) {
     res.setHeader('X-Cache', 'HIT');
