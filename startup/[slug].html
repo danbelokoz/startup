@@ -664,12 +664,13 @@ const CHART_METRICS_ALL = [
   { key: 'visitors_30d', label: 'Visitors',      kind: 'int'   },
   { key: 'asking_price', label: 'Asking price',  kind: 'money', source: 'price-history', requiresOnSale: true },
 ];
-let _chartMetrics   = CHART_METRICS_ALL;
-let _chartData      = [];
-let _priceHistory   = [];
-let _revenueHistory = [];
-let _chartStartup   = null;
-let _chartMetric    = 'daily_rev';
+let _chartMetrics      = CHART_METRICS_ALL;
+let _chartData         = [];
+let _priceHistory      = [];
+let _revenueHistory    = [];
+let _chartStartup      = null;
+let _chartMetric       = 'daily_rev';
+let _chartInitialized  = false; // guard: fetch only once per page load
 
 async function initChart(s) {
   _chartStartup = s;
@@ -681,6 +682,12 @@ async function initChart(s) {
       `<div class="chart-tab${m.key===_chartMetric?' active':''}" data-metric="${m.key}" onclick="selectChartMetric('${m.key}')">${m.label}</div>`
     ).join('');
   }
+
+  // Guard: only fetch data once per page load.
+  // renderStartup can be called multiple times (fetchEnrichment, navAuthUpdated, doReveal),
+  // which would each trigger initChart and spawn duplicate requests.
+  if (_chartInitialized) { renderChart(); return; }
+  _chartInitialized = true;
 
   const tasks = [
     fetch('/api/history?slug=' + encodeURIComponent(s.slug) + '&days=90')
@@ -860,7 +867,19 @@ function renderContactSection(s) {
     </div>`;
   // Re-apply i18n to the just-inserted content
   if (typeof applyLangToDoc === 'function') applyLangToDoc();
-  try { if (sessionStorage.getItem('revealed_'+s.slug)) { doReveal(s); } } catch {}
+  // If already revealed: apply contact links directly — do NOT call doReveal() here,
+  // as doReveal → renderStartup → renderContactSection → doReveal creates infinite recursion.
+  if (_revealed) {
+    const wrap = document.getElementById('contactWrap');
+    if (wrap) {
+      wrap.className = 'contact-revealed';
+      wrap.innerHTML =
+        (s.xHandle ? `<a href="https://x.com/${escHtml(s.xHandle)}" target="_blank" class="btn btn-primary btn-sm">𝕏 @${escHtml(s.xHandle)}</a>` : '') +
+        (s.website  ? `<a href="${escHtml(s.website)}" target="_blank" class="btn btn-ghost btn-sm">${t('startupPage','viewOriginal')} ↗</a>` : '');
+    }
+  } else {
+    try { if (sessionStorage.getItem('revealed_'+s.slug)) { doReveal(s); } } catch {}
+  }
 }
 
 async function tryReveal() {
