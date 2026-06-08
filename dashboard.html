@@ -2,26 +2,92 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard — StartupMarket</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+  <title>My account — MRRket</title>
   <link rel="stylesheet" href="/shared.css" />
   <style>
-    .dash-wrap  { max-width: 600px; margin: 0 auto; padding: 40px 24px 80px; }
-    .dash-card  { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 16px; box-shadow: var(--shadow); }
-    .dash-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text3); margin-bottom: 14px; }
-    .fav-list   { display: flex; flex-direction: column; gap: 8px; }
-    .fav-empty  { font-size: 13px; color: var(--text3); padding: 12px 0; text-align: center; }
-    .fav-row    { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); text-decoration: none; color: inherit; transition: border-color 0.12s, transform 0.12s; }
+    .acct-wrap { max-width: 940px; margin: 0 auto; padding: 30px 20px 80px; display: grid; grid-template-columns: 232px 1fr; gap: 24px; align-items: start; }
+
+    /* Sidebar */
+    .acct-side { position: sticky; top: 72px; display: flex; flex-direction: column; gap: 3px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; box-shadow: var(--shadow); }
+    .acct-side-user { display: flex; align-items: center; gap: 11px; padding: 8px 8px 12px; border-bottom: 1px solid var(--border); margin-bottom: 6px; min-width: 0; }
+    .acct-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--green-bg); color: var(--accent); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 17px; flex-shrink: 0; }
+    .acct-side-name { font-size: 13px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .acct-side-plan { font-size: 11px; color: var(--text3); margin-top: 1px; }
+    .acct-nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 11px; border-radius: 9px; font-size: 13px; font-weight: 500; color: var(--text2); cursor: pointer; border: none; background: transparent; font-family: inherit; width: 100%; text-align: left; transition: all 0.12s; }
+    .acct-nav-item:hover { background: var(--bg3); color: var(--text); }
+    .acct-nav-item.active { background: var(--text); color: #fff; }
+    .acct-nav-item.active svg { color: #fff; }
+    .acct-nav-item svg { color: var(--text3); flex-shrink: 0; }
+    .acct-nav-sep { height: 1px; background: var(--border); margin: 6px 4px; }
+
+    /* Main */
+    .acct-section { display: none; }
+    .acct-section.active { display: block; animation: fadeIn 0.2s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+    .acct-h { font-size: 22px; font-weight: 700; letter-spacing: -0.4px; margin-bottom: 16px; color: var(--text); }
+
+    .acct-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow); }
+    .acct-card-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text3); margin-bottom: 12px; }
+
+    .acct-field { margin-bottom: 14px; }
+    .acct-field label { display: block; font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 6px; }
+    .acct-input { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: 9px; padding: 10px 12px; font-family: inherit; font-size: 14px; color: var(--text); outline: none; transition: border-color 0.12s; }
+    .acct-input:focus { border-color: var(--accent); background: var(--bg2); }
+    .acct-input:disabled { color: var(--text3); cursor: not-allowed; }
+    .acct-row { display: flex; gap: 8px; align-items: flex-end; }
+    .acct-row .acct-field { flex: 1; margin-bottom: 0; }
+
+    .plan-chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 11px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+    .plan-chip.free { background: var(--bg3); color: var(--text2); border: 1px solid var(--border2); }
+    .plan-chip.pro { background: var(--text); color: #fff; }
+
+    .views-row { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 8px; color: var(--text2); }
+    .views-bar { background: var(--bg3); border-radius: 999px; height: 7px; overflow: hidden; margin-bottom: 6px; border: 1px solid var(--border); }
+    .views-fill { height: 100%; border-radius: 999px; background: var(--accent); transition: width 0.4s ease; }
+    .views-note { font-size: 12px; color: var(--text3); }
+
+    .upgrade-box { background: linear-gradient(135deg, rgba(0,194,122,0.08), rgba(0,168,104,0.05)); border: 1.5px solid rgba(0,194,122,0.22); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
+    .upgrade-box h3 { font-size: 18px; font-weight: 700; margin-bottom: 6px; color: var(--text); }
+    .upgrade-box p { font-size: 13px; color: var(--text2); margin-bottom: 14px; line-height: 1.55; }
+
+    /* Toggle switch */
+    .acct-toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+    .acct-toggle-text .tt { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+    .acct-toggle-text .td { font-size: 12px; color: var(--text3); line-height: 1.45; }
+    .switch { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .switch .slider { position: absolute; inset: 0; background: var(--border2); border-radius: 999px; cursor: pointer; transition: 0.2s; }
+    .switch .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+    .switch input:checked + .slider { background: var(--accent); }
+    .switch input:checked + .slider::before { transform: translateX(18px); }
+
+    .acct-btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 9px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; font-family: inherit; background: var(--accent); color: #fff; transition: background 0.12s; }
+    .acct-btn:hover { background: var(--accent2); }
+    .acct-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .acct-btn.danger { background: var(--red); color: #fff; }
+    .acct-btn.danger:hover { background: #d83a26; }
+
+    .acct-msg { font-size: 12px; margin-top: 10px; display: none; }
+    .acct-msg.show { display: block; }
+    .acct-msg.ok { color: var(--green); }
+    .acct-msg.err { color: var(--red); }
+
+    .danger-zone { border-color: rgba(240,78,55,0.3); }
+    .danger-zone .acct-card-label { color: var(--red); }
+
+    /* Favorites */
+    .fav-list { display: flex; flex-direction: column; gap: 8px; }
+    .fav-empty { font-size: 13px; color: var(--text3); padding: 18px 0; text-align: center; }
+    .fav-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); text-decoration: none; color: inherit; transition: border-color 0.12s, transform 0.12s; }
     .fav-row:hover { border-color: var(--text); transform: translateY(-1px); }
-    .fav-logo   { width: 32px; height: 32px; border-radius: 7px; background: var(--bg2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: var(--text2); flex-shrink: 0; overflow: hidden; }
+    .fav-logo { width: 32px; height: 32px; border-radius: 7px; background: var(--bg2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: var(--text2); flex-shrink: 0; overflow: hidden; }
     .fav-logo img { width: 100%; height: 100%; object-fit: cover; border-radius: 7px; }
-    .fav-info   { flex: 1; min-width: 0; }
-    .fav-name   { font-size: 14px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .fav-meta   { font-size: 12px; color: var(--text3); margin-top: 2px; }
-    .fav-remove { background: none; border: none; cursor: pointer; color: var(--text3); font-size: 18px; padding: 4px 6px; line-height: 1; transition: color 0.12s; }
+    .fav-info { flex: 1; min-width: 0; }
+    .fav-name { font-size: 14px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .fav-meta { font-size: 12px; color: var(--text3); margin-top: 2px; }
+    .fav-remove { background: none; border: none; cursor: pointer; color: var(--text3); font-size: 18px; padding: 4px 8px; line-height: 1; transition: color 0.12s; }
     .fav-remove:hover { color: var(--red); }
+
     /* Pro modal */
     .pro-modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center; padding: 24px; z-index: 1000; }
     .pro-modal-bg.open { display: flex; }
@@ -34,36 +100,28 @@
     .pro-price { font-size: 28px; font-weight: 700; margin-bottom: 4px; letter-spacing: -0.5px; }
     .pro-price small { font-size: 13px; font-weight: 500; color: var(--text3); }
     .pro-row { display: flex; gap: 8px; }
-    .pro-row input { flex: 1; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; font-family: 'Manrope', sans-serif; font-size: 13px; outline: none; }
+    .pro-row input { flex: 1; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; font-family: inherit; font-size: 13px; outline: none; }
     .pro-row input:focus { border-color: var(--accent); }
     .pro-close { position: absolute; top: 14px; right: 14px; background: none; border: none; cursor: pointer; color: var(--text3); font-size: 22px; line-height: 1; padding: 4px 8px; border-radius: 6px; }
     .pro-close:hover { background: var(--bg3); color: var(--text); }
     .pro-success { background: var(--green-bg); border: 1px solid rgba(0,194,122,0.25); color: var(--green); padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-top: 10px; display: none; }
     .pro-success.show { display: block; }
-    .user-row   { display: flex; align-items: center; gap: 14px; }
-    .user-avatar { width: 48px; height: 48px; border-radius: 50%; background: rgba(108,99,255,0.12); color: var(--accent); display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700; flex-shrink: 0; }
-    .user-name  { font-size: 15px; font-weight: 600; margin-bottom: 5px; }
-    .plan-chip  { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
-    .plan-chip.free { background: var(--bg3); color: var(--text2); border: 1px solid var(--border2); }
-    .plan-chip.pro  { background: rgba(108,99,255,0.1); color: var(--accent); border: 1px solid rgba(108,99,255,0.25); }
-    .views-row  { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 8px; }
-    .views-bar  { background: var(--bg3); border-radius: 999px; height: 6px; overflow: hidden; margin-bottom: 6px; border: 1px solid var(--border); }
-    .views-fill { height: 100%; border-radius: 999px; background: var(--accent); transition: width 0.4s ease; }
-    .views-note { font-size: 12px; color: var(--text3); }
-    .upgrade-box { background: rgba(108,99,255,0.06); border: 1.5px solid rgba(108,99,255,0.22); border-radius: var(--radius); padding: 24px; margin-bottom: 16px; }
-    .upgrade-box h3 { font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700; margin-bottom: 6px; }
-    .upgrade-box p  { font-size: 14px; color: var(--text2); margin-bottom: 16px; line-height: 1.6; }
-    .feature-list { list-style: none; display: flex; flex-direction: column; gap: 7px; font-size: 14px; color: var(--text2); margin-bottom: 20px; }
-    .feature-list li::before { content: '\2713\00a0'; color: var(--green); font-weight: 700; }
+
     .loading-state { text-align: center; padding: 80px 24px; color: var(--text3); font-size: 14px; line-height: 1.8; }
+
+    @media (max-width: 760px) {
+      .acct-wrap { grid-template-columns: 1fr; gap: 16px; }
+      .acct-side { position: static; flex-direction: row; flex-wrap: nowrap; overflow-x: auto; align-items: center; padding: 8px; }
+      .acct-side-user, .acct-nav-sep { display: none; }
+      .acct-nav-item { white-space: nowrap; width: auto; }
+    }
   </style>
 </head>
 <body>
 <div id="navPlaceholder"></div>
-<div id="modalPlaceholder"></div>
 
-<div class="dash-wrap" id="dashWrap">
-  <div class="loading-state">Loading your account...</div>
+<div id="acctRoot">
+  <div class="loading-state">Loading your account…</div>
 </div>
 
 <!-- Pro upgrade modal -->
@@ -72,7 +130,7 @@
     <button class="pro-close" onclick="closeProModal()">×</button>
     <div class="pro-price">$9<small>/мес</small></div>
     <h2>MRRket Pro</h2>
-    <p>Подписка временно недоступна — мы готовим запуск платных тарифов. Оставь email и сообщим, как только Pro станет доступен.</p>
+    <p>Подписка временно недоступна — мы готовим запуск платных тарифов. Оставь email и сообщим, как только продвинутый уровень станет доступен.</p>
     <ul>
       <li>Безлимитное открытие контактов продавцов</li>
       <li>AI-бриф по каждому стартапу (анализ рисков и потенциала)</li>
@@ -82,198 +140,281 @@
     </ul>
     <form class="pro-row" onsubmit="submitProWaitlist(event)">
       <input type="email" id="proEmail" placeholder="you@email.com" required>
-      <button type="submit" class="btn btn-primary">Уведомить</button>
+      <button type="submit" class="acct-btn">Уведомить</button>
     </form>
     <div class="pro-success" id="proSuccess">Готово — мы напишем тебе на этот email.</div>
   </div>
 </div>
 
-<!-- Supabase SDK + shared scripts -->
 <script src="/auth-config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="/shared.js"></script>
 <script>
-// Once a Stripe / LemonSqueezy checkout is configured, set CHECKOUT_URL and
-// the modal's "Notify me" form can be replaced with a direct redirect.
 const CHECKOUT_URL = null;
+const LS_FAVS = 'sm_favs';
 
-function openProModal() {
-  document.getElementById('proModal').classList.add('open');
-  setTimeout(() => { const i = document.getElementById('proEmail'); if (i) i.focus(); }, 50);
-}
-function closeProModal() {
-  document.getElementById('proModal').classList.remove('open');
-  const s = document.getElementById('proSuccess'); if (s) s.classList.remove('show');
-}
-async function submitProWaitlist(e) {
-  e.preventDefault();
-  const email = document.getElementById('proEmail').value.trim();
-  if (!email) return;
-  // Persist locally so the user isn't lost if we add server-side later
-  try {
-    const list = JSON.parse(localStorage.getItem('sm_pro_waitlist') || '[]');
-    if (!list.includes(email)) { list.push(email); localStorage.setItem('sm_pro_waitlist', JSON.stringify(list)); }
-  } catch {}
-  // Best-effort server save (endpoint optional)
-  try { await fetch('/api/waitlist', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email, source: 'dashboard-pro' }) }); } catch {}
-  document.getElementById('proSuccess').classList.add('show');
-  setTimeout(closeProModal, 1800);
-}
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeProModal(); });
+let SB = null, SESSION = null, USER = null, ACCESS = null;
 
 window.addEventListener('DOMContentLoaded', async () => {
   applyLangToDoc();
   document.getElementById('navPlaceholder').innerHTML = buildNavHTML('');
-  document.getElementById('modalPlaceholder').innerHTML = buildModalHTML();
   initNavAuth();
 
   if (!window.SUPABASE_URL || window.SUPABASE_URL === 'YOUR_SUPABASE_URL') {
-    document.getElementById('dashWrap').innerHTML =
-      `<div class="loading-state">Supabase is not configured.<br>Set credentials in <code>auth-config.js</code>.</div>`;
+    document.getElementById('acctRoot').innerHTML =
+      '<div class="loading-state">Supabase is not configured.<br>Set credentials in <code>auth-config.js</code>.</div>';
     return;
   }
 
-  const sb = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON);
-  const { data: { session } } = await sb.auth.getSession();
+  SB = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON);
+  const { data: { session } } = await SB.auth.getSession();
+  if (!session) { location.href = '/auth.html?from=/dashboard.html'; return; }
 
-  if (!session) {
-    location.href = '/auth.html?from=/dashboard.html';
-    return;
-  }
+  SESSION = session; USER = session.user; window._dashSb = SB;
 
-  window._dashSb = sb;
-
-  // Fetch access level from server
-  let access = null;
   try {
-    const r = await fetch('/api/auth', { headers: { Authorization: `Bearer ${session.access_token}` } });
-    if (r.ok) access = await r.json();
+    const r = await fetch('/api/auth', { headers: { Authorization: 'Bearer ' + session.access_token } });
+    if (r.ok) ACCESS = await r.json();
   } catch {}
 
-  renderDash(session, access);
+  renderShell();
 });
 
-function renderDash(session, access) {
-  const email     = session.user.email || '';
-  const initial   = escHtml((email[0] || '?').toUpperCase());
-  const isPro     = access?.role === 'subscriber';
-  const viewsUsed = access?.viewsUsed ?? 0;
-  const pct       = Math.min(100, Math.round((viewsUsed / 8) * 100));
+/* ── helpers ─────────────────────────────────────────────── */
+function setText(id, v) { const e = document.getElementById(id); if (e) e.textContent = v; }
+function show(id, on) { const e = document.getElementById(id); if (e) e.style.display = on ? '' : 'none'; }
+function msg(id, cls, text) {
+  const e = document.getElementById(id); if (!e) return;
+  e.textContent = text; e.className = 'acct-msg show ' + cls;
+  if (cls === 'ok') setTimeout(() => { e.className = 'acct-msg'; }, 3000);
+}
+function meta() { return (USER && USER.user_metadata) || {}; }
+function nick() { return meta().nickname || (USER.email ? USER.email.split('@')[0] : 'user'); }
+function isPro() { return ACCESS && ACCESS.role === 'subscriber'; }
 
-  // ── Profile card ─────────────────────────────────────────────────────────────
-  const profileCard = `
-    <div class="dash-card">
-      <div class="user-row">
-        <div class="user-avatar">${initial}</div>
-        <div>
-          <div class="user-name">${escHtml(email)}</div>
-          <span class="plan-chip ${isPro ? 'pro' : 'free'}">${isPro ? 'Pro' : 'Free'}</span>
-        </div>
-      </div>
-    </div>`;
+/* ── build the page shell (sidebar + sections) ───────────── */
+function renderShell() {
+  const root = document.getElementById('acctRoot');
+  root.className = 'acct-wrap';
+  root.innerHTML =
+    '<aside class="acct-side">' +
+      '<div class="acct-side-user"><div class="acct-avatar" id="sideAvatar">?</div><div style="min-width:0;"><div class="acct-side-name" id="sideName"></div><div class="acct-side-plan" id="sidePlan"></div></div></div>' +
+      navItem('profile', t('acct','profile'),  '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>', true) +
+      navItem('favorites', t('acct','favorites'), '<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/>', false) +
+      navItem('settings', t('acct','settings'), '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>', false) +
+      '<div class="acct-nav-sep"></div>' +
+      '<button class="acct-nav-item" onclick="signOutDash()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>' + t('acct','signout') + '</button>' +
+    '</aside>' +
+    '<div class="acct-main">' + profileSection() + favoritesSection() + settingsSection() + '</div>';
 
-  // ── Daily usage card ──────────────────────────────────────────────────────────
-  const usageCard = isPro
-    ? `<div class="dash-card">
-        <div class="dash-label">Today's activity</div>
-        <div style="font-size:14px;color:var(--text2);">Unlimited access — no daily limits.</div>
-       </div>`
-    : `<div class="dash-card">
-        <div class="dash-label">Today's views</div>
-        <div class="views-row"><span>Startups viewed</span><span><strong>${viewsUsed}</strong>&thinsp;/&thinsp;8</span></div>
-        <div class="views-bar"><div class="views-fill" style="width:${pct}%"></div></div>
-        <div class="views-note">Resets at midnight UTC &middot; Free plan: 8 views/day</div>
-       </div>`;
-
-  // ── Plan / upgrade card ───────────────────────────────────────────────────────
-  const planCard = isPro
-    ? `<div class="dash-card">
-        <div class="dash-label">Subscription</div>
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-          <span class="plan-chip pro">Pro &mdash; unlimited access</span>
-          <a href="mailto:support@startupmarket.io" style="font-size:13px;color:var(--text3);">Manage subscription</a>
-        </div>
-       </div>`
-    : `<div class="upgrade-box">
-        <h3>Upgrade to Pro</h3>
-        <p>Unlock unlimited startup views and full seller contact access every day.</p>
-        <ul class="feature-list">
-          <li>Unlimited startup views per day</li>
-          <li>Full contact access on every listing</li>
-          <li>Cancel anytime</li>
-        </ul>
-        <button type="button" class="btn btn-primary" style="display:inline-flex;" onclick="${CHECKOUT_URL ? `location.href='${CHECKOUT_URL}'` : 'openProModal()'}">Get Pro access &rarr;</button>
-       </div>`;
-
-  // ── Favorites card ────────────────────────────────────────────────────────────
-  const favoritesCard = `
-    <div class="dash-card">
-      <div class="dash-label" data-i18n="dash.favorites">Favorites</div>
-      <div id="favList" class="fav-list"><div class="fav-empty" data-i18n="dash.loading">Loading...</div></div>
-    </div>`;
-
-  // ── Sign out card ─────────────────────────────────────────────────────────────
-  const signOutCard = `
-    <div class="dash-card">
-      <button class="btn btn-ghost" onclick="signOutDash()" style="width:100%;justify-content:center;">Sign out</button>
-    </div>`;
-
-  document.getElementById('dashWrap').innerHTML = profileCard + usageCard + favoritesCard + planCard + signOutCard;
   applyLangToDoc();
+  fillData();
+
+  const hash = (location.hash || '').replace('#', '');
+  if (hash === 'upgrade') { showSection('profile'); openProModal(); }
+  else if (['profile', 'favorites', 'settings'].includes(hash)) showSection(hash);
+  else showSection('profile');
+
   renderFavorites();
 }
 
-const LS_FAVS = 'sm_favs';
+function navItem(sec, label, paths, active) {
+  return '<button class="acct-nav-item' + (active ? ' active' : '') + '" data-sec="' + sec + '" onclick="showSection(\'' + sec + '\')">' +
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' + paths + '</svg>' + label + '</button>';
+}
+
+function profileSection() {
+  return '<section class="acct-section active" data-sec="profile">' +
+    '<h2 class="acct-h">' + t('acct','profileTitle') + '</h2>' +
+    '<div class="acct-card">' +
+      '<div style="display:flex;align-items:center;gap:16px;margin-bottom:18px;">' +
+        '<div class="acct-avatar" id="profAvatar" style="width:60px;height:60px;font-size:24px;">?</div>' +
+        '<div style="min-width:0;"><div id="profName" style="font-size:17px;font-weight:700;color:var(--text);"></div>' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap;"><span class="plan-chip free" id="planChip"></span><span id="planDesc" style="font-size:12px;color:var(--text3);"></span></div></div>' +
+      '</div>' +
+      '<div class="acct-row"><div class="acct-field"><label>' + t('acct','nickname') + '</label><input class="acct-input" id="nickInput" maxlength="40" placeholder="' + t('acct','nicknamePh') + '"/></div>' +
+      '<button class="acct-btn" id="nickSave" onclick="saveNickname()">' + t('acct','save') + '</button></div>' +
+      '<div style="font-size:12px;color:var(--text3);margin-top:7px;">' + t('acct','nicknameHint') + '</div>' +
+      '<div class="acct-msg" id="nickMsg"></div>' +
+      '<div class="acct-field" style="margin-top:16px;margin-bottom:0;"><label>' + t('acct','email') + '</label><input class="acct-input" id="emailInput" disabled/></div>' +
+    '</div>' +
+    '<div class="acct-card" id="limitsCard">' +
+      '<div class="acct-card-label">' + t('acct','limitsTitle') + '</div>' +
+      '<div class="views-row"><span>' + t('acct','viewsUsed') + '</span><strong id="viewsUsed">0 / 8</strong></div>' +
+      '<div class="views-bar"><div class="views-fill" id="viewsFill" style="width:0%"></div></div>' +
+      '<div class="views-note">' + t('acct','resets') + '</div>' +
+    '</div>' +
+    '<div class="upgrade-box" id="upgradeCard">' +
+      '<h3>' + t('acct','upgradeLevel') + '</h3><p>' + t('acct','upgradeDesc') + '</p>' +
+      '<button class="acct-btn" onclick="openProModal()">' + t('acct','upgradeLevel') + ' →</button>' +
+    '</div>' +
+    '<div class="acct-card" id="proCard" style="display:none;">' +
+      '<div class="acct-card-label">' + t('acct','planTitle') + '</div>' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;"><span class="plan-chip pro">' + t('acct','levelPro') + '</span><span style="font-size:13px;color:var(--text2);">' + t('acct','planProDesc') + '</span></div>' +
+    '</div>' +
+  '</section>';
+}
+
+function favoritesSection() {
+  return '<section class="acct-section" data-sec="favorites">' +
+    '<h2 class="acct-h">' + t('acct','favorites') + '</h2>' +
+    '<div class="acct-card"><div id="favList" class="fav-list"><div class="fav-empty">' + t('acct','loading') + '</div></div></div>' +
+  '</section>';
+}
+
+function settingsSection() {
+  return '<section class="acct-section" data-sec="settings">' +
+    '<h2 class="acct-h">' + t('acct','settingsTitle') + '</h2>' +
+    '<div class="acct-card"><div class="acct-toggle-row"><div class="acct-toggle-text"><div class="tt">' + t('acct','notifTitle') + '</div><div class="td">' + t('acct','notifDesc') + '</div></div>' +
+      '<label class="switch"><input type="checkbox" id="notifToggle" onchange="toggleNotif()"/><span class="slider"></span></label></div></div>' +
+    '<div class="acct-card"><div class="acct-card-label">' + t('acct','pwTitle') + '</div>' +
+      '<form onsubmit="changePassword(event)">' +
+        '<div class="acct-field"><label>' + t('acct','pwNew') + '</label><input class="acct-input" type="password" id="pwNew" minlength="6" autocomplete="new-password" placeholder="••••••••"/></div>' +
+        '<div class="acct-field"><label>' + t('acct','pwConfirm') + '</label><input class="acct-input" type="password" id="pwConfirm" minlength="6" autocomplete="new-password" placeholder="••••••••"/></div>' +
+        '<button class="acct-btn" id="pwBtn" type="submit">' + t('acct','pwUpdate') + '</button>' +
+        '<div class="acct-msg" id="pwMsg"></div>' +
+      '</form></div>' +
+    '<div class="acct-card danger-zone"><div class="acct-card-label">' + t('acct','dangerTitle') + '</div>' +
+      '<p style="font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.5;">' + t('acct','dangerDesc') + '</p>' +
+      '<button class="acct-btn danger" id="delBtn" onclick="deleteAccount()">' + t('acct','deleteBtn') + '</button>' +
+      '<div class="acct-msg" id="delMsg"></div></div>' +
+  '</section>';
+}
+
+/* ── fill dynamic data ───────────────────────────────────── */
+function fillData() {
+  const email = USER.email || '';
+  const n = nick();
+  const initial = (n[0] || email[0] || '?').toUpperCase();
+  const pro = isPro();
+
+  setText('sideAvatar', initial);
+  setText('sideName', n);
+  setText('sidePlan', pro ? t('acct','levelPro') : t('acct','levelFree'));
+  setText('profAvatar', initial);
+  setText('profName', n);
+
+  const chip = document.getElementById('planChip');
+  if (chip) { chip.className = 'plan-chip ' + (pro ? 'pro' : 'free'); chip.textContent = pro ? t('acct','levelPro') : t('acct','levelFree'); }
+  setText('planDesc', pro ? t('acct','planProDesc') : t('acct','planFreeDesc'));
+
+  const nickEl = document.getElementById('nickInput'); if (nickEl) nickEl.value = n;
+  const mailEl = document.getElementById('emailInput'); if (mailEl) mailEl.value = email;
+
+  show('limitsCard', !pro); show('upgradeCard', !pro); show('proCard', pro);
+  if (!pro) {
+    const used = ACCESS && ACCESS.viewsUsed != null ? ACCESS.viewsUsed : 0;
+    setText('viewsUsed', used + ' / 8');
+    const fill = document.getElementById('viewsFill'); if (fill) fill.style.width = Math.min(100, Math.round(used / 8 * 100)) + '%';
+  }
+  const nt = document.getElementById('notifToggle'); if (nt) nt.checked = meta().email_notifications !== false;
+}
+
+/* ── section switching ───────────────────────────────────── */
+function showSection(sec) {
+  document.querySelectorAll('.acct-section').forEach(s => s.classList.toggle('active', s.dataset.sec === sec));
+  document.querySelectorAll('.acct-nav-item[data-sec]').forEach(b => b.classList.toggle('active', b.dataset.sec === sec));
+  try { history.replaceState(null, '', '#' + sec); } catch {}
+}
+
+/* ── profile: nickname ───────────────────────────────────── */
+async function saveNickname() {
+  const v = document.getElementById('nickInput').value.trim();
+  if (!v) { msg('nickMsg', 'err', t('acct','nicknamePh')); return; }
+  const btn = document.getElementById('nickSave'); btn.disabled = true;
+  const { error } = await SB.auth.updateUser({ data: { nickname: v } });
+  btn.disabled = false;
+  if (error) { msg('nickMsg', 'err', error.message); return; }
+  USER.user_metadata = Object.assign({}, USER.user_metadata, { nickname: v });
+  const initial = (v[0] || '?').toUpperCase();
+  setText('sideAvatar', initial); setText('profAvatar', initial);
+  setText('sideName', v); setText('profName', v);
+  msg('nickMsg', 'ok', t('acct','saved'));
+}
+
+/* ── settings: notifications ─────────────────────────────── */
+async function toggleNotif() {
+  const on = document.getElementById('notifToggle').checked;
+  const { error } = await SB.auth.updateUser({ data: { email_notifications: on } });
+  if (error) { document.getElementById('notifToggle').checked = !on; return; }
+  USER.user_metadata = Object.assign({}, USER.user_metadata, { email_notifications: on });
+}
+
+/* ── settings: password ──────────────────────────────────── */
+async function changePassword(e) {
+  e.preventDefault();
+  const p1 = document.getElementById('pwNew').value;
+  const p2 = document.getElementById('pwConfirm').value;
+  if (p1.length < 6) { msg('pwMsg', 'err', t('acct','pwShort')); return; }
+  if (p1 !== p2)     { msg('pwMsg', 'err', t('acct','pwMismatch')); return; }
+  const btn = document.getElementById('pwBtn'); btn.disabled = true;
+  const { error } = await SB.auth.updateUser({ password: p1 });
+  btn.disabled = false;
+  if (error) { msg('pwMsg', 'err', error.message); return; }
+  document.getElementById('pwNew').value = ''; document.getElementById('pwConfirm').value = '';
+  msg('pwMsg', 'ok', t('acct','pwOk'));
+}
+
+/* ── settings: delete account ────────────────────────────── */
+async function deleteAccount() {
+  if (!confirm(t('acct','deleteConfirm'))) return;
+  const btn = document.getElementById('delBtn'); btn.disabled = true; btn.textContent = t('acct','deleting');
+  try {
+    const r = await fetch('/api/account', { method: 'DELETE', headers: { Authorization: 'Bearer ' + SESSION.access_token } });
+    if (!r.ok) throw new Error('delete_failed');
+    try { localStorage.removeItem(LS_FAVS); } catch {}
+    await SB.auth.signOut();
+    location.href = '/';
+  } catch (err) {
+    btn.disabled = false; btn.textContent = t('acct','deleteBtn');
+    msg('delMsg', 'err', (err && err.message) || 'Error');
+  }
+}
+
+async function signOutDash() {
+  if (SB) await SB.auth.signOut();
+  location.href = '/';
+}
+
+/* ── favorites ───────────────────────────────────────────── */
 function getFavs() { try { return JSON.parse(localStorage.getItem(LS_FAVS) || '[]'); } catch { return []; } }
 function setFavs(list) { try { localStorage.setItem(LS_FAVS, JSON.stringify(list)); } catch {} }
 
 async function renderFavorites() {
+  const el = document.getElementById('favList'); if (!el) return;
   const slugs = getFavs();
-  const el = document.getElementById('favList');
-  if (!el) return;
-  if (!slugs.length) {
-    el.innerHTML = `<div class="fav-empty" data-i18n="dash.favEmpty">${t('dash','favEmpty') || 'No favorites yet.'}</div>`;
-    return;
-  }
+  if (!slugs.length) { el.innerHTML = '<div class="fav-empty">' + t('acct','favEmpty') + '</div>'; return; }
   const items = await Promise.all(slugs.map(async slug => {
     let s = await idbGetOne(slug);
-    if (!s) {
-      try { const r = await fetch('/api/startup?slug=' + encodeURIComponent(slug)); if (r.ok) { const j = await r.json(); s = j.data || j; } } catch {}
-    }
+    if (!s) { try { const r = await fetch('/api/startup?slug=' + encodeURIComponent(slug)); if (r.ok) { const j = await r.json(); s = j.data || j; } } catch {} }
     return s || { slug, name: slug, _missing: true };
   }));
   el.innerHTML = items.map(s => {
     const init = (s.name || s.slug).slice(0, 2).toUpperCase();
-    const logo = s.icon
-      ? `<img src="${escHtml(s.icon)}" onerror="this.parentElement.textContent='${init}'"/>`
-      : init;
+    const logo = s.icon ? '<img src="' + escHtml(s.icon) + '" onerror="this.parentElement.textContent=\'' + init + '\'"/>' : init;
     const rev = s.revenue && s.revenue.last30Days ? formatMoney(s.revenue.last30Days) : '—';
-    const cat = s.category ? escHtml(s.category) : '';
-    const meta = [cat, s.onSale ? 'For sale' : '', rev].filter(Boolean).join(' · ');
-    return `<div style="display:flex;align-items:stretch;gap:6px;">
-      <a class="fav-row" href="/startup/${escHtml(s.slug)}.html" style="flex:1;">
-        <div class="fav-logo">${logo}</div>
-        <div class="fav-info">
-          <div class="fav-name">${escHtml(s.name || s.slug)}</div>
-          <div class="fav-meta">${meta}</div>
-        </div>
-      </a>
-      <button class="fav-remove" title="Remove" onclick="removeFav('${escHtml(s.slug)}')">×</button>
-    </div>`;
+    const m = [s.category ? escHtml(s.category) : '', s.onSale ? t('lead','forSale') : '', rev].filter(Boolean).join(' · ');
+    return '<div style="display:flex;align-items:stretch;gap:6px;">' +
+      '<a class="fav-row" href="/startup/' + escHtml(s.slug) + '.html" style="flex:1;"><div class="fav-logo">' + logo + '</div>' +
+      '<div class="fav-info"><div class="fav-name">' + escHtml(s.name || s.slug) + '</div><div class="fav-meta">' + m + '</div></div></a>' +
+      '<button class="fav-remove" title="Remove" onclick="removeFav(\'' + escHtml(s.slug) + '\')">×</button></div>';
   }).join('');
 }
 
-function removeFav(slug) {
-  const favs = getFavs().filter(x => x !== slug);
-  setFavs(favs);
-  renderFavorites();
-}
+function removeFav(slug) { setFavs(getFavs().filter(x => x !== slug)); renderFavorites(); }
 
-async function signOutDash() {
-  const sb = window._dashSb || window._sb;
-  if (sb) await sb.auth.signOut();
-  location.href = '/';
+/* ── Pro waitlist modal ──────────────────────────────────── */
+function openProModal() { document.getElementById('proModal').classList.add('open'); setTimeout(() => { const i = document.getElementById('proEmail'); if (i) i.focus(); }, 50); }
+function closeProModal() { document.getElementById('proModal').classList.remove('open'); const s = document.getElementById('proSuccess'); if (s) s.classList.remove('show'); }
+async function submitProWaitlist(e) {
+  e.preventDefault();
+  const email = document.getElementById('proEmail').value.trim(); if (!email) return;
+  try { const list = JSON.parse(localStorage.getItem('sm_pro_waitlist') || '[]'); if (!list.includes(email)) { list.push(email); localStorage.setItem('sm_pro_waitlist', JSON.stringify(list)); } } catch {}
+  try { await fetch('/api/waitlist', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, source: 'dashboard-pro' }) }); } catch {}
+  document.getElementById('proSuccess').classList.add('show');
+  setTimeout(closeProModal, 1800);
 }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeProModal(); });
 </script>
 </body>
 </html>

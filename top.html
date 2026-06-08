@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Top growing startups — MRRket</title>
+<link rel="stylesheet" href="/shared.css"/>
+<script src="/auth-config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="/shared.js"></script>
+<style>
+.lead-wrap { max-width: 980px; margin: 0 auto; padding: 36px 20px 80px; }
+.lead-head { text-align: center; margin-bottom: 24px; }
+.lead-head h1 { font-size: 32px; font-weight: 700; letter-spacing: -1px; color: var(--text); margin-bottom: 8px; }
+.lead-head p { font-size: 14px; color: var(--text2); max-width: 560px; margin: 0 auto; }
+
+.lead-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 20px; padding: 8px; box-shadow: 0 6px 28px rgba(0,0,0,0.05); }
+.lead-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 20px 14px; flex-wrap: wrap; }
+.lead-card-title { display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 700; letter-spacing: -0.3px; color: var(--text); }
+.lead-card-title svg { color: var(--accent); }
+.lead-controls { display: flex; align-items: center; gap: 8px; }
+.lead-select-wrap { position: relative; display: inline-flex; align-items: center; }
+.lead-select { appearance: none; background: var(--bg2); border: 1px solid var(--border2); border-radius: 10px; padding: 9px 34px 9px 14px; font-family: inherit; font-size: 13px; font-weight: 600; color: var(--text2); cursor: pointer; outline: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='13' viewBox='0 0 24 24' fill='none' stroke='%238888a0' stroke-width='2.2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; transition: border-color 0.12s; }
+.lead-select:hover { border-color: var(--text); color: var(--text); }
+.lead-select:focus { border-color: var(--accent); }
+.lead-period { font-size: 13px; font-weight: 600; color: var(--text3); border: 1px solid var(--border2); border-radius: 10px; padding: 9px 14px; background: var(--bg3); white-space: nowrap; }
+
+/* Grid "table" */
+.lead-table { padding: 0 6px 6px; }
+.lead-row { display: grid; grid-template-columns: 56px minmax(0,1fr) 130px 130px 120px; align-items: center; gap: 8px; padding: 12px 14px; text-decoration: none; color: inherit; border-radius: 12px; border-bottom: 1px solid var(--border); transition: background 0.12s; }
+.lead-row:last-child { border-bottom: none; }
+a.lead-row:hover { background: var(--bg3); }
+.lead-row-head { border-bottom: 1.5px solid var(--border); border-radius: 0; padding-top: 6px; padding-bottom: 12px; position: sticky; top: 54px; background: var(--bg2); z-index: 1; }
+.lead-row-head span { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text3); }
+.lead-c-rank { display: flex; align-items: center; }
+.lead-c-mrr, .lead-c-rev, .lead-c-growth { text-align: right; justify-self: end; }
+.lead-c-mrr { font-size: 15px; font-weight: 700; letter-spacing: -0.3px; color: var(--text); }
+.lead-c-rev { font-size: 14px; font-weight: 600; color: var(--text2); }
+
+.lead-rank { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; font-size: 13px; font-weight: 700; color: var(--text3); }
+.lead-rank.gold   { background: linear-gradient(145deg,#ffe08a,#f5b301); color: #5c4500; box-shadow: 0 2px 6px rgba(245,179,1,0.35); }
+.lead-rank.silver { background: linear-gradient(145deg,#eef0f3,#c2c7cf); color: #4a4f57; box-shadow: 0 2px 6px rgba(160,160,170,0.3); }
+.lead-rank.bronze { background: linear-gradient(145deg,#f0c69b,#cd8b4f); color: #5a3413; box-shadow: 0 2px 6px rgba(205,139,79,0.3); }
+
+.lead-c-name { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.lead-logo { width: 38px; height: 38px; border-radius: 10px; background: var(--bg3); border: 1px solid var(--border); display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: var(--text2); flex-shrink: 0; overflow: hidden; }
+.lead-logo img { width: 100%; height: 100%; object-fit: cover; }
+.lead-logo svg { color: var(--text3); }
+.lead-name-wrap { min-width: 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.lead-name { font-size: 15px; font-weight: 600; color: var(--text); letter-spacing: -0.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lead-name.stealth { color: var(--text3); font-style: italic; font-weight: 500; }
+.lead-tag { font-size: 9px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--accent); background: var(--green-bg); border: 1px solid rgba(0,194,122,0.25); padding: 2px 7px; border-radius: 999px; white-space: nowrap; }
+
+.lead-growth { font-size: 14px; font-weight: 700; white-space: nowrap; }
+.lead-growth.up   { color: var(--green); }
+.lead-growth.dn   { color: var(--red); }
+.lead-growth.flat { color: var(--text3); }
+
+.lead-foot { text-align: center; margin-top: 22px; }
+.lead-foot a { font-size: 13px; color: var(--accent); font-weight: 600; text-decoration: none; }
+.lead-foot a:hover { color: var(--accent2); }
+
+.lead-msg { text-align: center; padding: 70px 24px; color: var(--text3); font-size: 14px; }
+.lead-msg .bar { width: 160px; height: 3px; background: var(--border); border-radius: 2px; margin: 16px auto 0; overflow: hidden; }
+.lead-msg .bar > div { height: 100%; width: 40%; background: var(--accent); border-radius: 2px; animation: loadpulse 1.5s ease-in-out infinite; }
+@keyframes loadpulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+@media (max-width: 760px) {
+  .lead-head h1 { font-size: 26px; }
+  .lead-row { grid-template-columns: 30px minmax(0,1fr) auto auto; gap: 8px; padding: 11px 8px; }
+  .lead-c-rev { display: none; }
+  .lead-c-mrr { font-size: 13px; }
+  .lead-c-growth { font-size: 13px; }
+  .lead-row-head span { font-size: 10px; letter-spacing: 0.02em; }
+  .lead-logo { width: 30px; height: 30px; }
+  .lead-name { font-size: 13px; }
+  .lead-rank { width: 24px; height: 24px; font-size: 12px; }
+  .lead-row-head { top: 0; }
+  .lead-card-head { padding: 14px 14px 12px; }
+}
+</style>
+</head>
+<body>
+
+<div id="navPlaceholder"></div>
+
+<div class="lead-wrap">
+  <div class="lead-head">
+    <h1 data-i18n="lead.title">Топ растущих стартапов</h1>
+    <p data-i18n="lead.sub">Самые быстрорастущие проверенные стартапы прямо сейчас — по динамике за 30 дней.</p>
+  </div>
+
+  <div class="lead-card">
+    <div class="lead-card-head">
+      <div class="lead-card-title">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+        <span data-i18n="lead.title">Топ растущих стартапов</span>
+      </div>
+      <div class="lead-controls">
+        <div class="lead-select-wrap">
+          <select class="lead-select" id="sortSelect" onchange="onSortChange(this.value)" aria-label="Sort">
+            <option value="mrr" data-i18n="lead.sortMrr">MRR</option>
+            <option value="growth" data-i18n="lead.sortGrowth">Рост</option>
+            <option value="rev" data-i18n="lead.sortRev">Выручка</option>
+          </select>
+        </div>
+        <span class="lead-period" data-i18n="lead.period">За 30 дней</span>
+      </div>
+    </div>
+    <div class="lead-table" id="leadTable">
+      <div class="lead-msg"><span data-i18n="lead.loading">Загружаем рейтинг…</span><div class="bar"><div></div></div></div>
+    </div>
+  </div>
+
+  <div class="lead-foot">
+    <a href="/" data-i18n="lead.viewAll">Открыть полный каталог →</a>
+  </div>
+</div>
+
+<footer>TrustMRR · API v1 &nbsp;·&nbsp; <a href="#">Условия</a> &nbsp;·&nbsp; <a href="#">Конфиденциальность</a></footer>
+
+<script>
+applyLangToDoc();
+document.getElementById('navPlaceholder').innerHTML = buildNavHTML('top');
+initNavAuth();
+
+const API = '/api';
+let leadItems = [];
+let sortKey   = 'mrr';
+
+function onSortChange(v) { sortKey = v; renderTable(); }
+
+async function loadLeaderboard() {
+  const host = document.getElementById('leadTable');
+  try {
+    const r = await fetch(API + '/top-startups?limit=50');
+    const j = await r.json();
+    leadItems = (j.data || []).filter(x => x && x.slug);
+    if (!leadItems.length) { host.innerHTML = emptyHTML(); return; }
+    renderTable();
+  } catch {
+    host.innerHTML = emptyHTML();
+  }
+}
+
+function sortItems() {
+  const arr = leadItems.slice();
+  if (sortKey === 'mrr')      arr.sort((a, b) => (b.mrrCents || 0)    - (a.mrrCents || 0));
+  else if (sortKey === 'rev') arr.sort((a, b) => (b.rev30dCents || 0) - (a.rev30dCents || 0));
+  else                        arr.sort((a, b) => (b.growth30d || -1e9) - (a.growth30d || -1e9));
+  return arr;
+}
+
+function renderTable() {
+  const arr = sortItems();
+  const head = '<div class="lead-row lead-row-head">' +
+    '<span class="lead-c-rank">' + t('lead','thRank') + '</span>' +
+    '<span class="lead-c-name">' + t('lead','thStartup') + '</span>' +
+    '<span class="lead-c-mrr">'  + t('lead','thMrr') + '</span>' +
+    '<span class="lead-c-rev">'  + t('lead','thRev') + '</span>' +
+    '<span class="lead-c-growth">' + t('lead','thGrowth') + '</span>' +
+  '</div>';
+  document.getElementById('leadTable').innerHTML = head + arr.map((s, i) => rowHTML(s, i)).join('');
+}
+
+function rowHTML(s, i) {
+  const rank  = i + 1;
+  const medalCls = rank === 1 ? ' gold' : rank === 2 ? ' silver' : rank === 3 ? ' bronze' : '';
+  const medal = '<span class="lead-rank' + medalCls + '">' + rank + '</span>';
+  const isAnon = (s.name || '').toLowerCase().includes('anonymous');
+  const init = (s.name || '?').slice(0, 2).toUpperCase();
+  const logo = isAnon
+    ? icon('ghost', { size: 17 })
+    : (s.icon ? '<img src="' + escHtml(s.icon) + '" loading="lazy" onerror="this.parentElement.textContent=\'' + init + '\'"/>' : init);
+  const name = isAnon
+    ? '<span class="lead-name stealth">' + (t('lead','stealth') || 'Stealth startup') + '</span>'
+    : '<span class="lead-name">' + escHtml(s.name) + '</span>';
+  const tag = s.onSale ? '<span class="lead-tag">' + (t('lead','forSale') || 'For sale') + '</span>' : '';
+  const g = s.growth30d;
+  let growth;
+  if (g == null)      growth = '<span class="lead-growth flat">—</span>';
+  else if (g > 0.5)   growth = '<span class="lead-growth up">↑ ' + Math.round(g).toLocaleString() + '%</span>';
+  else if (g < -0.5)  growth = '<span class="lead-growth dn">↓ ' + Math.abs(Math.round(g)).toLocaleString() + '%</span>';
+  else                growth = '<span class="lead-growth flat">0%</span>';
+  return '<a class="lead-row" href="/startup/' + escHtml(s.slug) + '.html">' +
+    '<span class="lead-c-rank">' + medal + '</span>' +
+    '<span class="lead-c-name"><span class="lead-logo">' + logo + '</span><span class="lead-name-wrap">' + name + tag + '</span></span>' +
+    '<span class="lead-c-mrr">'  + (s.mrrCents ? formatMoney(s.mrrCents) : '—') + '</span>' +
+    '<span class="lead-c-rev">'  + (s.rev30dCents ? formatMoney(s.rev30dCents) : '—') + '</span>' +
+    '<span class="lead-c-growth">' + growth + '</span>' +
+  '</a>';
+}
+
+function emptyHTML() {
+  return '<div class="lead-msg">' + (t('lead','empty') || 'Leaderboard is warming up — check back shortly.') + '</div>';
+}
+
+loadLeaderboard();
+</script>
+</body>
+</html>
