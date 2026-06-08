@@ -162,6 +162,14 @@
   .chart-legend-swatch { width: 14px; height: 3px; border-radius: 2px; background: var(--accent); flex-shrink: 0; }
   .chart-legend-swatch.muted { background: var(--text3); }
   .chart-legend-item b { color: var(--text); font-weight: 600; }
+  /* Summary header (period total + change) */
+  .chart-summary { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .chart-total   { font-size: 26px; font-weight: 800; letter-spacing: -0.6px; color: var(--text); line-height: 1.05; }
+  .chart-subline { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text3); flex-wrap: wrap; }
+  .chart-change  { font-weight: 700; display: inline-flex; align-items: center; gap: 2px; }
+  .chart-change.up   { color: #16a34a; }
+  .chart-change.down { color: #dc2626; }
+  .chart-tooltip .tt-row  { display: block; font-size: 10.5px; color: rgba(255,255,255,0.72); margin-top: 1px; }
   </style>
 </head>
 <body>
@@ -448,7 +456,13 @@ function renderStartup(s) {
     <div class="section-title" data-i18n="startupPage.dailyChart">Динамика по дням</div>
     <div class="chart-card" id="chartCard">
       <div class="chart-head">
-        <div style="font-size:11px;color:var(--text3);" id="chartRangeLabel"></div>
+        <div class="chart-summary">
+          <div class="chart-total" id="chartTotal">—</div>
+          <div class="chart-subline">
+            <span class="chart-change" id="chartChange"></span>
+            <span id="chartRangeLabel"></span>
+          </div>
+        </div>
         <div class="chart-filters">
           <select id="chartMetricSel" class="chart-select" onchange="onMetricChange(this.value)" aria-label="Metric"></select>
           <select id="chartPeriodSel" class="chart-select" onchange="onPeriodChange(this.value)" aria-label="Period"></select>
@@ -692,7 +706,7 @@ let _priceHistory      = [];
 let _revenueHistory    = [];
 let _chartStartup      = null;
 let _chartMetric       = 'daily_rev';
-let _chartPeriod       = 'all';   // 'all' | 30 | 60 | 90 | 180
+let _chartPeriod       = 30;      // default view: revenue, last 30 days ('all' | 30 | 60 | 90 | 180)
 let _chartInitialized  = false;   // guard: fetch only once per page load
 let _chartGeom         = null;    // geometry cache for hover tooltip
 let _chartHoverBound   = false;
@@ -816,6 +830,70 @@ function computePoints(metric, period) {
   return { points, projected, stepped };
 }
 
+// Header summary: SUM over the period for flow metrics (daily revenue), or the
+// latest value for snapshots — plus % change vs the previous equal-length window.
+function computeSummary(metric, period) {
+  const all = computePoints(metric, 'all').points;
+  if (!all.length) return null;
+  const isFlow = !!metric.dollars;   // revenue accumulates → show the total
+  const sum = arr => arr.reduce((a, p) => a + (Number(p.val) || 0), 0);
+
+  let curArr, prevArr, basis;
+  if (period === 'all') {
+    const mid = Math.floor(all.length / 2);
+    curArr = all.slice(mid); prevArr = all.slice(0, mid);
+    basis = 'пред. период';
+  } else {
+    const now = Date.now();
+    const curCut  = new Date(now - period * 86400_000).toISOString().slice(0, 10);
+    const prevCut = new Date(now - 2 * period * 86400_000).toISOString().slice(0, 10);
+    curArr  = all.filter(p => p.date >= curCut);
+    prevArr = all.filter(p => p.date >= prevCut && p.date < curCut);
+    basis = `пред. ${period} дн.`;
+  }
+
+  let value, prev;
+  if (isFlow) {
+    value = sum(curArr); prev = sum(prevArr);
+  } else {
+    value = curArr.length ? Number(curArr[curArr.length - 1].val) || 0 : null;
+    prev  = prevArr.length ? Number(prevArr[prevArr.length - 1].val) || 0
+          : (curArr.length ? Number(curArr[0].val) || 0 : null);
+  }
+
+  let change = null;
+  if (prev != null && prev !== 0 && value != null) change = (value - prev) / Math.abs(prev) * 100;
+  return { value, isSum: isFlow, change, basis };
+}
+
+function pluralPayments(n) {
+  return n % 10 === 1 && n % 100 !== 11 ? 'платёж'
+       : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) ? 'платежа'
+       : 'платежей';
+}
+
+function renderChartHeader(metric, fmtFull) {
+  const totalEl  = document.getElementById('chartTotal');
+  const changeEl = document.getElementById('chartChange');
+  if (!totalEl) return;
+  const summary = computeSummary(metric, _chartPeriod);
+  if (!summary || summary.value == null) {
+    totalEl.textContent = '—';
+    if (changeEl) { changeEl.textContent = ''; changeEl.className = 'chart-change'; }
+    return;
+  }
+  totalEl.textContent = fmtFull(summary.value);
+  if (changeEl) {
+    if (summary.change == null || !isFinite(summary.change)) {
+      changeEl.textContent = ''; changeEl.className = 'chart-change';
+    } else {
+      const up = summary.change >= 0;
+      changeEl.textContent = `${up ? '↑' : '↓'} ${Math.abs(summary.change).toFixed(0)}% vs ${summary.basis}`;
+      changeEl.className = 'chart-change ' + (up ? 'up' : 'down');
+    }
+  }
+}
+
 // Catmull-Rom → cubic-bezier smoothing for a soft, curved line.
 function smoothPath(pts) {
   if (pts.length < 2) return '';
@@ -864,6 +942,16 @@ function renderChart() {
     if (metric.kind === 'pct') return (v >= 0 ? '+' : '') + parseFloat(v).toFixed(1) + '%';
     return Number(v).toLocaleString();
   };
+  // Full-precision formatter for the header total and the hover tooltip
+  const fmtFull = (v) => {
+    if (v == null) return '—';
+    if (metric.kind === 'money') { const d = metric.dollars ? v : v / 100; return '$' + Math.round(d).toLocaleString(); }
+    if (metric.kind === 'pct') return (v >= 0 ? '+' : '') + parseFloat(v).toFixed(1) + '%';
+    return Number(Math.round(v)).toLocaleString();
+  };
+
+  // Header: period total (sum for revenue) + change vs previous window
+  renderChartHeader(metric, fmtFull);
 
   if (points.length < 2) {
     body.innerHTML = `<div class="chart-empty"><strong>${t('startupPage','chartCollecting') || 'Собираем дневные данные'}</strong><span>${t('startupPage','chartWillAppear') || 'График появится через несколько дней.'}</span></div>`;
@@ -934,7 +1022,7 @@ function renderChart() {
 
   // Cache geometry as container fractions (0..1) for the hover tooltip
   _chartGeom = {
-    fmt,
+    fmt, fmtFull, dollars: !!metric.dollars,
     pts: points.map((p, i) => ({
       date: p.date, val: ys[i], charges: p.charges,
       cx: x(i) / W, cy: y(ys[i]) / H,
@@ -994,13 +1082,15 @@ function onChartMove(e) {
   if (dot)   { dot.style.left = leftPx + 'px'; dot.style.top = topPx + 'px'; dot.style.opacity = '1'; }
   if (tip) {
     const dlbl = new Date(p.date).toLocaleDateString(getLang(), { day: 'numeric', month: 'short', year: 'numeric' });
-    let extra = '';
-    if (p.charges != null) {
-      const n = p.charges;
-      const word = n % 10 === 1 && n % 100 !== 11 ? 'платёж' : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) ? 'платежа' : 'платежей';
-      extra = ` · ${n} ${word}`;
+    let rows = '';
+    if (p.charges != null && p.charges > 0) {
+      rows += `<span class="tt-row">${p.charges} ${pluralPayments(p.charges)}</span>`;
+      if (geom.dollars) {
+        const per = p.val / p.charges;   // average payment size (revenue is in USD)
+        rows += `<span class="tt-row">≈ $${Math.round(per).toLocaleString()} / платёж</span>`;
+      }
     }
-    tip.innerHTML = `<b>${geom.fmt(p.val)}</b>${extra}<span class="tt-date">${dlbl}</span>`;
+    tip.innerHTML = `<b>${geom.fmtFull(p.val)}</b>${rows}<span class="tt-date">${dlbl}</span>`;
     tip.style.left = Math.max(50, Math.min(w - 50, leftPx)) + 'px';
     tip.style.top = topPx + 'px';
     tip.style.opacity = '1';
