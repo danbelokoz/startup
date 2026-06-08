@@ -655,6 +655,7 @@ async function fetchEnrichment(slug) {
 // Asking price comes from a separate scrape of trustmrr.com (asking-price changes
 // don't make it into the TrustMRR API).
 const CHART_METRICS_ALL = [
+  { key: 'daily_rev',    label: 'Daily Revenue', kind: 'money', source: 'revenue-history' },
   { key: 'mrr_cents',    label: 'MRR',           kind: 'money', projectFrom: 'mrr',    growthField: 'growthMRR30d' },
   { key: 'rev30d_cents', label: 'Revenue (30d)', kind: 'money', projectFrom: 'rev30d', growthField: 'growth30d'    },
   { key: 'customers',    label: 'Customers',     kind: 'int'   },
@@ -663,11 +664,12 @@ const CHART_METRICS_ALL = [
   { key: 'visitors_30d', label: 'Visitors',      kind: 'int'   },
   { key: 'asking_price', label: 'Asking price',  kind: 'money', source: 'price-history', requiresOnSale: true },
 ];
-let _chartMetrics  = CHART_METRICS_ALL;
-let _chartData     = [];
-let _priceHistory  = [];
-let _chartStartup  = null;
-let _chartMetric   = 'mrr_cents';
+let _chartMetrics   = CHART_METRICS_ALL;
+let _chartData      = [];
+let _priceHistory   = [];
+let _revenueHistory = [];
+let _chartStartup   = null;
+let _chartMetric    = 'daily_rev';
 
 async function initChart(s) {
   _chartStartup = s;
@@ -684,6 +686,9 @@ async function initChart(s) {
     fetch('/api/history?slug=' + encodeURIComponent(s.slug) + '&days=90')
       .then(r => r.json()).then(j => { _chartData = Array.isArray(j.data) ? j.data : []; })
       .catch(() => { _chartData = []; }),
+    fetch('/api/revenue-history?slug=' + encodeURIComponent(s.slug) + '&days=180')
+      .then(r => r.json()).then(j => { _revenueHistory = Array.isArray(j.data) ? j.data : []; })
+      .catch(() => { _revenueHistory = []; }),
   ];
   if (s.onSale) {
     tasks.push(
@@ -729,7 +734,10 @@ function renderChart() {
   let projected = false;
   let stepped = false;
 
-  if (metric.source === 'price-history') {
+  if (metric.source === 'revenue-history') {
+    // Daily revenue scraped from TrustMRR chart (Stripe-verified)
+    points = (_revenueHistory || []).map(p => ({ date: p.rev_date, val: p.rev_usd })).filter(p => p.val != null);
+  } else if (metric.source === 'price-history') {
     // Asking-price history scraped from trustmrr.com
     points = (_priceHistory || []).map(p => ({ date: (p.createdAt || '').slice(0, 10), val: p.price }));
     // Add a synthetic "today" point so the latest price extends to now
