@@ -693,7 +693,6 @@ async function fetchEnrichment(slug) {
 const CHART_METRICS_ALL = [
   { key: 'daily_rev',    label: 'Daily Revenue', kind: 'money', source: 'revenue-history', dollars: true },
   { key: 'mrr_cents',    label: 'MRR',           kind: 'money', projectFrom: 'mrr',    growthField: 'growthMRR30d' },
-  { key: 'rev30d_cents', label: 'Revenue (30d)', kind: 'money', projectFrom: 'rev30d', growthField: 'growth30d'    },
   { key: 'customers',    label: 'Customers',     kind: 'int'   },
   { key: 'subscriptions',label: 'Subscriptions', kind: 'int'   },
   { key: 'growth30d',    label: 'Growth %',      kind: 'pct'   },
