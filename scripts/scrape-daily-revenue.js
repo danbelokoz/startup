@@ -219,16 +219,12 @@ async function scrapeStartup(page, slug) {
 // ── Supabase write ────────────────────────────────────────────────────────────
 
 function normalizeAmount(points) {
-  // If values look like cents (e.g. 24400 for $244), divide by 100.
-  // Heuristic: if median value > 5000 and max < 10_000_000, assume cents.
-  const vals = points.map(p => p.amount).filter(v => typeof v === 'number' && v >= 0);
-  if (!vals.length) return points;
-  const sorted = [...vals].sort((a, b) => a - b);
-  const median = sorted[Math.floor(sorted.length / 2)];
-  const isCents = median > 5000; // $50+ daily = >5000 cents vs >50 dollars
+  // TrustMRR's `revenue` field is already in whole US dollars — e.g. {revenue: 40847}
+  // renders as "$40,847" on their site, {revenue: 6} as "$6". Store it as-is in USD.
+  // (The previous cents-heuristic wrongly divided dollar amounts by 100.)
   return points.map(p => ({
     ...p,
-    amount_usd: isCents ? +(p.amount / 100).toFixed(2) : +(p.amount).toFixed(2),
+    amount_usd: typeof p.amount === 'number' && p.amount >= 0 ? +p.amount.toFixed(2) : null,
   }));
 }
 

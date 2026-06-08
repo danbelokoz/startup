@@ -677,7 +677,7 @@ async function fetchEnrichment(slug) {
 // Asking price comes from a separate scrape of trustmrr.com (asking-price changes
 // don't make it into the TrustMRR API).
 const CHART_METRICS_ALL = [
-  { key: 'daily_rev',    label: 'Daily Revenue', kind: 'money', source: 'revenue-history' },
+  { key: 'daily_rev',    label: 'Daily Revenue', kind: 'money', source: 'revenue-history', dollars: true },
   { key: 'mrr_cents',    label: 'MRR',           kind: 'money', projectFrom: 'mrr',    growthField: 'growthMRR30d' },
   { key: 'rev30d_cents', label: 'Revenue (30d)', kind: 'money', projectFrom: 'rev30d', growthField: 'growth30d'    },
   { key: 'customers',    label: 'Customers',     kind: 'int'   },
@@ -858,7 +858,9 @@ function renderChart() {
   const { points, projected, stepped } = computePoints(metric, _chartPeriod);
 
   const fmt = (v) => {
-    if (metric.kind === 'money') return formatMoney(v);
+    // formatMoney expects cents. Snapshot metrics (mrr_cents…) are already cents;
+    // daily_rev is in whole dollars, so scale it up by 100 first.
+    if (metric.kind === 'money') return formatMoney(metric.dollars ? v * 100 : v);
     if (metric.kind === 'pct') return (v >= 0 ? '+' : '') + parseFloat(v).toFixed(1) + '%';
     return Number(v).toLocaleString();
   };
