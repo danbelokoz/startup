@@ -110,6 +110,8 @@ const REVENUE_RE = /\/api\/startup\/revenue\//i;
 async function scrapeStartup(page, slug) {
   const calls = [];
   let revenueData = null;
+  let revenueUrl  = null;   // exact URL the site requested (carries slug/id + token)
+  let authHeaders = null;   // auth-ish request headers we can replay
 
   async function onResponse(response) {
     try {
@@ -118,6 +120,15 @@ async function scrapeStartup(page, slug) {
 
       // Always capture the known revenue endpoint — log status even on non-200
       if (REVENUE_RE.test(url)) {
+        // Grab the request URL + auth headers so we can re-fetch the FULL history.
+        if (!revenueUrl) revenueUrl = url;
+        if (!authHeaders) {
+          const h = response.request().headers() || {};
+          authHeaders = {};
+          for (const k of Object.keys(h)) {
+            if (/^(authorization|x-|token|api-?key|trpc)/i.test(k)) authHeaders[k] = h[k];
+          }
+        }
         console.log(`    revenue endpoint → ${status} ${url}`);
         if (status !== 200) return;
         const json = await response.json();
@@ -125,7 +136,7 @@ async function scrapeStartup(page, slug) {
         if (DEBUG) console.log(`    raw sample: ${JSON.stringify(json).slice(0, 600)}`);
         const points = extractDailyRevenue(json);
         if (points && points.length) {
-          console.log(`    extracted ${points.length} daily points`);
+          console.log(`    intercepted ${points.length} daily points (default view)`);
           revenueData = points;
         } else {
           console.log(`    extraction failed — raw: ${JSON.stringify(json).slice(0, 300)}`);
@@ -161,6 +172,35 @@ async function scrapeStartup(page, slug) {
   } catch (e) {
     if (!e.message.includes('net::ERR_ABORTED')) {
       console.log(`    nav error: ${e.message.slice(0, 100)}`);
+    }
+  }
+
+  // The site's chart defaults to ~30 days. Re-fetch period=all from inside the
+  // page (same origin → cookies + token ride along) to get the FULL history.
+  if (revenueUrl) {
+    try {
+      const allUrl = new URL(revenueUrl);
+      allUrl.searchParams.set('granularity', 'daily');
+      allUrl.searchParams.set('period', 'all');
+      const allJson = await page.evaluate(async (u, hdrs) => {
+        try {
+          const r = await fetch(u, { headers: hdrs || {}, credentials: 'include' });
+          if (!r.ok) return { __err: r.status };
+          return await r.json();
+        } catch (e) { return { __err: String(e) }; }
+      }, allUrl.toString(), authHeaders);
+
+      if (allJson && allJson.__err) {
+        console.log(`    period=all fetch failed: ${allJson.__err}`);
+      } else {
+        const full = extractDailyRevenue(allJson);
+        if (full && full.length > (revenueData ? revenueData.length : 0)) {
+          console.log(`    fetched ${full.length} daily points (full history)`);
+          revenueData = full;
+        }
+      }
+    } catch (e) {
+      console.log(`    period=all error: ${e.message.slice(0, 80)}`);
     }
   }
 

@@ -15,11 +15,15 @@ export default async function handler(req, res) {
     return res.status(200).json({ data: [], note: 'not_configured' });
   }
 
-  const days = Math.min(parseInt(req.query.days || '90', 10) || 90, 365);
+  const days = Math.min(parseInt(req.query.days || '180', 10) || 180, 400);
+  // Filter by date window (not limit) so we always return the MOST RECENT N days,
+  // ascending. limit is just an upper safety bound.
+  const cutoff = new Date(Date.now() - days * 86400_000).toISOString().slice(0, 10);
   const url = `${process.env.SUPABASE_URL}/rest/v1/daily_revenue`
     + `?slug=eq.${encodeURIComponent(slug)}`
+    + `&rev_date=gte.${cutoff}`
     + `&order=rev_date.asc`
-    + `&limit=${days}`;
+    + `&limit=400`;
 
   try {
     const r = await fetch(url, {

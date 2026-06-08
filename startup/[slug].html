@@ -140,15 +140,28 @@
   /* Daily metrics chart */
   .chart-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow); margin-bottom: 32px; }
   .chart-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
-  .chart-tabs { display: inline-flex; flex-wrap: wrap; gap: 4px; background: var(--bg3); padding: 3px; border-radius: 9px; }
-  .chart-tab  { padding: 5px 12px; font-size: 12px; font-weight: 500; color: var(--text2); border-radius: 7px; cursor: pointer; transition: all 0.1s; user-select: none; }
-  .chart-tab:hover { color: var(--text); }
-  .chart-tab.active { background: var(--bg2); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
   .chart-svg  { width: 100%; height: 240px; display: block; }
   .chart-empty { padding: 60px 16px; text-align: center; color: var(--text3); font-size: 13px; line-height: 1.55; }
   .chart-empty strong { color: var(--text2); font-weight: 600; display: block; margin-bottom: 4px; }
   .chart-meta { font-size: 11px; color: var(--text3); margin-top: 8px; text-align: right; }
-  .chart-tooltip { position: absolute; background: var(--text); color: white; font-size: 11px; padding: 5px 8px; border-radius: 5px; pointer-events: none; transform: translate(-50%, -120%); white-space: nowrap; }
+  /* Filters (metric + period) top-right of the chart */
+  .chart-filters { display: inline-flex; gap: 8px; align-items: center; }
+  .chart-select  { appearance: none; -webkit-appearance: none; background: var(--bg2); border: 1px solid var(--border); color: var(--text); font-size: 12px; font-weight: 500; padding: 6px 28px 6px 10px; border-radius: 8px; cursor: pointer; transition: border-color 0.12s, box-shadow 0.12s; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23999' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; }
+  .chart-select:hover { border-color: var(--border2); }
+  .chart-select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,0,0,0.04); }
+  /* Interactive hover layer */
+  .chart-wrap { position: relative; }
+  .chart-cross { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--border2); pointer-events: none; opacity: 0; transition: opacity 0.08s; }
+  .chart-dot   { position: absolute; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); border: 2px solid var(--bg2); pointer-events: none; opacity: 0; transform: translate(-50%, -50%); box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
+  .chart-tooltip { position: absolute; z-index: 5; background: var(--text); color: var(--bg2); font-size: 11px; line-height: 1.4; padding: 6px 9px; border-radius: 6px; pointer-events: none; transform: translate(-50%, calc(-100% - 12px)); white-space: nowrap; opacity: 0; transition: opacity 0.08s; box-shadow: 0 4px 14px rgba(0,0,0,0.18); }
+  .chart-tooltip b { font-size: 12px; }
+  .chart-tooltip .tt-date { color: var(--text3); display: block; font-size: 10px; margin-top: 1px; }
+  /* Legend below chart */
+  .chart-legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+  .chart-legend-item { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text2); }
+  .chart-legend-swatch { width: 14px; height: 3px; border-radius: 2px; background: var(--accent); flex-shrink: 0; }
+  .chart-legend-swatch.muted { background: var(--text3); }
+  .chart-legend-item b { color: var(--text); font-weight: 600; }
   </style>
 </head>
 <body>
@@ -435,10 +448,19 @@ function renderStartup(s) {
     <div class="section-title" data-i18n="startupPage.dailyChart">Динамика по дням</div>
     <div class="chart-card" id="chartCard">
       <div class="chart-head">
-        <div class="chart-tabs" id="chartTabs"></div>
         <div style="font-size:11px;color:var(--text3);" id="chartRangeLabel"></div>
+        <div class="chart-filters">
+          <select id="chartMetricSel" class="chart-select" onchange="onMetricChange(this.value)" aria-label="Metric"></select>
+          <select id="chartPeriodSel" class="chart-select" onchange="onPeriodChange(this.value)" aria-label="Period"></select>
+        </div>
       </div>
-      <div id="chartBody"><div class="chart-empty"><strong data-i18n="startupPage.chartCollecting">Собираем дневные данные</strong><span data-i18n="startupPage.chartWillAppear">График появится через несколько дней — каждый день в 3:00 UTC мы сохраняем снимок метрик.</span></div></div>
+      <div class="chart-wrap" id="chartWrap">
+        <div id="chartBody"><div class="chart-empty"><strong data-i18n="startupPage.chartCollecting">Собираем дневные данные</strong><span data-i18n="startupPage.chartWillAppear">График появится через несколько дней — каждый день в 3:00 UTC мы сохраняем снимок метрик.</span></div></div>
+        <div class="chart-cross" id="chartCross"></div>
+        <div class="chart-dot" id="chartDot"></div>
+        <div class="chart-tooltip" id="chartTip"></div>
+      </div>
+      <div class="chart-legend" id="chartLegend"></div>
     </div>
 
     <div class="section-title">Info</div>
@@ -670,30 +692,27 @@ let _priceHistory      = [];
 let _revenueHistory    = [];
 let _chartStartup      = null;
 let _chartMetric       = 'daily_rev';
-let _chartInitialized  = false; // guard: fetch only once per page load
+let _chartPeriod       = 'all';   // 'all' | 30 | 60 | 90 | 180
+let _chartInitialized  = false;   // guard: fetch only once per page load
+let _chartGeom         = null;    // geometry cache for hover tooltip
+let _chartHoverBound   = false;
+const CHART_PERIODS    = [30, 60, 90, 180];
 
 async function initChart(s) {
   _chartStartup = s;
   _chartMetrics = CHART_METRICS_ALL.filter(m => !m.requiresOnSale || s.onSale);
 
-  const tabsEl = document.getElementById('chartTabs');
-  if (tabsEl) {
-    tabsEl.innerHTML = _chartMetrics.map(m =>
-      `<div class="chart-tab${m.key===_chartMetric?' active':''}" data-metric="${m.key}" onclick="selectChartMetric('${m.key}')">${m.label}</div>`
-    ).join('');
-  }
-
   // Guard: only fetch data once per page load.
   // renderStartup can be called multiple times (fetchEnrichment, navAuthUpdated, doReveal),
   // which would each trigger initChart and spawn duplicate requests.
-  if (_chartInitialized) { renderChart(); return; }
+  if (_chartInitialized) { buildChartControls(); renderChart(); return; }
   _chartInitialized = true;
 
   const tasks = [
-    fetch('/api/history?slug=' + encodeURIComponent(s.slug) + '&days=90')
+    fetch('/api/history?slug=' + encodeURIComponent(s.slug) + '&days=365')
       .then(r => r.json()).then(j => { _chartData = Array.isArray(j.data) ? j.data : []; })
       .catch(() => { _chartData = []; }),
-    fetch('/api/revenue-history?slug=' + encodeURIComponent(s.slug) + '&days=180')
+    fetch('/api/revenue-history?slug=' + encodeURIComponent(s.slug) + '&days=365')
       .then(r => r.json()).then(j => { _revenueHistory = Array.isArray(j.data) ? j.data : []; })
       .catch(() => { _revenueHistory = []; }),
   ];
@@ -705,13 +724,111 @@ async function initChart(s) {
     );
   }
   await Promise.all(tasks);
+  buildChartControls();
   renderChart();
 }
 
-function selectChartMetric(key) {
+// ── Chart controls (metric + period dropdowns) ────────────────────────────────
+// Only metrics that actually have data (≥2 points) are offered. Period options
+// are limited to windows that are smaller than the available data span.
+function buildChartControls() {
+  const metricSel = document.getElementById('chartMetricSel');
+  const periodSel = document.getElementById('chartPeriodSel');
+  const filters   = document.querySelector('.chart-filters');
+  if (!metricSel || !periodSel) return;
+
+  const avail = _chartMetrics.filter(m => computePoints(m, 'all').points.length >= 2);
+  if (!avail.length) { if (filters) filters.style.display = 'none'; metricSel.innerHTML = ''; periodSel.innerHTML = ''; return; }
+  if (filters) filters.style.display = '';
+
+  if (!avail.some(m => m.key === _chartMetric)) _chartMetric = avail[0].key;
+
+  metricSel.innerHTML = avail.map(m =>
+    `<option value="${m.key}"${m.key===_chartMetric?' selected':''}>${m.label}</option>`
+  ).join('');
+
+  buildPeriodOptions();
+}
+
+function buildPeriodOptions() {
+  const periodSel = document.getElementById('chartPeriodSel');
+  const metric = _chartMetrics.find(m => m.key === _chartMetric);
+  if (!periodSel || !metric) return;
+  const { points } = computePoints(metric, 'all');
+  let spanDays = 0;
+  if (points.length >= 2) spanDays = Math.round((new Date(points[points.length-1].date) - new Date(points[0].date)) / 86400000);
+
+  const opts = CHART_PERIODS.filter(p => p < spanDays).map(p => ({ value: String(p), label: p + ' дней' }));
+  opts.push({ value: 'all', label: spanDays ? `Всё (${spanDays}д)` : 'Всё' });
+
+  if (_chartPeriod !== 'all' && !opts.some(o => o.value === String(_chartPeriod))) _chartPeriod = 'all';
+  periodSel.innerHTML = opts.map(o =>
+    `<option value="${o.value}"${String(_chartPeriod)===o.value?' selected':''}>${o.label}</option>`
+  ).join('');
+}
+
+function onMetricChange(key) {
   _chartMetric = key;
-  document.querySelectorAll('.chart-tab').forEach(el => el.classList.toggle('active', el.dataset.metric === key));
+  buildPeriodOptions();   // available periods depend on the metric's data span
   renderChart();
+}
+function onPeriodChange(val) {
+  _chartPeriod = (val === 'all') ? 'all' : parseInt(val, 10);
+  renderChart();
+}
+
+// Build the raw {date,val} series for a metric, optionally trimmed to last N days.
+function computePoints(metric, period) {
+  const s = _chartStartup || {};
+  let points = [], projected = false, stepped = false;
+
+  if (metric.source === 'revenue-history') {
+    points = (_revenueHistory || [])
+      .map(p => ({ date: p.rev_date, val: p.rev_usd, charges: p.charges }))
+      .filter(p => p.val != null);
+  } else if (metric.source === 'price-history') {
+    points = (_priceHistory || []).map(p => ({ date: (p.createdAt || '').slice(0, 10), val: p.price }));
+    if (points.length && s.askingPrice != null) {
+      const last = points[points.length - 1];
+      const today = new Date().toISOString().slice(0, 10);
+      if (last.date !== today) points.push({ date: today, val: s.askingPrice });
+    }
+    stepped = true;
+  } else {
+    points = _chartData.map(r => ({ date: r.snap_date, val: r[metric.key] })).filter(p => p.val != null);
+    if (points.length < 2 && metric.projectFrom) {
+      const current = metric.projectFrom === 'mrr' ? (s.revenue && s.revenue.mrr)
+                    : metric.projectFrom === 'rev30d' ? (s.revenue && s.revenue.last30Days)
+                    : null;
+      const growth = metric.growthField ? s[metric.growthField] : null;
+      const proj = projectFromGrowth(current, growth);
+      if (proj.length) { points = proj; projected = true; }
+    }
+  }
+
+  // Trim to the selected period (skip for stepped price — changes are rare)
+  if (period && period !== 'all' && !stepped && points.length) {
+    const cutoff = new Date(Date.now() - period * 86400_000).toISOString().slice(0, 10);
+    const filtered = points.filter(p => p.date >= cutoff);
+    points = filtered.length >= 2 ? filtered : points.slice(-Math.max(2, Math.min(points.length, period)));
+  }
+
+  return { points, projected, stepped };
+}
+
+// Catmull-Rom → cubic-bezier smoothing for a soft, curved line.
+function smoothPath(pts) {
+  if (pts.length < 2) return '';
+  if (pts.length === 2) return `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)} L${pts[1].x.toFixed(1)},${pts[1].y.toFixed(1)}`;
+  const t = 0.16;
+  let d = `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i-1] || pts[i], p1 = pts[i], p2 = pts[i+1], p3 = pts[i+2] || p2;
+    const c1x = p1.x + (p2.x - p0.x) * t, c1y = p1.y + (p2.y - p0.y) * t;
+    const c2x = p2.x - (p3.x - p1.x) * t, c2y = p2.y - (p3.y - p1.y) * t;
+    d += ` C${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`;
+  }
+  return d;
 }
 
 // Project a metric backwards 30 days using growth30d (% change in 30 days).
@@ -733,58 +850,12 @@ function projectFromGrowth(currentValue, growthPct) {
 function renderChart() {
   const body = document.getElementById('chartBody');
   const rangeLabel = document.getElementById('chartRangeLabel');
+  const legendEl = document.getElementById('chartLegend');
   if (!body) return;
   const metric = _chartMetrics.find(m => m.key === _chartMetric) || _chartMetrics[0];
-  const s = _chartStartup || {};
+  if (!metric) return;
 
-  let points = [];
-  let projected = false;
-  let stepped = false;
-
-  if (metric.source === 'revenue-history') {
-    // Daily revenue scraped from TrustMRR chart (Stripe-verified)
-    points = (_revenueHistory || []).map(p => ({ date: p.rev_date, val: p.rev_usd })).filter(p => p.val != null);
-  } else if (metric.source === 'price-history') {
-    // Asking-price history scraped from trustmrr.com
-    points = (_priceHistory || []).map(p => ({ date: (p.createdAt || '').slice(0, 10), val: p.price }));
-    // Add a synthetic "today" point so the latest price extends to now
-    if (points.length && s.askingPrice != null) {
-      const last = points[points.length - 1];
-      const today = new Date().toISOString().slice(0, 10);
-      if (last.date !== today) points.push({ date: today, val: s.askingPrice });
-    }
-    stepped = true;
-  } else {
-    points = _chartData
-      .map(r => ({ date: r.snap_date, val: r[metric.key] }))
-      .filter(p => p.val != null);
-
-    // Backfill with synthetic projection when we have no real history yet
-    if (points.length < 2 && metric.projectFrom) {
-      const current = metric.projectFrom === 'mrr' ? (s.revenue && s.revenue.mrr)
-                    : metric.projectFrom === 'rev30d' ? (s.revenue && s.revenue.last30Days)
-                    : null;
-      const growth = metric.growthField ? s[metric.growthField] : null;
-      const proj = projectFromGrowth(current, growth);
-      if (proj.length) { points = proj; projected = true; }
-    }
-  }
-
-  if (points.length < 2) {
-    body.innerHTML = `<div class="chart-empty"><strong>${t('startupPage','chartCollecting') || 'Собираем дневные данные'}</strong><span>${t('startupPage','chartWillAppear') || 'График появится через несколько дней — каждый день в 3:00 UTC мы сохраняем снимок метрик.'}</span></div>`;
-    if (rangeLabel) rangeLabel.textContent = '';
-    return;
-  }
-
-  const W = 720, H = 220, PAD_L = 50, PAD_R = 12, PAD_T = 12, PAD_B = 26;
-  const ys = points.map(p => Number(p.val) || 0);
-  const yMin = Math.min(...ys);
-  const yMax = Math.max(...ys);
-  const yPad = (yMax - yMin) * 0.1 || (Math.abs(yMax) * 0.1) || 1;
-  const yLo = yMin - yPad;
-  const yHi = yMax + yPad;
-  const x = i => PAD_L + (i / Math.max(1, points.length - 1)) * (W - PAD_L - PAD_R);
-  const y = v => H - PAD_B - ((v - yLo) / (yHi - yLo || 1)) * (H - PAD_T - PAD_B);
+  const { points, projected, stepped } = computePoints(metric, _chartPeriod);
 
   const fmt = (v) => {
     if (metric.kind === 'money') return formatMoney(v);
@@ -792,20 +863,37 @@ function renderChart() {
     return Number(v).toLocaleString();
   };
 
-  // Stepped (asking-price) path holds each value flat until the next change
-  let linePts;
-  if (stepped) {
-    const parts = [];
-    for (let i = 0; i < points.length; i++) {
-      const px = x(i).toFixed(1), py = y(ys[i]).toFixed(1);
-      if (i === 0) parts.push(`${px},${py}`);
-      else { parts.push(`${x(i).toFixed(1)},${y(ys[i-1]).toFixed(1)}`); parts.push(`${px},${py}`); }
-    }
-    linePts = parts.join(' ');
-  } else {
-    linePts = points.map((p, i) => `${x(i).toFixed(1)},${y(ys[i]).toFixed(1)}`).join(' ');
+  if (points.length < 2) {
+    body.innerHTML = `<div class="chart-empty"><strong>${t('startupPage','chartCollecting') || 'Собираем дневные данные'}</strong><span>${t('startupPage','chartWillAppear') || 'График появится через несколько дней.'}</span></div>`;
+    if (rangeLabel) rangeLabel.textContent = '';
+    if (legendEl) legendEl.innerHTML = '';
+    _chartGeom = null;
+    hideChartHover();
+    return;
   }
-  const areaPts = `${PAD_L},${(H-PAD_B).toFixed(1)} ${linePts} ${(W-PAD_R).toFixed(1)},${(H-PAD_B).toFixed(1)}`;
+
+  const W = 720, H = 220, PAD_L = 50, PAD_R = 12, PAD_T = 12, PAD_B = 26;
+  const ys = points.map(p => Number(p.val) || 0);
+  const yMin = Math.min(...ys);
+  const yMax = Math.max(...ys);
+  const yPad = (yMax - yMin) * 0.12 || (Math.abs(yMax) * 0.12) || 1;
+  const yLo = yMin - yPad;
+  const yHi = yMax + yPad;
+  const x = i => PAD_L + (i / Math.max(1, points.length - 1)) * (W - PAD_L - PAD_R);
+  const y = v => H - PAD_B - ((v - yLo) / (yHi - yLo || 1)) * (H - PAD_T - PAD_B);
+
+  // Build the line path: stepped for asking-price, smooth bezier for everything else
+  const xy = points.map((p, i) => ({ x: x(i), y: y(ys[i]) }));
+  const baseY = (H - PAD_B).toFixed(1);
+  let lineD;
+  if (stepped) {
+    let d = `M${xy[0].x.toFixed(1)},${xy[0].y.toFixed(1)}`;
+    for (let i = 1; i < xy.length; i++) d += ` L${xy[i].x.toFixed(1)},${xy[i-1].y.toFixed(1)} L${xy[i].x.toFixed(1)},${xy[i].y.toFixed(1)}`;
+    lineD = d;
+  } else {
+    lineD = smoothPath(xy);
+  }
+  const areaD = `${lineD} L${xy[xy.length-1].x.toFixed(1)},${baseY} L${xy[0].x.toFixed(1)},${baseY} Z`;
 
   const gridLines = [0.25, 0.5, 0.75, 1].map(f => {
     const v = yLo + (yHi - yLo) * (1 - f);
@@ -837,17 +925,91 @@ function renderChart() {
         </linearGradient>
       </defs>
       ${gridLines}
-      <polygon points="${areaPts}" fill="${fillGrad}"/>
-      <polyline points="${linePts}" fill="none" stroke="${stroke}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" ${dash}/>
+      <path d="${areaD}" fill="${fillGrad}"/>
+      <path d="${lineD}" fill="none" stroke="${stroke}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" ${dash}/>
       ${xLabels}
-      ${points.map((p, i) => `<rect x="${(x(i)-8).toFixed(1)}" y="0" width="16" height="${H-PAD_B}" fill="transparent"><title>${p.date}: ${fmt(ys[i])}</title></rect>`).join('')}
     </svg>`;
 
+  // Cache geometry as container fractions (0..1) for the hover tooltip
+  _chartGeom = {
+    fmt,
+    pts: points.map((p, i) => ({
+      date: p.date, val: ys[i], charges: p.charges,
+      cx: x(i) / W, cy: y(ys[i]) / H,
+    })),
+  };
+  setupChartHover();
+  hideChartHover();
+
   if (rangeLabel) {
-    if (projected) rangeLabel.innerHTML = `<span style="color:var(--text2);font-weight:500;">${t('startupPage','chartEstimated')||'Расчётно'}</span> · по росту 30 дн.`;
-    else if (stepped) rangeLabel.textContent = `${points.length-1} изм. · ${points[0].date} — ${points[points.length-1].date}`;
-    else rangeLabel.textContent = `${points.length} ${points.length===1?'точка':points.length<5?'точки':'точек'} · ${points[0].date} — ${points[points.length-1].date}`;
+    if (projected) rangeLabel.innerHTML = `<span style="color:var(--text2);font-weight:500;">${t('startupPage','chartEstimated')||'Расчётно'}</span> · прогноз по росту 30 дн.`;
+    else rangeLabel.textContent = `${points[0].date} — ${points[points.length-1].date}`;
   }
+
+  if (legendEl) {
+    const last = ys[ys.length - 1];
+    const ptWord = points.length === 1 ? 'точка' : points.length < 5 ? 'точки' : 'точек';
+    legendEl.innerHTML =
+      `<span class="chart-legend-item"><span class="chart-legend-swatch${projected?' muted':''}"></span>${metric.label}${projected?' <span style="color:var(--text3)">· расчётно</span>':''}</span>`
+    + `<span class="chart-legend-item">Сейчас: <b>${fmt(last)}</b></span>`
+    + `<span class="chart-legend-item">Макс: <b>${fmt(yMax)}</b></span>`
+    + `<span class="chart-legend-item">Мин: <b>${fmt(yMin)}</b></span>`
+    + `<span class="chart-legend-item" style="color:var(--text3)">${points.length} ${ptWord}</span>`;
+  }
+}
+
+// ── Chart hover (crosshair + per-day tooltip) ─────────────────────────────────
+function setupChartHover() {
+  if (_chartHoverBound) return;
+  const wrap = document.getElementById('chartWrap');
+  if (!wrap) return;
+  _chartHoverBound = true;
+  wrap.addEventListener('mousemove', onChartMove);
+  wrap.addEventListener('mouseleave', hideChartHover);
+}
+
+function onChartMove(e) {
+  const geom = _chartGeom;
+  const body = document.getElementById('chartBody');
+  if (!geom || !geom.pts.length || !body) return;
+  const rect = body.getBoundingClientRect();
+  const w = rect.width, h = rect.height;
+  if (!w || !h) return;
+  const fx = (e.clientX - rect.left) / w;
+
+  let best = 0, bd = Infinity;
+  for (let i = 0; i < geom.pts.length; i++) {
+    const d = Math.abs(geom.pts[i].cx - fx);
+    if (d < bd) { bd = d; best = i; }
+  }
+  const p = geom.pts[best];
+  const leftPx = p.cx * w, topPx = p.cy * h;
+
+  const cross = document.getElementById('chartCross');
+  const dot   = document.getElementById('chartDot');
+  const tip   = document.getElementById('chartTip');
+  if (cross) { cross.style.left = leftPx + 'px'; cross.style.opacity = '1'; }
+  if (dot)   { dot.style.left = leftPx + 'px'; dot.style.top = topPx + 'px'; dot.style.opacity = '1'; }
+  if (tip) {
+    const dlbl = new Date(p.date).toLocaleDateString(getLang(), { day: 'numeric', month: 'short', year: 'numeric' });
+    let extra = '';
+    if (p.charges != null) {
+      const n = p.charges;
+      const word = n % 10 === 1 && n % 100 !== 11 ? 'платёж' : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) ? 'платежа' : 'платежей';
+      extra = ` · ${n} ${word}`;
+    }
+    tip.innerHTML = `<b>${geom.fmt(p.val)}</b>${extra}<span class="tt-date">${dlbl}</span>`;
+    tip.style.left = Math.max(50, Math.min(w - 50, leftPx)) + 'px';
+    tip.style.top = topPx + 'px';
+    tip.style.opacity = '1';
+  }
+}
+
+function hideChartHover() {
+  ['chartCross','chartDot','chartTip'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.opacity = '0';
+  });
 }
 
 // ── Contact CTA — lives on the right side of the sale box ────────────────────
