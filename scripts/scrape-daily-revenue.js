@@ -8,10 +8,10 @@
 //     node scripts/scrape-daily-revenue.js
 //
 // Env vars:
-//   TRUSTMRR_API_KEY          — TrustMRR API key (to fetch slug list)
 //   SUPABASE_URL              — Supabase project URL
 //   SUPABASE_SERVICE_ROLE_KEY — Supabase service role key
-//   LIMIT                     — max startups to scrape (default 250)
+//   LIMIT                     — max startups to scrape (default 250, ignored if ON_SALE_ONLY=1)
+//   ON_SALE_ONLY              — set to 1 to scrape ALL for-sale startups only
 //   DEBUG                     — set to 1 to log all intercepted API calls
 
 import puppeteer from 'puppeteer';
@@ -19,6 +19,7 @@ import puppeteer from 'puppeteer';
 const SUPABASE_URL             = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const LIMIT                    = parseInt(process.env.LIMIT || '250', 10);
+const ON_SALE_ONLY             = process.env.ON_SALE_ONLY === '1';
 const DEBUG                    = process.env.DEBUG === '1';
 const PAGE_DELAY_MS            = 2500;
 
@@ -239,15 +240,16 @@ async function upsertRevenue(slug, rawPoints) {
 
 // ── Slug list ─────────────────────────────────────────────────────────────────
 // Uses our own Vercel API (already cached from TrustMRR) — no extra API key needed.
+// ON_SALE_ONLY=1 → fetches ALL for-sale startups regardless of LIMIT.
 
 async function getSlugs() {
   const slugs = [];
   let page = 1;
-  const maxPages = Math.ceil(LIMIT / 50);
+  const filter = ON_SALE_ONLY ? '&onSale=true' : '';
 
-  while (page <= maxPages) {
+  while (true) {
     const r = await fetch(
-      `https://startup-silk-nu.vercel.app/api/startups?page=${page}&limit=50&sort=revenue-desc`
+      `https://startup-silk-nu.vercel.app/api/startups?page=${page}&limit=50&sort=revenue-desc${filter}`
     );
     if (!r.ok) throw new Error(`Vercel API ${r.status} on page ${page}`);
     const data = await r.json();
@@ -255,11 +257,13 @@ async function getSlugs() {
       slugs.push(...data.data.map(s => s.slug).filter(Boolean));
     }
     if (!data.meta?.hasMore) break;
+    // In LIMIT mode stop early; in ON_SALE_ONLY mode fetch everything
+    if (!ON_SALE_ONLY && slugs.length >= LIMIT) break;
     page++;
-    await sleep(500); // наш собственный API, можно быстрее
+    await sleep(500);
   }
 
-  return slugs.slice(0, LIMIT);
+  return ON_SALE_ONLY ? slugs : slugs.slice(0, LIMIT);
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────

@@ -4,15 +4,19 @@ on:
   workflow_dispatch:
     inputs:
       limit:
-        description: 'Max startups to scrape (default: 250)'
+        description: 'Max startups to scrape (ignored if on_sale_only=1)'
         required: false
         default: '250'
+      on_sale_only:
+        description: 'Scrape ALL for-sale startups only (1 = yes)'
+        required: false
+        default: '0'
       debug:
         description: 'Log all intercepted API calls (1 = yes)'
         required: false
         default: '0'
   schedule:
-    - cron: '0 4 * * 0'  # Every Sunday at 04:00 UTC
+    - cron: '0 4 */3 * *'  # Every 3 days at 04:00 UTC
 
 jobs:
   scrape:
@@ -37,6 +41,8 @@ jobs:
         env:
           SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          LIMIT:                     ${{ inputs.limit || '250' }}
-          DEBUG:                     ${{ inputs.debug || '0' }}
+          # Scheduled runs always cover for-sale startups only
+          ON_SALE_ONLY: ${{ github.event_name == 'schedule' && '1' || inputs.on_sale_only || '0' }}
+          LIMIT:        ${{ inputs.limit || '250' }}
+          DEBUG:        ${{ inputs.debug || '0' }}
         run: node scrape-daily-revenue.js
