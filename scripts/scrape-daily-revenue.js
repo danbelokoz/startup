@@ -10,15 +10,23 @@
 // Env vars:
 //   SUPABASE_URL              — Supabase project URL
 //   SUPABASE_SERVICE_ROLE_KEY — Supabase service role key
-//   LIMIT                     — max startups to scrape (default 250, ignored if ON_SALE_ONLY=1)
-//   ON_SALE_ONLY              — set to 1 to scrape ALL for-sale startups only
+//   LIMIT                     — batch size: startups to scrape per run (default 400)
+//   OFFSET                    — start index into the slug list (manual batching, default 0)
+//   ROTATE                    — set to 1 to auto-advance the batch window each run
+//                               (consecutive runs sweep the whole list, then refresh)
+//   ROTATE_HOURS              — expected hours between runs; sizes the rotation slot so
+//                               back-to-back runs land on different batches (default 24)
+//   ON_SALE_ONLY              — set to 1 to limit the slug list to for-sale startups
 //   DEBUG                     — set to 1 to log all intercepted API calls
 
 import puppeteer from 'puppeteer';
 
 const SUPABASE_URL             = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const LIMIT                    = parseInt(process.env.LIMIT || '250', 10);
+const BATCH                    = parseInt(process.env.LIMIT || '400', 10);   // startups per run
+const OFFSET                   = parseInt(process.env.OFFSET || '0', 10);     // where the batch starts
+const ROTATE                   = process.env.ROTATE === '1';                  // auto-advance window each run
+const ROTATE_HOURS             = parseInt(process.env.ROTATE_HOURS || '24', 10); // hours between runs (slot size)
 const ON_SALE_ONLY             = process.env.ON_SALE_ONLY === '1';
 const DEBUG                    = process.env.DEBUG === '1';
 const PAGE_DELAY_MS            = 2500;
@@ -276,9 +284,12 @@ async function upsertRevenue(slug, rawPoints) {
 
 // ── Slug list ─────────────────────────────────────────────────────────────────
 // Uses our own Vercel API (already cached from TrustMRR) — no extra API key needed.
-// ON_SALE_ONLY=1 → fetches ALL for-sale startups regardless of LIMIT.
+// ON_SALE_ONLY=1 → restricts the list to for-sale startups. The run then scrapes
+// only the BATCH-sized window starting at OFFSET (or the rotating window).
 
-async function getSlugs() {
+// Fetches the (revenue-desc sorted, deterministic) slug list. Stops early once we
+// have enough to cover this run's window — unless ROTATE needs the full count.
+async function getSlugs(need) {
   const slugs = [];
   let page = 1;
   const filter = ON_SALE_ONLY ? '&onSale=true' : '';
@@ -293,23 +304,40 @@ async function getSlugs() {
       slugs.push(...data.data.map(s => s.slug).filter(Boolean));
     }
     if (!data.meta?.hasMore) break;
-    // In LIMIT mode stop early; in ON_SALE_ONLY mode fetch everything
-    if (!ON_SALE_ONLY && slugs.length >= LIMIT) break;
+    if (slugs.length >= need) break;   // have enough for this batch window
     page++;
-    await sleep(500);
+    await sleep(300);
   }
 
-  return ON_SALE_ONLY ? slugs : slugs.slice(0, LIMIT);
+  return slugs;
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 async function main() {
-  console.log(`TrustMRR daily revenue scraper — limit: ${LIMIT} startups\n`);
+  console.log(`TrustMRR daily revenue scraper — batch size ${BATCH}${ON_SALE_ONLY ? ' (on-sale only)' : ''}\n`);
 
-  console.log('Fetching slug list from TrustMRR API...');
-  const slugs = await getSlugs();
-  console.log(`Got ${slugs.length} slugs.\n`);
+  console.log('Fetching slug list from Vercel API...');
+  const need = ROTATE ? Infinity : OFFSET + BATCH;
+  const all = await getSlugs(need);
+
+  // Pick this run's window. ROTATE advances it by one batch each run, so
+  // consecutive scheduled runs sweep the whole list (then start refreshing it).
+  let start = OFFSET;
+  if (ROTATE && all.length) {
+    // Bucket time into ROTATE_HOURS-wide slots so two runs on the same day still
+    // land on different windows (slot increments by 1 between consecutive runs).
+    const slot = Math.floor(Date.now() / (ROTATE_HOURS * 3600_000));
+    const batchCount = Math.max(1, Math.ceil(all.length / BATCH));
+    start = (slot % batchCount) * BATCH;
+  }
+  const slugs = all.slice(start, start + BATCH);
+  console.log(`Got ${all.length} slugs. Processing batch [${start}..${start + slugs.length}) — ${slugs.length} startups.\n`);
+
+  if (!slugs.length) {
+    console.log('Nothing to scrape in this window. Exiting.');
+    return;
+  }
 
   const browser = await puppeteer.launch({
     headless: 'new',

@@ -4,11 +4,15 @@ on:
   workflow_dispatch:
     inputs:
       limit:
-        description: 'Max startups to scrape (ignored if on_sale_only=1)'
+        description: 'Startups per run (batch size)'
         required: false
-        default: '250'
+        default: '400'
+      offset:
+        description: 'Start index into the slug list (manual batching)'
+        required: false
+        default: '0'
       on_sale_only:
-        description: 'Scrape ALL for-sale startups only (1 = yes)'
+        description: 'Scrape for-sale startups only (1 = yes)'
         required: false
         default: '0'
       debug:
@@ -16,12 +20,12 @@ on:
         required: false
         default: '0'
   schedule:
-    - cron: '0 4 */3 * *'  # Every 3 days at 04:00 UTC
+    - cron: '0 4,16 * * *'  # Twice daily (04:00 & 16:00 UTC) — one rotating batch each
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 120
 
     steps:
       - uses: actions/checkout@v4
@@ -41,8 +45,12 @@ jobs:
         env:
           SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          # Scheduled runs always cover for-sale startups only
+          # Scheduled runs cover for-sale startups only and auto-rotate the batch window
           ON_SALE_ONLY: ${{ github.event_name == 'schedule' && '1' || inputs.on_sale_only || '0' }}
-          LIMIT:        ${{ inputs.limit || '250' }}
+          LIMIT:        ${{ inputs.limit || '400' }}
+          OFFSET:       ${{ inputs.offset || '0' }}
+          ROTATE:       ${{ github.event_name == 'schedule' && '1' || '0' }}
+          # 12h slot matches the twice-daily cron so each run advances to the next batch
+          ROTATE_HOURS: '12'
           DEBUG:        ${{ inputs.debug || '0' }}
         run: node scrape-daily-revenue.js
