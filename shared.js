@@ -173,6 +173,18 @@ function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// ── Revealed startups (persisted, shared across pages) ──────────────────────────
+// When a user reveals a startup's name/contacts on its detail page it is recorded
+// here so it stays un-blurred everywhere (home catalog + leaderboard) and across
+// sessions. Stored in localStorage as a list of slugs.
+function getRevealedSlugs() { try { return JSON.parse(localStorage.getItem('sm_revealed') || '[]'); } catch { return []; } }
+function isRevealed(slug)   { return !!slug && getRevealedSlugs().includes(slug); }
+function addRevealedSlug(slug) {
+  if (!slug) return;
+  const list = getRevealedSlugs();
+  if (!list.includes(slug)) { list.push(slug); try { localStorage.setItem('sm_revealed', JSON.stringify(list)); } catch {} }
+}
+
 // ── ICON SYSTEM ───────────────────────────────────────────────────────────────
 // Lucide-style line icons (https://lucide.dev). Path data is taken from the
 // open-source Lucide set (ISC license). Returns an inline SVG that inherits

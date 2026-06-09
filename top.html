@@ -49,6 +49,8 @@ a.lead-row:hover { background: var(--bg3); }
 .lead-name-wrap { min-width: 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .lead-name { font-size: 15px; font-weight: 600; color: var(--text); letter-spacing: -0.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lead-name.stealth { color: var(--text3); font-style: italic; font-weight: 500; }
+.lead-name.name-blur { filter: blur(6px); user-select: none; cursor: pointer; transition: filter 0.2s; }
+.lead-logo.logo-blur { filter: blur(5px); cursor: pointer; }
 .lead-tag { font-size: 9px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--accent); background: var(--green-bg); border: 1px solid rgba(0,194,122,0.25); padding: 2px 7px; border-radius: 999px; white-space: nowrap; }
 
 .lead-growth { font-size: 14px; font-weight: 700; white-space: nowrap; }
@@ -133,9 +135,15 @@ function onSortChange(v) { sortKey = v; renderTable(); }
 async function loadLeaderboard() {
   const host = document.getElementById('leadTable');
   try {
-    const r = await fetch(API + '/top-startups?limit=50');
+    // Only startups that are for sale, ranked by 30-day growth.
+    const r = await fetch(API + '/startups?onSale=true&sort=growth-desc&limit=50');
     const j = await r.json();
-    leadItems = (j.data || []).filter(x => x && x.slug);
+    leadItems = (j.data || []).filter(x => x && x.slug).map(s => ({
+      slug: s.slug, name: s.name, icon: s.icon || null, onSale: s.onSale,
+      mrrCents:    s.revenue && s.revenue.mrr        != null ? s.revenue.mrr        : null,
+      rev30dCents: s.revenue && s.revenue.last30Days != null ? s.revenue.last30Days : null,
+      growth30d:   s.growth30d != null ? s.growth30d : (s.cachedGrowth30d != null ? s.cachedGrowth30d : null),
+    }));
     if (!leadItems.length) { host.innerHTML = emptyHTML(); return; }
     renderTable();
   } catch {
@@ -168,13 +176,14 @@ function rowHTML(s, i) {
   const medalCls = rank === 1 ? ' gold' : rank === 2 ? ' silver' : rank === 3 ? ' bronze' : '';
   const medal = '<span class="lead-rank' + medalCls + '">' + rank + '</span>';
   const isAnon = (s.name || '').toLowerCase().includes('anonymous');
+  const wantBlur = !isAnon && !isRevealed(s.slug);   // blur name/logo until the user reveals it
   const init = (s.name || '?').slice(0, 2).toUpperCase();
   const logo = isAnon
     ? icon('ghost', { size: 17 })
     : (s.icon ? '<img src="' + escHtml(s.icon) + '" loading="lazy" onerror="this.parentElement.textContent=\'' + init + '\'"/>' : init);
   const name = isAnon
     ? '<span class="lead-name stealth">' + (t('lead','stealth') || 'Stealth startup') + '</span>'
-    : '<span class="lead-name">' + escHtml(s.name) + '</span>';
+    : '<span class="lead-name' + (wantBlur ? ' name-blur' : '') + '">' + escHtml(s.name) + '</span>';
   const tag = s.onSale ? '<span class="lead-tag">' + (t('lead','forSale') || 'For sale') + '</span>' : '';
   const g = s.growth30d;
   let growth;
@@ -184,7 +193,7 @@ function rowHTML(s, i) {
   else                growth = '<span class="lead-growth flat">0%</span>';
   return '<a class="lead-row" href="/startup/' + escHtml(s.slug) + '.html">' +
     '<span class="lead-c-rank">' + medal + '</span>' +
-    '<span class="lead-c-name"><span class="lead-logo">' + logo + '</span><span class="lead-name-wrap">' + name + tag + '</span></span>' +
+    '<span class="lead-c-name"><span class="lead-logo' + (wantBlur ? ' logo-blur' : '') + '">' + logo + '</span><span class="lead-name-wrap">' + name + tag + '</span></span>' +
     '<span class="lead-c-mrr">'  + (s.mrrCents ? formatMoney(s.mrrCents) : '—') + '</span>' +
     '<span class="lead-c-rev">'  + (s.rev30dCents ? formatMoney(s.rev30dCents) : '—') + '</span>' +
     '<span class="lead-c-growth">' + growth + '</span>' +

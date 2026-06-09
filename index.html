@@ -451,8 +451,9 @@ function dataScore(s) {
 function cardHTML(s) {
   const init = s.name.split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase()||'?';
   const isAnon = (s.name||'').toLowerCase().includes('anonymous');
-  const blurName = !isAnon;  // blur every non-anonymous name on cards
-  const blurLogo = !isAnon;
+  const revealed = isRevealed(s.slug);          // already unblurred elsewhere → keep it unblurred here
+  const blurName = !isAnon && !revealed;        // blur non-anonymous names until revealed
+  const blurLogo = !isAnon && !revealed;
   const iconInner = s.icon
     ? '<img src="'+escHtml(s.icon)+'" loading="lazy" onerror="this.parentElement.textContent=\''+init+'\'"/>'
     : init;

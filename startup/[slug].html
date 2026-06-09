@@ -275,7 +275,7 @@ function renderStartup(s) {
   document.getElementById('backLink').textContent = '← ' + t('startupPage','back');
   _startup = s;
   // If user revealed in this session, persist across re-renders (enrichment merge).
-  try { if (sessionStorage.getItem('revealed_'+s.slug)) _revealed = true; } catch {}
+  try { if (sessionStorage.getItem('revealed_'+s.slug) || isRevealed(s.slug)) _revealed = true; } catch {}
   updateFavBtn(s.slug);
 
   const fb = escHtml(s.name.charAt(0));
@@ -694,7 +694,7 @@ async function fetchEnrichment(slug) {
 // Asking price comes from a separate scrape of trustmrr.com (asking-price changes
 // don't make it into the TrustMRR API).
 const CHART_METRICS_ALL = [
-  { key: 'daily_rev',    label: 'Daily Revenue', kind: 'money', source: 'revenue-history', dollars: true },
+  { key: 'daily_rev',    label: 'Daily Revenue', kind: 'money', source: 'revenue-history', dollars: true, projectFrom: 'rev30dDaily', growthField: 'growth30d' },
   { key: 'mrr_cents',    label: 'MRR',           kind: 'money', projectFrom: 'mrr',    growthField: 'growthMRR30d' },
   { key: 'customers',    label: 'Customers',     kind: 'int'   },
   { key: 'subscriptions',label: 'Subscriptions', kind: 'int'   },
@@ -775,6 +775,9 @@ function buildPeriodOptions() {
   if (points.length >= 2) spanDays = Math.round((new Date(points[points.length-1].date) - new Date(points[0].date)) / 86400000);
 
   const opts = CHART_PERIODS.filter(p => p < spanDays).map(p => ({ value: String(p), label: p + ' дней' }));
+  // Always offer a 30-day view (the product default), even when the series is ~30d
+  // or shorter — it then simply shows everything available.
+  if (points.length && !opts.some(o => o.value === '30')) opts.unshift({ value: '30', label: '30 дней' });
   opts.push({ value: 'all', label: spanDays ? `Всё (${spanDays}д)` : 'Всё' });
 
   if (_chartPeriod !== 'all' && !opts.some(o => o.value === String(_chartPeriod))) _chartPeriod = 'all';
@@ -812,14 +815,18 @@ function computePoints(metric, period) {
     stepped = true;
   } else {
     points = _chartData.map(r => ({ date: r.snap_date, val: r[metric.key] })).filter(p => p.val != null);
-    if (points.length < 2 && metric.projectFrom) {
-      const current = metric.projectFrom === 'mrr' ? (s.revenue && s.revenue.mrr)
-                    : metric.projectFrom === 'rev30d' ? (s.revenue && s.revenue.last30Days)
-                    : null;
-      const growth = metric.growthField ? s[metric.growthField] : null;
-      const proj = projectFromGrowth(current, growth);
-      if (proj.length) { points = proj; projected = true; }
-    }
+  }
+
+  // Projection fallback when real data is missing (<2 points) for any projectable
+  // metric — daily revenue and MRR both back-cast from their 30-day value + growth.
+  if (points.length < 2 && metric.projectFrom) {
+    const current = metric.projectFrom === 'mrr'        ? (s.revenue && s.revenue.mrr)
+                  : metric.projectFrom === 'rev30d'      ? (s.revenue && s.revenue.last30Days)
+                  : metric.projectFrom === 'rev30dDaily' ? (s.revenue && s.revenue.last30Days != null ? s.revenue.last30Days / 100 / 30 : null)
+                  : null;
+    const growth = metric.growthField ? s[metric.growthField] : null;
+    const proj = projectFromGrowth(current, growth);
+    if (proj.length) { points = proj; projected = true; }
   }
 
   // Trim to the selected period (skip for stepped price — changes are rare)
@@ -1052,10 +1059,12 @@ function renderChart() {
 
 // ── Chart hover (crosshair + per-day tooltip) ─────────────────────────────────
 function setupChartHover() {
-  if (_chartHoverBound) return;
+  // Bind per-element, not via a module flag: renderStartup re-renders (enrichment,
+  // auth, reveal) rebuild #chartWrap, so a module-level guard would leave the
+  // listener stuck on the old detached element and hover would silently die.
   const wrap = document.getElementById('chartWrap');
-  if (!wrap) return;
-  _chartHoverBound = true;
+  if (!wrap || wrap._hoverBound) return;
+  wrap._hoverBound = true;
   wrap.addEventListener('mousemove', onChartMove);
   wrap.addEventListener('mouseleave', hideChartHover);
 }
@@ -1134,7 +1143,7 @@ function renderContactSection(s) {
         (s.website  ? `<a href="${escHtml(s.website)}" target="_blank" class="btn btn-ghost btn-sm">${t('startupPage','viewOriginal')} ↗</a>` : '');
     }
   } else {
-    try { if (sessionStorage.getItem('revealed_'+s.slug)) { doReveal(s); } } catch {}
+    try { if (sessionStorage.getItem('revealed_'+s.slug) || isRevealed(s.slug)) { doReveal(s); } } catch {}
   }
 }
 
@@ -1166,6 +1175,7 @@ async function tryReveal() {
 
 function doReveal(s) {
   try { sessionStorage.setItem('revealed_'+s.slug,'1'); } catch {}
+  try { addRevealedSlug(s.slug); } catch {}   // persist across sessions + pages (home, leaderboard)
   _revealed = true;
   // Strip every paywall blur class in-place (no full re-render to keep chart state)
   document.querySelectorAll('.paywall-blur, .name-blur, .logo-blur, .owner-blur').forEach(el => {
