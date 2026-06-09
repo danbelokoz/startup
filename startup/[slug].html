@@ -135,6 +135,10 @@
   .similar-price-row { display: flex; align-items: baseline; gap: 6px; margin-top: auto; padding-top: 8px; border-top: 1px solid var(--border); }
   .similar-price   { font-size: 14px; font-weight: 700; color: var(--text); }
   .similar-mult    { font-size: 10px; color: var(--text3); }
+.similar-metrics { margin-top: auto; padding-top: 8px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 3px; }
+.similar-metrics .sm-row { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
+.similar-metrics .sm-row span { font-size: 10px; color: var(--text3); white-space: nowrap; }
+.similar-metrics .sm-row b { font-size: 12px; font-weight: 700; color: var(--text); white-space: nowrap; }
   @media (max-width: 900px) { .insights-grid { grid-template-columns: 1fr; } .similar-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   @media (max-width: 500px) { .similar-grid { grid-template-columns: 1fr; } }
   /* Daily metrics chart */
@@ -652,20 +656,22 @@ function renderSimilarInto(el, s, items) {
       ${items.map(it => {
         const init = (it.name||'?').split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
         const isAnon2 = (it.name||'').toLowerCase().includes('anonymous');
-        const wantBlur2 = !isAnon2 && !isSubscriber;
+        const wantBlur2 = !isAnon2 && !isSubscriber && !isRevealed(it.slug);
         const blurN = wantBlur2 ? ' name-blur' : '';
         const blurL = wantBlur2 ? ' logo-blur' : '';
         const logo = it.icon
           ? `<img src="${escHtml(it.icon)}" onerror="this.parentElement.textContent='${init}'"/>`
           : init;
+        const mult = it.multiple ? parseFloat(it.multiple).toFixed(1)+'×' : '—';
         return `<a class="similar-card" href="/startup/${escHtml(it.slug)}.html">
           <div class="similar-head-row">
             <span class="similar-logo${blurL}">${logo}</span>
             <span class="similar-name${blurN}">${escHtml(it.name)}</span>
           </div>
-          <div class="similar-price-row">
-            <span class="similar-price">${formatMoney(it.askingPrice)}</span>
-            <span class="similar-mult">${it.multiple ? parseFloat(it.multiple).toFixed(1)+'×' : ''}</span>
+          <div class="similar-metrics">
+            <div class="sm-row"><span>${t('idx','cardRev')||'Rev. 30d'}</span><b>${formatMoney(it.revenue && it.revenue.last30Days)}</b></div>
+            <div class="sm-row"><span>${t('idx','cardAsk')||'Asking'}</span><b>${formatMoney(it.askingPrice)}</b></div>
+            <div class="sm-row"><span>${t('idx','cardMult')||'Multiple'}</span><b>${mult}</b></div>
           </div>
         </a>`;
       }).join('')}
@@ -694,7 +700,7 @@ async function fetchEnrichment(slug) {
 // Asking price comes from a separate scrape of trustmrr.com (asking-price changes
 // don't make it into the TrustMRR API).
 const CHART_METRICS_ALL = [
-  { key: 'daily_rev',    label: 'Daily Revenue', kind: 'money', source: 'revenue-history', dollars: true, projectFrom: 'rev30dDaily', growthField: 'growth30d' },
+  { key: 'daily_rev',    label: 'Daily Revenue', kind: 'money', source: 'revenue-history', flow: true, projectFrom: 'rev30dDaily', growthField: 'growth30d' },
   { key: 'mrr_cents',    label: 'MRR',           kind: 'money', projectFrom: 'mrr',    growthField: 'growthMRR30d' },
   { key: 'customers',    label: 'Customers',     kind: 'int'   },
   { key: 'subscriptions',label: 'Subscriptions', kind: 'int'   },
@@ -822,7 +828,7 @@ function computePoints(metric, period) {
   if (points.length < 2 && metric.projectFrom) {
     const current = metric.projectFrom === 'mrr'        ? (s.revenue && s.revenue.mrr)
                   : metric.projectFrom === 'rev30d'      ? (s.revenue && s.revenue.last30Days)
-                  : metric.projectFrom === 'rev30dDaily' ? (s.revenue && s.revenue.last30Days != null ? s.revenue.last30Days / 100 / 30 : null)
+                  : metric.projectFrom === 'rev30dDaily' ? (s.revenue && s.revenue.last30Days != null ? s.revenue.last30Days / 30 : null)
                   : null;
     const growth = metric.growthField ? s[metric.growthField] : null;
     const proj = projectFromGrowth(current, growth);
@@ -844,7 +850,7 @@ function computePoints(metric, period) {
 function computeSummary(metric, period) {
   const all = computePoints(metric, 'all').points;
   if (!all.length) return null;
-  const isFlow = !!metric.dollars;   // revenue accumulates → show the total
+  const isFlow = !!metric.flow;   // revenue accumulates → show the total
   const sum = arr => arr.reduce((a, p) => a + (Number(p.val) || 0), 0);
 
   let curArr, prevArr, basis;
@@ -934,6 +940,22 @@ function projectFromGrowth(currentValue, growthPct) {
   return out;
 }
 
+// Round axis bounds to human-friendly tick values (1/2/5 × 10ⁿ): 0, 500, 1K, 2K…
+function niceTicks(min, max, count) {
+  if (!isFinite(min) || !isFinite(max)) return { ticks: [0, 1], niceMin: 0, niceMax: 1, step: 1 };
+  if (min === max) { if (min === 0) max = 1; else { min = Math.min(0, min); max = max * 1.1; } }
+  const range = (max - min) || 1;
+  const rawStep = range / Math.max(1, count);
+  const mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
+  const norm = rawStep / mag;
+  const step = (norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 5 ? 5 : 10) * mag;
+  const niceMin = Math.floor(min / step) * step;
+  const niceMax = Math.ceil(max / step) * step;
+  const ticks = [];
+  for (let v = niceMin; v <= niceMax + step * 0.5; v += step) ticks.push(Math.round(v * 1e6) / 1e6);
+  return { ticks, niceMin, niceMax, step };
+}
+
 function renderChart() {
   const body = document.getElementById('chartBody');
   const rangeLabel = document.getElementById('chartRangeLabel');
@@ -945,16 +967,14 @@ function renderChart() {
   const { points, projected, stepped } = computePoints(metric, _chartPeriod);
 
   const fmt = (v) => {
-    // formatMoney expects cents. Snapshot metrics (mrr_cents…) are already cents;
-    // daily_rev is in whole dollars, so scale it up by 100 first.
-    if (metric.kind === 'money') return formatMoney(metric.dollars ? v * 100 : v);
+    if (metric.kind === 'money') return formatMoney(v);   // all money series are stored in cents
     if (metric.kind === 'pct') return (v >= 0 ? '+' : '') + parseFloat(v).toFixed(1) + '%';
     return Number(v).toLocaleString();
   };
   // Full-precision formatter for the header total and the hover tooltip
   const fmtFull = (v) => {
     if (v == null) return '—';
-    if (metric.kind === 'money') { const d = metric.dollars ? v : v / 100; return '$' + Math.round(d).toLocaleString(); }
+    if (metric.kind === 'money') return '$' + Math.round(v / 100).toLocaleString();
     if (metric.kind === 'pct') return (v >= 0 ? '+' : '') + parseFloat(v).toFixed(1) + '%';
     return Number(Math.round(v)).toLocaleString();
   };
@@ -973,11 +993,14 @@ function renderChart() {
 
   const W = 720, H = 220, PAD_L = 50, PAD_R = 12, PAD_T = 12, PAD_B = 26;
   const ys = points.map(p => Number(p.val) || 0);
-  const yMin = Math.min(...ys);
-  const yMax = Math.max(...ys);
-  const yPad = (yMax - yMin) * 0.12 || (Math.abs(yMax) * 0.12) || 1;
-  const yLo = yMin - yPad;
-  const yHi = yMax + yPad;
+  const yMinRaw = Math.min(...ys);
+  const yMaxRaw = Math.max(...ys);
+  // Round the y-axis to "nice" tick values (0, 1K, 2K…) instead of the raw data
+  // range. Flow metrics (revenue) anchor at a 0 baseline; snapshots keep their
+  // range so a high-floor trend (e.g. MRR ~$300–500) isn't flattened.
+  const { ticks: yTicks, niceMin, niceMax } = niceTicks(metric.flow ? Math.min(0, yMinRaw) : yMinRaw, yMaxRaw, 4);
+  const yLo = niceMin;
+  const yHi = niceMax > niceMin ? niceMax : niceMin + 1;
   const x = i => PAD_L + (i / Math.max(1, points.length - 1)) * (W - PAD_L - PAD_R);
   const y = v => H - PAD_B - ((v - yLo) / (yHi - yLo || 1)) * (H - PAD_T - PAD_B);
 
@@ -994,11 +1017,10 @@ function renderChart() {
   }
   const areaD = `${lineD} L${xy[xy.length-1].x.toFixed(1)},${baseY} L${xy[0].x.toFixed(1)},${baseY} Z`;
 
-  const gridLines = [0.25, 0.5, 0.75, 1].map(f => {
-    const v = yLo + (yHi - yLo) * (1 - f);
-    return `<line x1="${PAD_L}" x2="${W-PAD_R}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" stroke="var(--border)" stroke-dasharray="2 4"/>
-            <text x="${PAD_L-6}" y="${(y(v)+3).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--text3)">${fmt(v)}</text>`;
-  }).join('');
+  const gridLines = yTicks.filter(v => v >= yLo - 1e-6 && v <= yHi + 1e-6).map(v =>
+    `<line x1="${PAD_L}" x2="${W-PAD_R}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" stroke="var(--border)" stroke-dasharray="2 4"/>
+     <text x="${PAD_L-6}" y="${(y(v)+3).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--text3)">${fmt(v)}</text>`
+  ).join('');
 
   const xIdx = points.length >= 3 ? [0, Math.floor(points.length/2), points.length-1] : [0, points.length-1];
   const xLabels = xIdx.map(i => {
@@ -1031,7 +1053,7 @@ function renderChart() {
 
   // Cache geometry as container fractions (0..1) for the hover tooltip
   _chartGeom = {
-    fmt, fmtFull, dollars: !!metric.dollars,
+    fmt, fmtFull, flow: !!metric.flow,
     pts: points.map((p, i) => ({
       date: p.date, val: ys[i], charges: p.charges,
       cx: x(i) / W, cy: y(ys[i]) / H,
@@ -1096,9 +1118,9 @@ function onChartMove(e) {
     let rows = '';
     if (p.charges != null && p.charges > 0) {
       rows += `<span class="tt-row">${p.charges} ${pluralPayments(p.charges)}</span>`;
-      if (geom.dollars) {
-        const per = p.val / p.charges;   // average payment size (revenue is in USD)
-        rows += `<span class="tt-row">≈ $${Math.round(per).toLocaleString()} / платёж</span>`;
+      if (geom.flow) {
+        const per = p.val / p.charges;   // average payment size (cents) → formatMoney
+        rows += `<span class="tt-row">≈ ${formatMoney(per)} / платёж</span>`;
       }
     }
     tip.innerHTML = `<b>${geom.fmtFull(p.val)}</b>${rows}<span class="tt-date">${dlbl}</span>`;
