@@ -84,9 +84,12 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
 .card-metrics { display: flex; border-top: 1px solid var(--border); padding-top: 10px; margin-top: auto; align-items: stretch; }
 .cm { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: space-between; gap: 4px; }
 .cm + .cm { border-left: 1px solid var(--border); padding-left: 10px; margin-left: 10px; }
+.card-metrics .cm:first-child { flex: 1.5; }  /* wider Rev.30d column so value + growth fit */
 .cm-label { font-size: 9px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cm-val { font-size: 14px; font-weight: 700; letter-spacing: -0.2px; color: var(--text); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cm-sub { font-size: 10px; font-weight: 600; margin-left: 2px; }
+.badge-link { cursor: pointer; transition: background .12s, color .12s, border-color .12s; }
+.badge-link:hover { background: var(--text); color: #fff; border-color: var(--text); }
 .anon-tag { font-size: 9px; color: var(--text3); font-weight: 500; letter-spacing: 0.03em; margin-left: 4px; cursor: help; border-bottom: 1px dotted var(--border2); }
 .card-extra { font-size: 11px; color: var(--text3); display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 4px; margin-bottom: 8px; }
 .card-extra-item { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
@@ -257,7 +260,7 @@ let filters = {
   mrrMin:0, mrrMax:0, rev30Min:0, rev30Max:0,
   priceMin:0, priceMax:0, growthMin:'', growthMax:'',
   multipleMax:0, marginMin:0, marginMax:0,
-  audience:'', mobile:''
+  audience:'', mobile:'', saleFirst:false
 };
 
 /* ── CACHE ─────────────────────────────────────────────────────────────────── */
@@ -353,8 +356,10 @@ async function fetchPage(page, bg) {
 // descending, then the API's chosen order for ties. Buyers see the richest
 // cards first without losing the global revenue/growth/price sort.
 function rankAnonLast(arr) {
-  const indexed = arr.map((s, i) => ({ s, i, anon: (s.name||'').toLowerCase().includes('anonymous') ? 1 : 0, score: dataScore(s) }));
-  indexed.sort((a, b) => (a.anon - b.anon) || (b.score - a.score) || (a.i - b.i));
+  // When browsing by tag/category (saleFirst), for-sale startups float to the top.
+  const saleFirst = !!filters.saleFirst;
+  const indexed = arr.map((s, i) => ({ s, i, sale: (saleFirst && s.onSale) ? 0 : 1, anon: (s.name||'').toLowerCase().includes('anonymous') ? 1 : 0, score: dataScore(s) }));
+  indexed.sort((a, b) => (a.sale - b.sale) || (a.anon - b.anon) || (b.score - a.score) || (a.i - b.i));
   return indexed.map(x => x.s);
 }
 function applyClientFilters(items) {
@@ -462,9 +467,16 @@ function cardHTML(s) {
   const lblAsk = t('idx','cardAsk') || 'Ask. price';
   const lblMult= t('idx','cardMult')|| 'Multiple';
   const lblMrr = t('idx','cardMrr') || 'MRR';
+  // Tooltips explaining each metric/tag on hover (req) + clickable category (req: tag → filtered page)
+  const tRev = escHtml(t('idx','tipRev30')||'');
+  const tAsk = escHtml(t('idx','tipPrice')||'');
+  const tMul = escHtml(t('idx','tipMultiple')||'');
+  const tMrr = escHtml(t('idx','tipMrr')||'');
+  const catEnc = s.category ? encodeURIComponent(s.category).replace(/'/g,'%27') : '';
+  const catTip = s.category ? escHtml((t('idx','tipCategory')||'Show all {cat} startups').replace('{cat}', s.category)) : '';
   const pBlock = hasP
-    ? '<div class="cm"><div class="cm-label">'+lblAsk+'</div><div class="cm-val">'+formatMoney(s.askingPrice)+'</div></div><div class="cm"><div class="cm-label">'+lblMult+'</div><div class="cm-val">'+(s.multiple?parseFloat(s.multiple).toFixed(1)+'×':'—')+'</div></div>'
-    : '<div class="cm"><div class="cm-label">'+lblMrr+'</div><div class="cm-val">'+formatMoney(s.revenue&&s.revenue.mrr)+'</div></div>';
+    ? '<div class="cm" title="'+tAsk+'"><div class="cm-label">'+lblAsk+'</div><div class="cm-val">'+formatMoney(s.askingPrice)+'</div></div><div class="cm" title="'+tMul+'"><div class="cm-label">'+lblMult+'</div><div class="cm-val">'+(s.multiple?parseFloat(s.multiple).toFixed(1)+'×':'—')+'</div></div>'
+    : '<div class="cm" title="'+tMrr+'"><div class="cm-label">'+lblMrr+'</div><div class="cm-val">'+formatMoney(s.revenue&&s.revenue.mrr)+'</div></div>';
   const views = s.views?'<span class="card-views">'+icon('eye',{size:11})+' '+(s.views>999?(s.views/1000).toFixed(1)+'k':s.views)+'</span>':'';
   const favOn = isFav(s.slug);
   const anonTag = isAnon
@@ -492,10 +504,10 @@ function cardHTML(s) {
       '<div class="card-head-info">'+
         '<div class="card-name">'+nameHtml+anonTag+'</div>'+
         '<div class="card-badges">'+
-          (s.category?'<span class="badge badge-cat">'+escHtml(s.category)+'</span>':'')+
-          '<span class="badge badge-verified">✓ verified</span>'+
-          (s.onSale?'<span class="badge badge-sale">'+(t('idx','statSale')||'For sale')+'</span>':'')+
-          (isNew?'<span class="badge badge-new">NEW</span>':'')+
+          (s.category?'<span class="badge badge-cat badge-link" title="'+catTip+'" onclick="goCategory(event,\''+catEnc+'\')">'+escHtml(s.category)+'</span>':'')+
+          '<span class="badge badge-verified" title="'+escHtml(t('idx','tipVerified')||'')+'">✓ verified</span>'+
+          (s.onSale?'<span class="badge badge-sale" title="'+escHtml(t('idx','tipForSaleBadge')||'')+'">'+(t('idx','statSale')||'For sale')+'</span>':'')+
+          (isNew?'<span class="badge badge-new" title="'+escHtml(t('idx','tipNew')||'')+'">NEW</span>':'')+
         '</div>'+
       '</div>'+
       '<div class="card-actions">'+views+
@@ -505,7 +517,7 @@ function cardHTML(s) {
     '<div class="card-desc">'+desc+'</div>'+
     extraHtml+
     '<div class="card-metrics">'+
-      '<div class="cm"><div class="cm-label">'+lblRev+'</div><div class="cm-val">'+formatMoney(s.revenue&&s.revenue.last30Days)+gh+'</div></div>'+
+      '<div class="cm" title="'+tRev+'"><div class="cm-label">'+lblRev+'</div><div class="cm-val">'+formatMoney(s.revenue&&s.revenue.last30Days)+gh+'</div></div>'+
       pBlock+
     '</div>'+
   '</a>';
@@ -514,6 +526,14 @@ function cardHTML(s) {
 function saveStartup(slug) {
   const s=loadedItems.find(x=>x.slug===slug);
   if(s){try{sessionStorage.setItem('startup_detail',JSON.stringify(s));}catch{}}
+}
+
+// Clicking a category badge on a card opens the catalog filtered by that tag,
+// with for-sale startups floated to the top (see applyUrlParams + rankAnonLast).
+// catEnc is already URL-encoded; stop the parent card link from navigating.
+function goCategory(e, catEnc) {
+  if (e) { e.preventDefault(); e.stopPropagation(); }
+  location.href = '/?category=' + catEnc;
 }
 
 /* ── STATS ─────────────────────────────────────────────────────────────────── */
@@ -604,7 +624,7 @@ function resetFilters() {
   document.querySelector('.status-opt[data-filter="sale"]').classList.add('sel');
   const si=document.getElementById('searchInput'); if(si) si.value='';
   const ss=document.getElementById('sortSelect'); if(ss) ss.value='revenue-desc';
-  filters={onSale:true,category:'',sort:'revenue-desc',search:'',mrrMin:0,mrrMax:0,rev30Min:0,rev30Max:0,priceMin:0,priceMax:0,growthMin:'',growthMax:'',multipleMax:0,marginMin:0,marginMax:0,audience:'',mobile:''};
+  filters={onSale:true,category:'',sort:'revenue-desc',search:'',mrrMin:0,mrrMax:0,rev30Min:0,rev30Max:0,priceMin:0,priceMax:0,growthMin:'',growthMax:'',multipleMax:0,marginMin:0,marginMax:0,audience:'',mobile:'',saleFirst:false};
   reloadFromAPI();
 }
 
@@ -631,6 +651,7 @@ function applyUrlParams() {
   }
   if (search || category) {
     filters.onSale = null;
+    filters.saleFirst = true;   // tag/category deep-link → show for-sale startups first
     document.querySelectorAll('.status-opt').forEach(o => o.classList.remove('sel'));
     const allOpt = document.querySelector('.status-opt[data-filter="all"]'); if (allOpt) allOpt.classList.add('sel');
   }

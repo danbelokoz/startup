@@ -454,8 +454,6 @@ function renderStartup(s) {
       ${s.hasDatafast ? `<span class="analytics-pill">${icon('zap',{size:11})} Datafast</span>` : ''}
     </div>` : ''}
 
-    <div id="siteSection"></div>
-
     <div class="section-title" data-i18n="startupPage.dailyChart">Динамика по дням</div>
     <div class="chart-card" id="chartCard">
       <div class="chart-head">
@@ -479,6 +477,8 @@ function renderStartup(s) {
       </div>
       <div class="chart-legend" id="chartLegend"></div>
     </div>
+
+    <div id="siteSection"></div>
 
     <div class="section-title">Info</div>
     <table class="info-table">
