@@ -186,7 +186,7 @@
   </div>
   <div id="content"><div class="loading-state"><h3>Loading...</h3></div></div>
 </div>
-<footer><span id="footerText"></span> <a href="https://trustmrr.com" target="_blank">TrustMRR</a> · API v1</footer>
+<footer><a href="#">Условия</a> &nbsp;·&nbsp; <a href="#">Конфиденциальность</a></footer>
 
 <script src="/auth-config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -196,7 +196,6 @@ function applyUI() {
   applyLangToDoc();
   document.getElementById('navPlaceholder').innerHTML = buildNavHTML('');
   document.getElementById('modalPlaceholder').innerHTML = buildModalHTML();
-  document.getElementById('footerText').textContent = t('footer','data');
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
@@ -343,10 +342,10 @@ function renderStartup(s) {
 
   const ai = (s.aiEnrichment && typeof s.aiEnrichment === 'object') ? s.aiEnrichment : {};
   const tags = Array.isArray(ai.tags) ? ai.tags : [];
-  const stealthBadge   = s.stealthMode ? `<span class="badge badge-stealth">${icon('ghost',{size:10})} Stealth</span>` : '';
-  const cofounderBadge = s.lookingForCofounder ? `<span class="badge badge-cofounder">${icon('handshake',{size:10})} Hiring cofounder</span>` : '';
-  const fundingBadge   = ai.fundingStatus && ai.fundingStatus !== 'Unknown' ? `<span class="badge badge-funding">${escHtml(ai.fundingStatus)}</span>` : '';
-  const scoreBadge     = s.acquireScore != null ? `<span class="badge badge-score">${icon('trophy',{size:10})} Score ${(s.acquireScore * 100).toFixed(0)}</span>` : '';
+  const stealthBadge   = s.stealthMode ? `<span class="badge badge-stealth" title="${escHtml(t('startupPage','tipStealth'))}">${icon('ghost',{size:10})} Stealth</span>` : '';
+  const cofounderBadge = s.lookingForCofounder ? `<span class="badge badge-cofounder" title="${escHtml(t('startupPage','tipCofounder'))}">${icon('handshake',{size:10})} Hiring cofounder</span>` : '';
+  const fundingBadge   = ai.fundingStatus && ai.fundingStatus !== 'Unknown' ? `<span class="badge badge-funding" title="${escHtml(t('startupPage','tipFunding'))}">${escHtml(ai.fundingStatus)}</span>` : '';
+  const scoreBadge     = s.acquireScore != null ? `<span class="badge badge-score" title="${escHtml(t('startupPage','tipScore'))}">${icon('trophy',{size:10})} Score ${(s.acquireScore * 100).toFixed(0)}</span>` : '';
   // Tags are now clickable — link home filter by tag as a search keyword
   const tagBadges      = tags.slice(0, 6).map(tg => `<a class="ai-tag" href="/?search=${encodeURIComponent(tg)}" title="Browse ${escHtml(tg)} startups">${icon('tag',{size:10})} ${escHtml(tg)}</a>`).join('');
   const tagsRow        = tagBadges ? `<div class="ai-tags" style="margin-top:8px;">${tagBadges}</div>` : '';
@@ -394,7 +393,7 @@ function renderStartup(s) {
     ? `${ai.targetPersona ? escHtml(ai.targetPersona) : ''}${s.targetAudience ? `<div class="insight-list" style="margin-top:6px;"><span class="insight-chip">${escHtml(s.targetAudience.toUpperCase())}</span></div>` : ''}`
     : '';
   const marketBody = (tags.length || s.category)
-    ? `<div class="insight-list">${(s.category?[`<span class="insight-chip">${escHtml(s.category)}</span>`]:[]).concat(tags.slice(0,8).map(tg=>`<a class="insight-chip" href="/?search=${encodeURIComponent(tg)}" style="text-decoration:none;color:inherit;">${escHtml(tg)}</a>`)).join('')}</div>`
+    ? `<div class="insight-list">${(s.category?[`<span class="insight-chip">${escHtml(s.category)}</span>`]:[]).concat(tags.slice(0,8).map(tg=>`<a class="insight-chip" href="/?search=${encodeURIComponent(tg)}" style="text-decoration:none;color:inherit;" title="Browse ${escHtml(tg)} startups">${escHtml(tg)}</a>`)).join('')}</div>`
     : '';
   const cards = [
     insightCard('lightbulb', 'Value proposition', ai.valueProposition ? escHtml(ai.valueProposition) : ''),
@@ -418,15 +417,15 @@ function renderStartup(s) {
           ${headerReveal}
         </div>
         <div class="header-badges" style="margin-top:8px;">
-          ${s.category?`<a class="badge badge-cat" href="/?category=${encodeURIComponent(s.category)}" style="text-decoration:none;" title="Browse ${escHtml(s.category)} startups">${escHtml(s.category)}</a>`:''}
-          ${s.onSale?`<span class="badge badge-sale">${t('startupPage','forSale')}</span>`:''}
-          ${s.paymentProvider?`<span class="badge badge-green">${s.paymentProvider}</span>`:''}
-          ${s.isMerchantOfRecord?`<span class="badge badge-cat">MoR</span>`:''}
+          ${s.category?`<a class="badge badge-cat" href="/?category=${encodeURIComponent(s.category)}" style="text-decoration:none;" title="${escHtml((t('idx','tipCategory')||'Browse {cat} startups').replace('{cat}', s.category))}">${escHtml(s.category)}</a>`:''}
+          ${s.onSale?`<span class="badge badge-sale" title="${escHtml(t('idx','tipForSaleBadge'))}">${t('startupPage','forSale')}</span>`:''}
+          ${s.paymentProvider?`<span class="badge badge-green" title="${escHtml(t('startupPage','tipProvider'))}">${s.paymentProvider}</span>`:''}
+          ${s.isMerchantOfRecord?`<span class="badge badge-cat" title="${escHtml(t('startupPage','tipMor'))}">MoR</span>`:''}
           ${stealthBadge}
           ${cofounderBadge}
           ${fundingBadge}
           ${scoreBadge}
-          ${s.rank?`<span class="badge badge-cat">#${s.rank}</span>`:''}
+          ${s.rank?`<span class="badge badge-cat" title="${escHtml(t('startupPage','tipRank'))}">#${s.rank}</span>`:''}
         </div>
         ${tagsRow}
       </div>

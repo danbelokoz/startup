@@ -101,8 +101,8 @@ a.lead-row:hover { background: var(--bg3); }
       <div class="lead-controls">
         <div class="lead-select-wrap">
           <select class="lead-select" id="sortSelect" onchange="onSortChange(this.value)" aria-label="Sort">
-            <option value="growth" data-i18n="lead.sortGrowth" selected>Рост</option>
-            <option value="mrr" data-i18n="lead.sortMrr">MRR</option>
+            <option value="mrr" data-i18n="lead.sortMrr" selected>MRR</option>
+            <option value="growth" data-i18n="lead.sortGrowth">Рост</option>
             <option value="rev" data-i18n="lead.sortRev">Выручка</option>
           </select>
         </div>
@@ -119,7 +119,7 @@ a.lead-row:hover { background: var(--bg3); }
   </div>
 </div>
 
-<footer>TrustMRR · API v1 &nbsp;·&nbsp; <a href="#">Условия</a> &nbsp;·&nbsp; <a href="#">Конфиденциальность</a></footer>
+<footer><a href="#">Условия</a> &nbsp;·&nbsp; <a href="#">Конфиденциальность</a></footer>
 
 <script>
 applyLangToDoc();
@@ -128,17 +128,27 @@ initNavAuth();
 
 const API = '/api';
 let leadItems = [];
-let sortKey   = 'growth';   // default: rank by 30-day revenue growth %
+let sortKey   = 'mrr';   // default: rank by MRR (metrics shown are for the last 30 days)
 
 function onSortChange(v) { sortKey = v; renderTable(); }
 
 async function loadLeaderboard() {
   const host = document.getElementById('leadTable');
   try {
-    // Only startups that are for sale, ranked by 30-day growth.
-    const r = await fetch(API + '/startups?onSale=true&sort=growth-desc&limit=50');
-    const j = await r.json();
-    leadItems = (j.data || []).filter(x => x && x.slug).map(s => ({
+    // Only startups that are for sale. Merge two cached pools so every ranking
+    // has the right candidates: top-50 by revenue (MRR/revenue views) + top-50 by growth.
+    const [byRev, byGrowth] = await Promise.all([
+      fetch(API + '/startups?onSale=true&sort=revenue-desc&limit=50').then(r => r.json()).catch(() => null),
+      fetch(API + '/startups?onSale=true&sort=growth-desc&limit=50').then(r => r.json()).catch(() => null),
+    ]);
+    const seen = new Set();
+    const pool = [];
+    for (const j of [byRev, byGrowth]) {
+      for (const x of (j && j.data) || []) {
+        if (x && x.slug && !seen.has(x.slug)) { seen.add(x.slug); pool.push(x); }
+      }
+    }
+    leadItems = pool.map(s => ({
       slug: s.slug, name: s.name, icon: s.icon || null, onSale: s.onSale,
       mrrCents:    s.revenue && s.revenue.mrr        != null ? s.revenue.mrr        : null,
       rev30dCents: s.revenue && s.revenue.last30Days != null ? s.revenue.last30Days : null,
@@ -160,7 +170,7 @@ function sortItems() {
 }
 
 function renderTable() {
-  const arr = sortItems();
+  const arr = sortItems().slice(0, 50);
   const head = '<div class="lead-row lead-row-head">' +
     '<span class="lead-c-rank">' + t('lead','thRank') + '</span>' +
     '<span class="lead-c-name">' + t('lead','thStartup') + '</span>' +
@@ -184,7 +194,7 @@ function rowHTML(s, i) {
   const name = isAnon
     ? '<span class="lead-name stealth">' + (t('lead','stealth') || 'Stealth startup') + '</span>'
     : '<span class="lead-name' + (wantBlur ? ' name-blur' : '') + '">' + escHtml(s.name) + '</span>';
-  const tag = s.onSale ? '<span class="lead-tag">' + (t('lead','forSale') || 'For sale') + '</span>' : '';
+  const tag = s.onSale ? '<span class="lead-tag" title="' + escHtml(t('idx','tipForSaleBadge') || '') + '">' + (t('lead','forSale') || 'For sale') + '</span>' : '';
   const g = s.growth30d;
   let growth;
   if (g == null)      growth = '<span class="lead-growth flat">—</span>';
