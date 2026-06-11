@@ -396,9 +396,20 @@ async function updateNavAuth(session) {
     const r = await fetch('/api/auth', { headers });
     if (r.ok) {
       window._access = await r.json();
+      maybeShowAdminLink();
       window.dispatchEvent(new CustomEvent('navAuthUpdated'));
     }
   } catch {}
+}
+
+// Admins (profiles.role = 'admin') get an extra nav button to /admin.html.
+// Everyone else never sees it — the page itself is guarded server-side anyway.
+function maybeShowAdminLink() {
+  const el = document.getElementById('navAuth');
+  if (!el || document.getElementById('navAdminLink')) return;
+  if (window._access && window._access.role === 'admin') {
+    el.insertAdjacentHTML('afterbegin', '<a class="btn btn-ghost btn-sm" id="navAdminLink" href="/admin.html">Admin</a>');
+  }
 }
 
 async function navSignOut() {
