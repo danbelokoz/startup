@@ -41,13 +41,15 @@ async function handleTrack(req, res) {
   const day  = new Date().toISOString().slice(0, 10);
   const vid  = await sha256hex(`${clientIp(req)}|${ua}|${day}|${process.env.CRON_SECRET || 'sm'}`);
 
+  // Plain EXPIRE (no NX) for compatibility — keys are per-day, so refreshing the
+  // TTL on every hit still means "gone ~100 days after the day ends".
   const cmds = [
-    ['INCR', `sm_pv_${day}`],                 ['EXPIRE', `sm_pv_${day}`, COUNTER_TTL, 'NX'],
-    ['PFADD', `sm_uv_${day}`, vid],           ['EXPIRE', `sm_uv_${day}`, COUNTER_TTL, 'NX'],
-    ['HINCRBY', `sm_pages_${day}`, page, 1],  ['EXPIRE', `sm_pages_${day}`, COUNTER_TTL, 'NX'],
+    ['INCR', `sm_pv_${day}`],                 ['EXPIRE', `sm_pv_${day}`, COUNTER_TTL],
+    ['PFADD', `sm_uv_${day}`, vid],           ['EXPIRE', `sm_uv_${day}`, COUNTER_TTL],
+    ['HINCRBY', `sm_pages_${day}`, page, 1],  ['EXPIRE', `sm_pages_${day}`, COUNTER_TTL],
   ];
   if (slug) {
-    cmds.push(['ZINCRBY', `sm_sv_${day}`, 1, slug], ['EXPIRE', `sm_sv_${day}`, COUNTER_TTL, 'NX']);
+    cmds.push(['ZINCRBY', `sm_sv_${day}`, 1, slug], ['EXPIRE', `sm_sv_${day}`, COUNTER_TTL]);
   }
   await redisPipeline(cmds);
   return res.status(204).end();
