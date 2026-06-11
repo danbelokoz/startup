@@ -51,7 +51,15 @@ async function handleTrack(req, res) {
   if (slug) {
     cmds.push(['ZINCRBY', `sm_sv_${day}`, 1, slug], ['EXPIRE', `sm_sv_${day}`, COUNTER_TTL]);
   }
-  await redisPipeline(cmds);
+  const pipe = await redisPipeline(cmds);
+  // Health check: ?debug=1 reports whether the Redis writes landed (no values leaked).
+  if (req.query.debug === '1') {
+    return res.status(200).json({
+      pipeline: pipe ? 'ok' : 'failed',
+      commands: cmds.length,
+      errors: Array.isArray(pipe) ? pipe.filter(p => p && p.error).map(p => p.error) : ['no_response'],
+    });
+  }
   return res.status(204).end();
 }
 
