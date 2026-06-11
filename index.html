@@ -252,6 +252,8 @@ let isLoading    = false;
 let apiMeta      = null; // last meta from API { total, hasMore } — reflects current filter
 let dbTotal      = null; // total startups in DB (no filter) — for "Startups in database" stat
 let dbOnSale     = null; // total onSale items (from a dedicated count fetch)
+let dbRev30      = null; // 30-day revenue summed across ALL startups (cents, /api/stats)
+let dbMrr        = null; // MRR summed across ALL startups (cents, /api/stats)
 let searchTimer;
 
 let filters = {
@@ -548,8 +550,10 @@ function updateStats() {
   const onSaleTotal= dbOnSale != null
     ? dbOnSale
     : (filters.onSale===true && apiMeta ? apiMeta.total : loadedItems.filter(s=>s.onSale).length);
-  const rev = loadedItems.reduce((a,s)=>a+(s.revenue&&s.revenue.last30Days||0),0);
-  const mrr = loadedItems.reduce((a,s)=>a+(s.revenue&&s.revenue.mrr||0),0);
+  // Catalog-wide sums from /api/stats; until they arrive, fall back to the sum
+  // over loaded items (page 1) so the block isn't empty on first paint.
+  const rev = dbRev30 != null ? dbRev30 : loadedItems.reduce((a,s)=>a+(s.revenue&&s.revenue.last30Days||0),0);
+  const mrr = dbMrr  != null ? dbMrr  : loadedItems.reduce((a,s)=>a+(s.revenue&&s.revenue.mrr||0),0);
   const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
   set('statTotal',  totalDB ? totalDB.toLocaleString() : '—');
   set('statSale',   onSaleTotal != null ? onSaleTotal.toLocaleString() : '—');
@@ -559,9 +563,20 @@ function updateStats() {
   set('cntAll',     totalDB ? totalDB.toLocaleString() : '—');
 }
 
-// Fetch true DB total and onSale total (limit=1 — minimal payload, server cache makes this nearly free)
+// Fetch catalog-wide stats: true totals + revenue/MRR summed across ALL
+// startups (/api/stats, recomputed nightly by the cron). Falls back to the
+// two limit=1 meta fetches if the stats endpoint has nothing cached yet.
 async function fetchTotalsMeta() {
   try {
+    const s = await fetch(API+'/stats').then(r=>r.json()).catch(()=>null);
+    if (s && s.total != null) {
+      dbTotal  = s.total;
+      dbOnSale = s.onSale != null ? s.onSale : dbOnSale;
+      if (s.rev30 != null) dbRev30 = s.rev30;
+      if (s.mrr   != null) dbMrr   = s.mrr;
+      updateStats();
+      return;
+    }
     const [a, b] = await Promise.all([
       fetch(API+'/startups?page=1&limit=1&sort=revenue-desc').then(r=>r.json()).catch(()=>null),
       fetch(API+'/startups?onSale=true&page=1&limit=1&sort=revenue-desc').then(r=>r.json()).catch(()=>null),

@@ -3,6 +3,8 @@
 // Fetches ALL pages directly from TrustMRR and writes them to Redis,
 // using the same cache key format as api/startups.js.
 
+import { computeTotals } from './stats.js';
+
 const FRESH_TTL = 82800; // 23 hour freshness window — must match api/startups.js
 const DELAY_MS  = 3200;  // 3.2s between pages → ~18 req/min (limit is 20)
 
@@ -67,6 +69,11 @@ export default async function handler(req, res) {
 
   // Invalidate onSale aggregate so next request rebuilds from fresh data
   try { await kv('POST', `/del/${encodeURIComponent('sm_onsale_agg_revenue-desc')}`); } catch {}
+
+  // Catalog-wide totals for the hero stats block (served by /api/stats)
+  if (allStartups.length) {
+    await redisSet('sm_totals_v1', { ...computeTotals(allStartups), updatedAt: new Date().toISOString() }, 25 * 3600);
+  }
 
   // Write today's snapshots to Supabase for historical chart on detail page.
   let snapshotsWritten = 0;
