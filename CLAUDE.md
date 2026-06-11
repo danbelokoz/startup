@@ -18,18 +18,30 @@ Deployed on Vercel at: https://startup-silk-nu.vercel.app
 ```
 /
 ├── index.html          — Main catalog page
-├── acquire.html        — "Buy a startup" page (onSale=true only)
-├── auth.html           — Login / signup (Supabase Auth) [TODO Step 4]
-├── dashboard.html      — User account + subscription page [TODO Step 9]
-├── shared.js           — Shared translations (7 langs), utilities, nav HTML builders
+├── acquire.html        — "How it works" roadmap page (buy/sell paths)
+├── top.html            — Leaderboard (on-sale startups, MRR/growth/revenue rankings)
+├── auth.html           — Login / signup (Supabase Auth)
+├── dashboard.html      — User account + subscription page
+├── shared.js           — Shared translations (7 langs), utilities, nav builders, sell modal
 ├── shared.css          — Shared styles (light theme)
 ├── supabase-schema.sql — Supabase DB schema — run once in SQL Editor
 ├── vercel.json         — Routing + cron config
+├── scripts/
+│   └── scrape-daily-revenue.js — Puppeteer scraper (GitHub Actions, 04:00/16:00 UTC)
 ├── api/
 │   ├── startups.js     — Main proxy with Redis stale-while-revalidate cache
-│   ├── startup.js      — Single startup detail proxy
+│   ├── startup.js      — Single startup detail proxy (Redis 24h)
+│   ├── stats.js        — Catalog-wide totals: counts + summed rev30/MRR (cron-fed)
 │   ├── auth.js         — GET: access level; POST {slug}: record view
-│   └── cron-refresh.js — Daily cache refresh (GitHub Actions triggers this)
+│   ├── account.js      — DELETE: remove user account
+│   ├── cron-refresh.js — Nightly full-catalog sweep → Redis + Supabase snapshots + totals
+│   ├── enrich.js       — Scrapes TrustMRR public page extras (AI fields, score) — 24h
+│   ├── scrape-site.js  — Scrapes startup's own site (OG, tech, socials) — 7d
+│   ├── warmup-sites.js — Bulk warmer for scrape-site (manual)
+│   ├── history.js      — Daily MRR snapshots from Supabase (written by cron)
+│   ├── revenue-history.js — Daily revenue points from Supabase (written by scraper)
+│   ├── price-history.js — Asking-price history scraped from TrustMRR page — 1h
+│   └── top-startups.js — [orphaned] old leaderboard scrape, no page uses it
 └── startup/
     └── [slug].html     — Startup detail page
 ```
