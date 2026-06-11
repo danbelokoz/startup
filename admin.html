@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="robots" content="noindex, nofollow"/>
+<title>Админка — MRRket</title>
+<link rel="stylesheet" href="/shared.css"/>
+<script src="/auth-config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="/shared.js"></script>
+<style>
+.adm-wrap { max-width: 1060px; margin: 0 auto; padding: 28px 20px 80px; }
+.adm-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+.adm-title { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; color: var(--text); }
+.adm-title span { color: var(--accent); }
+.adm-user { font-size: 13px; color: var(--text2); display: flex; align-items: center; gap: 10px; }
+.adm-user a { color: var(--text3); text-decoration: none; }
+.adm-user a:hover { color: var(--text); }
+
+.adm-tabs { display: flex; gap: 6px; margin-bottom: 18px; flex-wrap: wrap; }
+.adm-tab { border: 1px solid var(--border2); background: var(--bg2); color: var(--text2); font-family: inherit; font-size: 13px; font-weight: 600; padding: 8px 16px; border-radius: 999px; cursor: pointer; transition: all 0.12s; }
+.adm-tab:hover { border-color: var(--text); color: var(--text); }
+.adm-tab.sel { background: var(--text); border-color: var(--text); color: var(--bg2); }
+
+.adm-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 16px; }
+.adm-kpi { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; }
+.adm-kpi .n { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; color: var(--text); line-height: 1.1; }
+.adm-kpi .l { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 4px; line-height: 1.3; }
+
+.adm-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; padding: 18px 20px; margin-bottom: 16px; }
+.adm-card h3 { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.adm-legend { font-size: 11px; color: var(--text3); font-weight: 500; display: flex; gap: 12px; }
+.adm-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 4px; }
+
+.adm-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.adm-table th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text3); font-weight: 600; padding: 6px 8px; border-bottom: 1.5px solid var(--border); white-space: nowrap; }
+.adm-table td { padding: 9px 8px; border-bottom: 1px solid var(--border); color: var(--text2); vertical-align: middle; }
+.adm-table tr:last-child td { border-bottom: none; }
+.adm-table td.num { text-align: right; font-weight: 600; color: var(--text); }
+.adm-table th.num { text-align: right; }
+.adm-table a { color: var(--accent); text-decoration: none; font-weight: 600; }
+.adm-table a:hover { color: var(--accent2); }
+
+.adm-status { font-family: inherit; font-size: 12px; font-weight: 600; border: 1px solid var(--border2); border-radius: 8px; padding: 5px 8px; background: var(--bg2); color: var(--text2); cursor: pointer; }
+.adm-status.st-new { border-color: rgba(0,194,122,0.5); color: var(--accent); }
+.adm-key { font-family: ui-monospace, monospace; font-size: 12px; color: var(--text2); white-space: nowrap; }
+.adm-eye { border: 1px solid var(--border2); background: var(--bg3); border-radius: 7px; font-size: 11px; padding: 3px 8px; cursor: pointer; margin-left: 6px; color: var(--text2); font-family: inherit; }
+.adm-eye:hover { color: var(--text); border-color: var(--text); }
+.adm-pill { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--bg3); border: 1px solid var(--border2); color: var(--text2); }
+
+.adm-msg { text-align: center; padding: 70px 24px; color: var(--text3); font-size: 14px; }
+.adm-msg a { color: var(--accent); font-weight: 600; }
+.adm-mini { font-size: 12px; color: var(--text3); }
+.adm-copy { border: 1px solid var(--border2); background: var(--bg2); border-radius: 8px; font-size: 12px; font-weight: 600; padding: 6px 12px; cursor: pointer; color: var(--text2); font-family: inherit; }
+.adm-copy:hover { color: var(--text); border-color: var(--text); }
+.adm-toggle { display: inline-flex; gap: 4px; }
+.adm-toggle button { border: 1px solid var(--border2); background: var(--bg2); color: var(--text2); font-family: inherit; font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 999px; cursor: pointer; }
+.adm-toggle button.sel { background: var(--text); border-color: var(--text); color: var(--bg2); }
+@media (max-width: 720px) { .adm-table { font-size: 12px; } .adm-card { padding: 14px; overflow-x: auto; } }
+</style>
+</head>
+<body>
+
+<div class="adm-wrap">
+  <div class="adm-head">
+    <div class="adm-title">MRRket <span>· Админка</span></div>
+    <div class="adm-user" id="admUser"></div>
+  </div>
+  <div class="adm-tabs" id="admTabs" style="display:none;">
+    <button class="adm-tab sel" data-tab="overview" onclick="openTab('overview')">Обзор</button>
+    <button class="adm-tab" data-tab="listings" onclick="openTab('listings')">Заявки</button>
+    <button class="adm-tab" data-tab="topviews" onclick="openTab('topviews')">Топ просмотров</button>
+    <button class="adm-tab" data-tab="waitlist" onclick="openTab('waitlist')">Вейтлист</button>
+  </div>
+  <div id="admContent"><div class="adm-msg">Загружаем…</div></div>
+</div>
+
+<script>
+const sbc = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON || '');
+let token = null;
+let topDays = 30;
+
+async function api(path, opts = {}) {
+  const r = await fetch(path, {
+    ...opts,
+    headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json', ...(opts.headers || {}) },
+  });
+  if (r.status === 403) throw new Error('forbidden');
+  if (!r.ok) throw new Error('http_' + r.status);
+  return r.json();
+}
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtDay = d => d.slice(8,10) + '.' + d.slice(5,7);
+const fmtDateTime = iso => { const d = new Date(iso); return d.toLocaleDateString('ru-RU') + ' ' + d.toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'}); };
+
+function openTab(tab) {
+  document.querySelectorAll('.adm-tab').forEach(b => b.classList.toggle('sel', b.dataset.tab === tab));
+  $('admContent').innerHTML = '<div class="adm-msg">Загружаем…</div>';
+  ({ overview: renderOverview, listings: renderListings, topviews: renderTopviews, waitlist: renderWaitlist })[tab]()
+    .catch(e => { $('admContent').innerHTML = '<div class="adm-msg">Ошибка: ' + esc(e.message) + '</div>'; });
+}
+
+/* ── Обзор ─────────────────────────────────────────────────────────────────── */
+function lineChart(traffic) {
+  const W = 720, H = 180, P = 28;
+  const maxY = Math.max(1, ...traffic.map(t => t.pageviews));
+  const x = i => P + i * (W - 2 * P) / Math.max(1, traffic.length - 1);
+  const y = v => H - P - v * (H - 2 * P) / maxY;
+  const path = key => traffic.map((t, i) => (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(t[key]).toFixed(1)).join(' ');
+  const labels = traffic.filter((_, i) => i % Math.ceil(traffic.length / 8) === 0);
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;">
+    ${[0.25,0.5,0.75,1].map(f => `<line x1="${P}" x2="${W-P}" y1="${y(maxY*f)}" y2="${y(maxY*f)}" stroke="var(--border)" stroke-width="1"/>
+      <text x="${P-6}" y="${y(maxY*f)+3}" font-size="9" fill="var(--text3)" text-anchor="end">${Math.round(maxY*f)}</text>`).join('')}
+    <path d="${path('pageviews')}" fill="none" stroke="var(--accent)" stroke-width="2"/>
+    <path d="${path('visitors')}" fill="none" stroke="#7c6cf0" stroke-width="2" stroke-dasharray="4 3"/>
+    ${labels.map(t => `<text x="${x(traffic.indexOf(t))}" y="${H-8}" font-size="9" fill="var(--text3)" text-anchor="middle">${fmtDay(t.date)}</text>`).join('')}
+  </svg>`;
+}
+
+async function renderOverview() {
+  const o = await api('/api/admin?section=overview&days=30');
+  const t = o.traffic || [];
+  const today = t[t.length - 1] || { pageviews: 0, visitors: 0 };
+  const last7 = t.slice(-7);
+  const pv7 = last7.reduce((a, d) => a + d.pageviews, 0);
+  const uv7 = last7.reduce((a, d) => a + d.visitors, 0);
+  const signupsMap = {};
+  (o.signups || []).forEach(s => signupsMap[s.day] = s.signups);
+  const signups7 = t.slice(-7).reduce((a, d) => a + (signupsMap[d.date] || 0), 0);
+  const newListings = (o.listingCounts && o.listingCounts.new) || 0;
+
+  $('admContent').innerHTML = `
+    <div class="adm-kpis">
+      <div class="adm-kpi"><div class="n">${today.pageviews.toLocaleString()}</div><div class="l">Визиты сегодня</div></div>
+      <div class="adm-kpi"><div class="n">${today.visitors.toLocaleString()}</div><div class="l">Уникальные сегодня</div></div>
+      <div class="adm-kpi"><div class="n">${pv7.toLocaleString()} / ${uv7.toLocaleString()}</div><div class="l">Визиты / уники за 7 дней</div></div>
+      <div class="adm-kpi"><div class="n">${o.totalUsers != null ? o.totalUsers.toLocaleString() : '—'}</div><div class="l">Пользователей всего</div></div>
+      <div class="adm-kpi"><div class="n">${signups7.toLocaleString()}</div><div class="l">Регистраций за 7 дней</div></div>
+      <div class="adm-kpi"><div class="n">${newListings.toLocaleString()}</div><div class="l">Новых заявок</div></div>
+      <div class="adm-kpi"><div class="n">${o.waitlistTotal != null ? o.waitlistTotal.toLocaleString() : '—'}</div><div class="l">В вейтлисте Pro</div></div>
+    </div>
+    <div class="adm-card">
+      <h3>Трафик за 30 дней
+        <span class="adm-legend"><span><i style="background:var(--accent)"></i>Визиты</span><span><i style="background:#7c6cf0"></i>Уникальные</span></span>
+      </h3>
+      ${t.some(d => d.pageviews) ? lineChart(t) : '<div class="adm-mini">Счётчики пустые — данные начнут копиться сразу после деплоя beacon\'а.</div>'}
+    </div>
+    <div class="adm-card">
+      <h3>Регистрации по дням (30 дней)</h3>
+      ${(o.signups && o.signups.length)
+        ? `<table class="adm-table"><tr><th>День</th><th class="num">Регистраций</th></tr>${o.signups.map(s =>
+            `<tr><td>${fmtDay(String(s.day))}</td><td class="num">${s.signups}</td></tr>`).join('')}</table>`
+        : '<div class="adm-mini">Пока нет регистраций за период.</div>'}
+    </div>`;
+}
+
+/* ── Заявки ────────────────────────────────────────────────────────────────── */
+async function renderListings() {
+  const { listings } = await api('/api/admin?section=listings');
+  if (!listings.length) { $('admContent').innerHTML = '<div class="adm-msg">Заявок пока нет.</div>'; return; }
+  $('admContent').innerHTML = `<div class="adm-card" style="overflow-x:auto;">
+    <h3>Заявки на размещение <span class="adm-mini">${listings.length} шт.</span></h3>
+    <table class="adm-table">
+      <tr><th>Дата</th><th>Провайдер</th><th>План</th><th class="num">Цена</th><th class="num">Маржа</th><th>Аноним</th><th>Email</th><th>API-ключ</th><th>Статус</th></tr>
+      ${listings.map(l => `<tr>
+        <td style="white-space:nowrap;">${fmtDateTime(l.created_at)}</td>
+        <td>${esc(l.provider || '—')}</td>
+        <td><span class="adm-pill">${esc(l.plan || '—')}</span></td>
+        <td class="num">${l.price != null ? '$' + Number(l.price).toLocaleString() : '—'}</td>
+        <td class="num">${l.margin != null ? Number(l.margin) + '%' : '—'}</td>
+        <td>${l.anon ? 'да' : 'нет'}</td>
+        <td>${esc(l.email || '—')}</td>
+        <td><span class="adm-key" id="key-${l.id}">${esc(l.api_key_hint || '—')}</span><button class="adm-eye" onclick="revealKey('${l.id}')">показать</button></td>
+        <td><select class="adm-status st-${esc(l.status)}" onchange="setStatus('${l.id}', this.value, this)">
+          ${['new','processing','listed','rejected'].map(s => `<option value="${s}"${s===l.status?' selected':''}>${({new:'новая',processing:'в работе',listed:'размещена',rejected:'отклонена'})[s]}</option>`).join('')}
+        </select></td>
+      </tr>`).join('')}
+    </table></div>`;
+}
+
+async function revealKey(id) {
+  const el = $('key-' + id);
+  try {
+    const { key, note } = await api('/api/admin?section=reveal_key&id=' + id);
+    if (!key) { el.textContent = note === 'not_stored' ? 'ключ не сохранён (не было LISTING_KEY_SECRET)' : 'не расшифровался'; return; }
+    el.textContent = key;
+    el.style.cursor = 'pointer';
+    el.title = 'Кликни, чтобы скопировать';
+    el.onclick = () => { navigator.clipboard.writeText(key); el.style.color = 'var(--accent)'; };
+  } catch (e) { el.textContent = 'ошибка'; }
+}
+
+async function setStatus(id, status, sel) {
+  sel.disabled = true;
+  try { await api('/api/admin', { method: 'POST', body: JSON.stringify({ action: 'set_status', id, status }) }); }
+  catch { alert('Не удалось сохранить статус'); }
+  sel.disabled = false;
+  sel.className = 'adm-status st-' + status;
+}
+
+/* ── Топ просмотров ────────────────────────────────────────────────────────── */
+async function renderTopviews() {
+  const { top } = await api('/api/admin?section=topviews&days=' + topDays);
+  $('admContent').innerHTML = `<div class="adm-card">
+    <h3>Самые просматриваемые стартапы
+      <span class="adm-toggle">
+        <button class="${topDays===7?'sel':''}" onclick="topDays=7;openTab('topviews')">7 дней</button>
+        <button class="${topDays===30?'sel':''}" onclick="topDays=30;openTab('topviews')">30 дней</button>
+      </span>
+    </h3>
+    ${top.length ? `<table class="adm-table">
+      <tr><th>#</th><th>Стартап</th><th class="num">Гости</th><th class="num">Юзеры</th><th class="num">Всего</th></tr>
+      ${top.map((s, i) => `<tr>
+        <td>${i + 1}</td>
+        <td><a href="/startup/${encodeURIComponent(s.slug)}" target="_blank">${esc(s.slug)}</a></td>
+        <td class="num">${s.guests.toLocaleString()}</td>
+        <td class="num">${s.registered.toLocaleString()}</td>
+        <td class="num">${s.total.toLocaleString()}</td>
+      </tr>`).join('')}</table>`
+    : '<div class="adm-mini">Пока пусто: гостевые просмотры начнут копиться после деплоя, просмотры юзеров — из таблицы startup_views.</div>'}
+  </div>`;
+}
+
+/* ── Вейтлист ──────────────────────────────────────────────────────────────── */
+let waitlistEmails = [];
+function copyWaitlist(btn) {
+  navigator.clipboard.writeText(waitlistEmails.join('\n'));
+  btn.textContent = 'Скопировано';
+}
+async function renderWaitlist() {
+  const { waitlist } = await api('/api/admin?section=waitlist');
+  if (!waitlist.length) { $('admContent').innerHTML = '<div class="adm-msg">Вейтлист пуст.</div>'; return; }
+  waitlistEmails = waitlist.map(w => w.email);
+  $('admContent').innerHTML = `<div class="adm-card">
+    <h3>Вейтлист Pro <span><button class="adm-copy" onclick="copyWaitlist(this)">Скопировать все email</button></span></h3>
+    <table class="adm-table"><tr><th>Email</th><th>Источник</th><th>Дата</th></tr>
+    ${waitlist.map(w => `<tr><td>${esc(w.email)}</td><td>${esc(w.source)}</td><td>${fmtDateTime(w.created_at)}</td></tr>`).join('')}
+    </table></div>`;
+}
+
+/* ── Вход ──────────────────────────────────────────────────────────────────── */
+(async () => {
+  const { data: { session } } = await sbc.auth.getSession();
+  if (!session) {
+    $('admContent').innerHTML = '<div class="adm-msg">Нужно войти в аккаунт с ролью admin.<br/><br/><a href="/auth.html?from=/admin.html">Войти →</a></div>';
+    return;
+  }
+  token = session.access_token;
+  $('admUser').innerHTML = esc(session.user.email) + ' · <a href="#" onclick="sbc.auth.signOut().then(()=>location.reload());return false;">выйти</a>';
+  try {
+    await renderOverview();
+    document.getElementById('admTabs').style.display = 'flex';
+  } catch (e) {
+    $('admContent').innerHTML = e.message === 'forbidden'
+      ? '<div class="adm-msg">Нет доступа: у аккаунта <b>' + esc(session.user.email) + '</b> нет роли admin.<br/><span class="adm-mini">Выполни в Supabase SQL Editor шаг 6 из supabase-admin-migration.sql.</span></div>'
+      : '<div class="adm-msg">Ошибка загрузки: ' + esc(e.message) + '</div>';
+  }
+})();
+</script>
+</body>
+</html>

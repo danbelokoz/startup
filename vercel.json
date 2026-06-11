@@ -1,6 +1,11 @@
 {
   "rewrites": [
-    { "source": "/startup/:slug", "destination": "/startup/[slug].html" }
+    { "source": "/startup/:slug", "destination": "/startup/[slug].html" },
+    { "source": "/api/price-history", "destination": "/api/history?type=price" },
+    { "source": "/api/revenue-history", "destination": "/api/history?type=revenue" },
+    { "source": "/api/sell-listing-intent", "destination": "/api/intake?op=listing" },
+    { "source": "/api/waitlist", "destination": "/api/intake?op=waitlist" },
+    { "source": "/api/track", "destination": "/api/intake?op=track" }
   ],
   "crons": [
     {

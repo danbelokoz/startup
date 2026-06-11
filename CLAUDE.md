@@ -22,26 +22,35 @@ Deployed on Vercel at: https://startup-silk-nu.vercel.app
 ├── top.html            — Leaderboard (on-sale startups, MRR/growth/revenue rankings)
 ├── auth.html           — Login / signup (Supabase Auth)
 ├── dashboard.html      — User account + subscription page
-├── shared.js           — Shared translations (7 langs), utilities, nav builders, sell modal
+├── admin.html          — Admin panel (traffic, signups, listing requests, waitlist);
+│                         requires profiles.role = 'admin'
+├── shared.js           — Shared translations (7 langs), utilities, nav builders,
+│                         sell modal, traffic beacon
 ├── shared.css          — Shared styles (light theme)
 ├── supabase-schema.sql — Supabase DB schema — run once in SQL Editor
-├── vercel.json         — Routing + cron config
+├── supabase-admin-migration.sql — admin role + listing_requests/waitlist + analytics RPCs
+├── vercel.json         — Routing/rewrites + cron config
 ├── scripts/
 │   └── scrape-daily-revenue.js — Puppeteer scraper (GitHub Actions, 04:00/16:00 UTC)
-├── api/
+├── api/                — ⚠️ Vercel Hobby allows MAX 12 serverless functions.
+│   │                     We are AT the limit — never add a new file here; merge into
+│   │                     an existing one (see intake.js/history.js) + vercel.json rewrite.
+│   │                     Files starting with "_" are shared libs, not functions.
+│   ├── _lib.js         — Shared helpers: Redis (incl. pipeline), Supabase REST, AES-GCM
 │   ├── startups.js     — Main proxy with Redis stale-while-revalidate cache
 │   ├── startup.js      — Single startup detail proxy (Redis 24h)
 │   ├── stats.js        — Catalog-wide totals: counts + summed rev30/MRR (cron-fed)
 │   ├── auth.js         — GET: access level; POST {slug}: record view
 │   ├── account.js      — DELETE: remove user account
+│   ├── admin.js        — Admin API: overview/listings/topviews/waitlist/reveal_key
+│   ├── intake.js       — POST ops: listing request, waitlist, traffic beacon
+│   │                     (rewrites: /api/sell-listing-intent, /api/waitlist, /api/track)
 │   ├── cron-refresh.js — Nightly full-catalog sweep → Redis + Supabase snapshots + totals
 │   ├── enrich.js       — Scrapes TrustMRR public page extras (AI fields, score) — 24h
 │   ├── scrape-site.js  — Scrapes startup's own site (OG, tech, socials) — 7d
 │   ├── warmup-sites.js — Bulk warmer for scrape-site (manual)
-│   ├── history.js      — Daily MRR snapshots from Supabase (written by cron)
-│   ├── revenue-history.js — Daily revenue points from Supabase (written by scraper)
-│   ├── price-history.js — Asking-price history scraped from TrustMRR page — 1h
-│   └── top-startups.js — [orphaned] old leaderboard scrape, no page uses it
+│   └── history.js      — ?type=mrr|revenue|price — all history series
+│                         (rewrites: /api/revenue-history, /api/price-history)
 └── startup/
     └── [slug].html     — Startup detail page
 ```
@@ -59,6 +68,7 @@ Deployed on Vercel at: https://startup-silk-nu.vercel.app
 | `SUPABASE_URL` | Supabase project URL, e.g. `https://xxx.supabase.co` |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key — server-only, bypasses RLS |
 | `SUPABASE_ANON_KEY` | Supabase anon/public key — safe to embed in client HTML |
+| `LISTING_KEY_SECRET` | Secret for AES-GCM encryption of seller payment-provider API keys in `listing_requests` (e.g. `openssl rand -hex 32`). Without it requests are stored with the masked hint only |
 
 ## Key Architecture Decisions
 
@@ -100,6 +110,7 @@ All translations in `shared.js` in the `T` object:
 - **Guest** (unauthenticated) → 3 startup detail views/day (tracked in localStorage)
 - **User** (registered) → 8 startup detail views/day (tracked in `startup_views` DB table)
 - **Subscriber** (paid) → unlimited for 1 month (`subscriptions` table)
+- **Admin** → unlimited + access to `/admin.html` (set manually: `UPDATE profiles SET role='admin' WHERE id = (SELECT id FROM auth.users WHERE email='...')`)
 - `GET /api/auth` returns `{ authenticated, role, viewsUsed, viewsLeft }`
 
 ## TrustMRR API

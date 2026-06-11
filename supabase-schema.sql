@@ -1,6 +1,8 @@
 -- ============================================================
 -- StartupMarket — Supabase Schema
 -- Run in: Supabase Dashboard > SQL Editor
+-- NOTE: after this file, also run supabase-admin-migration.sql
+-- (admin role, listing_requests, waitlist, analytics RPCs).
 -- ============================================================
 --
 -- Access tiers:

@@ -706,7 +706,13 @@ async function submitSellForm(modal) {
     localStorage.setItem('sm_sell_intents', JSON.stringify(list));
   } catch {}
   try {
-    await fetch('/api/sell-listing-intent', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    // Attach the session token when present so the request links to the account.
+    const headers = { 'Content-Type': 'application/json' };
+    try {
+      const s = window._sb ? (await window._sb.auth.getSession()).data.session : null;
+      if (s && s.access_token) headers.Authorization = 'Bearer ' + s.access_token;
+    } catch {}
+    await fetch('/api/sell-listing-intent', { method:'POST', headers, body: JSON.stringify(payload) });
   } catch {}
 
   modal.innerHTML = `
@@ -716,3 +722,30 @@ async function submitSellForm(modal) {
   `;
   modal.querySelectorAll('[data-close]').forEach(el => el.addEventListener('click', closeSellModal));
 }
+
+// ── TRAFFIC BEACON ────────────────────────────────────────────────────────────
+// Anonymous page-load ping feeding the admin dashboard counters. No cookies and
+// no client ids — daily uniqueness is derived server-side from a salted
+// ip+ua hash that rotates every day. The admin page itself is not counted.
+(function trackVisit() {
+  try {
+    const path = location.pathname;
+    if (path.startsWith('/admin')) return;
+    let p = 'other', s;
+    if (path === '/' || path === '/index.html') p = 'home';
+    else if (path.startsWith('/acquire'))   p = 'acquire';
+    else if (path.startsWith('/top'))       p = 'top';
+    else if (path.startsWith('/auth'))      p = 'auth';
+    else if (path.startsWith('/dashboard')) p = 'dashboard';
+    else if (path.startsWith('/startup/')) {
+      p = 'startup';
+      s = decodeURIComponent(path.split('/')[2] || '').replace(/\.html$/, '');
+    }
+    fetch('/api/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p, s }),
+      keepalive: true,
+    }).catch(() => {});
+  } catch {}
+})();
