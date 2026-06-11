@@ -1,21 +1,30 @@
 -- ============================================================
 -- MRRket — Admin panel & analytics migration
 -- Run AFTER supabase-schema.sql in: Supabase Dashboard > SQL Editor
+--
+-- ⚠️ The Supabase SQL editor mis-splits big scripts with function
+-- bodies. Run this file in TWO separate queries:
+--   1) copy everything from "PART 1" down to "PART 2" → Run
+--   2) copy everything from "PART 2" to the end → Run
+-- If the editor offers to "enable RLS on new tables" — decline,
+-- RLS is already enabled explicitly below.
+--
 -- Idempotent — safe to run more than once.
 -- ============================================================
 
+
 -- ============================================================
+-- PART 1 — tables, constraint, indexes (run as its own query)
+-- ============================================================
+
 -- 1) Allow the 'admin' role on profiles
--- ============================================================
 ALTER TABLE profiles DROP CONSTRAINT IF EXISTS profiles_role_check;
 ALTER TABLE profiles ADD CONSTRAINT profiles_role_check
   CHECK (role IN ('user', 'subscriber', 'admin'));
 
--- ============================================================
 -- 2) Seller listing requests (the "Разместить стартап" form)
 -- api_key_enc is AES-256-GCM encrypted by the server with LISTING_KEY_SECRET;
 -- only /api/admin can decrypt it. Service-role only — no RLS policies on purpose.
--- ============================================================
 CREATE TABLE IF NOT EXISTS listing_requests (
   id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -38,9 +47,7 @@ ALTER TABLE listing_requests ENABLE ROW LEVEL SECURITY;
 CREATE INDEX IF NOT EXISTS idx_listing_requests_created
   ON listing_requests(created_at DESC);
 
--- ============================================================
 -- 3) Pro waitlist (dashboard "upgrade" form)
--- ============================================================
 CREATE TABLE IF NOT EXISTS waitlist (
   id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   email      TEXT        NOT NULL,
@@ -52,42 +59,43 @@ CREATE TABLE IF NOT EXISTS waitlist (
 ALTER TABLE waitlist ENABLE ROW LEVEL SECURITY;
 -- No policies: service-role only.
 
+
 -- ============================================================
--- 4) Aggregation helpers for the admin panel
+-- PART 2 — functions + grants (run as its own query)
+-- ============================================================
+
+-- 4) Aggregation helpers for the admin panel.
 -- Called via service role; EXECUTE revoked from anon/authenticated so the
 -- public PostgREST surface can't reach them.
--- ============================================================
 CREATE OR REPLACE FUNCTION admin_signups(since TIMESTAMPTZ)
 RETURNS TABLE (day DATE, signups BIGINT)
-LANGUAGE sql SECURITY DEFINER AS $$
+LANGUAGE sql SECURITY DEFINER AS $fn$
   SELECT created_at::date AS day, COUNT(*)::bigint AS signups
   FROM   profiles
   WHERE  created_at >= since
   GROUP  BY 1
   ORDER  BY 1;
-$$;
+$fn$;
 
 CREATE OR REPLACE FUNCTION admin_top_views(since DATE)
 RETURNS TABLE (slug TEXT, views BIGINT)
-LANGUAGE sql SECURITY DEFINER AS $$
+LANGUAGE sql SECURITY DEFINER AS $fn$
   SELECT slug, COUNT(*)::bigint AS views
   FROM   startup_views
   WHERE  view_date >= since
   GROUP  BY slug
   ORDER  BY views DESC
   LIMIT  50;
-$$;
+$fn$;
 
 REVOKE ALL ON FUNCTION admin_signups(TIMESTAMPTZ) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION admin_top_views(DATE)      FROM PUBLIC, anon, authenticated;
 
--- ============================================================
 -- 5) Admins get unlimited reveals (same as subscribers).
 -- Replaces the two helper functions from supabase-schema.sql.
--- ============================================================
 CREATE OR REPLACE FUNCTION get_user_access(uid UUID)
 RETURNS TABLE (role TEXT, views_used INT, views_left INT)
-LANGUAGE plpgsql SECURITY DEFINER AS $$
+LANGUAGE plpgsql SECURITY DEFINER AS $fn$
 DECLARE
   v_role TEXT;
   v_used INT;
@@ -122,11 +130,11 @@ BEGIN
 
   RETURN QUERY SELECT 'user'::TEXT, v_used, GREATEST(0, 8 - v_used);
 END;
-$$;
+$fn$;
 
 CREATE OR REPLACE FUNCTION record_startup_view(uid UUID, startup_slug TEXT)
 RETURNS TABLE (allowed BOOLEAN, views_used INT, views_left INT)
-LANGUAGE plpgsql SECURITY DEFINER AS $$
+LANGUAGE plpgsql SECURITY DEFINER AS $fn$
 DECLARE
   v_role           TEXT;
   v_limit          INT;
@@ -164,7 +172,7 @@ BEGIN
 
   RETURN QUERY SELECT TRUE, v_used, GREATEST(0, v_limit - v_used);
 END;
-$$;
+$fn$;
 
 -- ============================================================
 -- 6) Grant yourself admin — replace the email, then run:
