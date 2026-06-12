@@ -3,679 +3,498 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>MRRket — Verified Startup Database</title>
+<title>MRRket — доступ к стартапам с подтверждённой выручкой</title>
 <link rel="stylesheet" href="/shared.css"/>
 <script src="/auth-config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="/shared.js"></script>
 <style>
-.hero { padding: 32px 28px 20px; max-width: 1200px; margin: 0 auto; text-align: center; }
-.hero-title { font-size: 34px; font-weight: 700; letter-spacing: -1px; color: var(--text); margin-bottom: 6px; }
-.hero-title em { font-style: normal; color: var(--accent); }
-.hero-sub { font-size: 14px; color: var(--text2); margin-bottom: 20px; }
+.wrap{position:relative;overflow:hidden}
+.glow{position:absolute;top:-180px;left:50%;transform:translateX(-50%);width:1100px;height:560px;background:radial-gradient(closest-side,rgba(252,213,53,.13),transparent 72%);pointer-events:none}
+.hero{position:relative;display:grid;grid-template-columns:1.1fr .9fr;gap:52px;max-width:1200px;margin:0 auto;padding:58px 24px 30px;align-items:center}
 
-/* Provider logos */
-.provider-icons { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
-.provider-wrap { position: relative; }
-.provider-icon { width: 32px; height: 32px; border-radius: 8px; background: var(--bg2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; overflow: hidden; transition: transform 0.15s, box-shadow 0.15s; }
-.provider-icon img { width: 20px; height: 20px; object-fit: contain; }
-.provider-wrap:hover .provider-icon { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
-.provider-tip { display: none; position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: var(--text); color: white; font-size: 11px; padding: 4px 8px; border-radius: 5px; white-space: nowrap; font-weight: 500; pointer-events: none; z-index: 50; }
-.provider-tip::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 4px solid transparent; border-top-color: var(--text); }
-.provider-wrap:hover .provider-tip { display: block; }
+.eyebrow{display:inline-flex;align-items:center;gap:9px;font-size:12px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);margin-bottom:18px}
+.eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 4px rgba(14,203,129,.15)}
+.hero h1{font-size:40px;line-height:1.13;font-weight:700;letter-spacing:-.6px;color:var(--text)}
+.hero h1 .y{color:var(--accent)}
 
-.stats-bar { display: flex; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; background: var(--bg2); max-width: 740px; margin: 0 auto; box-shadow: var(--shadow); }
-.stat-item { flex: 1; padding: 18px 10px; display: flex; flex-direction: column; align-items: center; text-align: center; border-right: 1px solid var(--border); }
-.stat-item:last-child { border-right: none; }
-.stat-n { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; color: var(--text); margin-bottom: 4px; line-height: 1; }
-.stat-l { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.07em; line-height: 1.35; }
+.herologos{display:flex;align-items:center;gap:14px;margin:2px 0 22px;flex-wrap:wrap}
+.herologos .lbl{color:var(--text3);font-size:13px}
+.herologos .logos{display:flex;align-items:center;gap:16px}
+.herologos .logos .lg{display:flex;align-items:center;gap:7px;color:var(--text2);font-weight:600;font-size:14px}
+.herologos .logos .lg img{height:16px;width:auto}
 
-.body { display: grid; grid-template-columns: 290px 1fr; gap: 20px; padding: 24px 20px 80px 16px; max-width: 1240px; margin: 0 auto; }
+.bignum{margin:24px 0 6px;display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;line-height:1}
+.bignum b{font-size:72px;line-height:.86;font-weight:700;letter-spacing:-2.5px;color:var(--text)}
+.bignum b .y{color:var(--accent)}
+.bignum small{font-size:19px;color:var(--text3);font-weight:500;margin-bottom:9px}
+.gpill{display:inline-flex;align-items:center;gap:6px;margin-bottom:12px;padding:5px 11px;border-radius:8px;background:rgba(14,203,129,.12);color:var(--green);font-weight:600;font-size:13px}
+.gpill .dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:lv 2s ease-out infinite}
+@keyframes lv{0%{box-shadow:0 0 0 0 rgba(14,203,129,.45)}100%{box-shadow:0 0 0 7px rgba(14,203,129,0)}}
+.bigcap{color:var(--text2);font-size:15px;margin-bottom:28px;max-width:460px}
+.bigcap .upd{color:var(--text3)}
 
-.sidebar-block { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; position: sticky; top: 70px; box-shadow: var(--shadow); max-height: calc(100vh - 90px); overflow-y: auto; }
-.sb-header { padding: 11px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--bg2); z-index: 1; }
-.sb-title { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text3); }
-.sb-reset { font-size: 11px; color: var(--accent); cursor: pointer; font-weight: 500; }
-.sb-section { padding: 10px 14px; border-bottom: 1px solid var(--border); }
-.sb-section:last-child { border-bottom: none; }
-.sb-label { font-size: 11px; font-weight: 500; color: var(--text2); margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
-.search-wrap { position: relative; }
-.search-wrap svg { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); color: var(--text3); pointer-events: none; }
-input.search-input { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: 7px; padding: 6px 8px 6px 28px; font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif; font-size: 12px; color: var(--text); outline: none; }
-input.search-input:focus { border-color: var(--accent); background: var(--bg2); }
-input.search-input::placeholder { color: var(--text3); }
-select.sb-select { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: 7px; padding: 6px 26px 6px 9px; font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif; font-size: 12px; color: var(--text2); outline: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238888a0' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; cursor: pointer; }
-select.sb-select:focus { border-color: var(--accent); outline: none; }
-.range-row { display: grid; grid-template-columns: 1fr 10px 1fr; align-items: center; gap: 3px; }
-.range-sep { text-align: center; font-size: 11px; color: var(--text3); }
-input.sb-input { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: 7px; padding: 6px 8px; font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif; font-size: 12px; color: var(--text); outline: none; }
-input.sb-input::placeholder { color: var(--text3); font-size: 11px; }
-input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
-.status-opts { display: flex; flex-direction: column; gap: 2px; }
-.status-opt { display: flex; align-items: center; justify-content: space-between; padding: 6px 9px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: all 0.1s; color: var(--text2); user-select: none; }
-.status-opt:hover { background: var(--bg3); }
-.status-opt.sel { background: var(--text); color: white; }
-.status-opt .cnt { font-size: 10px; opacity: 0.5; }
-.apply-btn { width: 100%; padding: 8px; background: var(--accent); color: white; border: none; border-radius: 7px; font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.12s; margin-top: 4px; }
-.apply-btn:hover { background: var(--accent2); }
+.cta{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.cta .btn-y{display:inline-flex;align-items:center;justify-content:center;background:var(--accent);color:#181A20;font-weight:600;border:0;border-radius:10px;padding:15px 32px;font-size:15px;cursor:pointer;font-family:inherit}
+.cta .btn-y:hover{background:var(--accent2)}
+.selllink{display:inline-flex;align-items:center;gap:5px;color:var(--text3);font-weight:500;font-size:14px;background:none;border:0;cursor:pointer;font-family:inherit}
+.selllink:hover{color:var(--text2)}
 
-.grid-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; gap: 10px; }
-.grid-count { font-size: 13px; color: var(--text3); }
-.sort-wrap { display: flex; align-items: center; gap: 5px; background: var(--bg2); border: 1px solid var(--border2); border-radius: 7px; padding: 4px 6px 4px 10px; }
-.sort-wrap svg { color: var(--text3); flex-shrink: 0; }
-.sort-select { appearance: none; background: transparent; border: none; padding: 4px 22px 4px 4px; font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif; font-size: 12px; color: var(--text2); cursor: pointer; outline: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238888a0' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 4px center; }
-.sort-select:focus { outline: none; }
-.cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+/* right column: free-views badge + live listings panel */
+.herocol{display:flex;flex-direction:column;gap:12px}
+.freebadge{display:flex;align-items:center;gap:11px;background:rgba(252,213,53,.10);border:1px solid rgba(252,213,53,.28);border-radius:12px;padding:12px 14px;color:var(--accent2);font-size:13px}
+.freebadge .ic{display:flex;flex:none}
+.freebadge>span:last-child{color:var(--text2);font-weight:500;line-height:1.4}
+.freebadge b{color:var(--text)}
+.panel2{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:8px 8px 12px}
+.p2head{display:flex;align-items:center;gap:8px;padding:13px 14px 9px}
+.p2head .tt{font-weight:600;font-size:14px;display:flex;align-items:center;gap:9px;color:var(--text)}
+.live{width:7px;height:7px;border-radius:50%;background:var(--green);animation:lv 2s ease-out infinite}
+.p2head .upd{margin-left:auto;font-size:12px;color:var(--text3)}
+.lrow{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:10px;text-decoration:none}
+.lrow:hover{background:rgba(255,255,255,.04)}
+.lav{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;color:#fff;font-weight:600;flex:none;overflow:hidden;position:relative}
+.lav img{width:100%;height:100%;object-fit:cover}
+.pv{position:relative;flex:none;display:flex}
+.pv .chk{position:absolute;right:-3px;bottom:-3px;width:15px;height:15px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;border:2px solid var(--bg)}
+.lname{min-width:0}
+.lname b{font-size:14px;display:block;white-space:nowrap;color:var(--text)}
+.lname .src{display:flex;align-items:center;gap:6px;color:var(--text3);font-size:12px;margin-top:2px}
+.lrow .mrr{margin-left:auto;text-align:right}
+.lrow .mrr b{font-weight:600;font-size:14px;display:block;color:var(--text)}
+.lrow .mrow2{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:2px}
+.lrow .g{font-size:12px;font-weight:600;padding:1px 6px;border-radius:6px;display:inline-block}
+.lrow .mult{font-size:11px;color:var(--text3);font-weight:500;white-space:nowrap}
+.g.up,.up{color:var(--trading-up)} .g.down,.dn{color:var(--trading-down)}
+.g.flash{animation:fl .7s ease-out}
+@keyframes fl{0%{background:rgba(14,203,129,0)}28%{background:rgba(14,203,129,.20)}100%{background:rgba(14,203,129,0)}}
+.g.flash.down{animation:fld .7s ease-out}
+@keyframes fld{0%{background:rgba(246,70,93,0)}28%{background:rgba(246,70,93,.20)}100%{background:rgba(246,70,93,0)}}
+.unlock{margin:8px 8px 2px;display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--text3)}
+.unlock b{color:var(--text2);font-weight:500}
+.unlock a{color:var(--text3);text-decoration:none}
+.unlock a:hover{color:var(--accent)}
 
-.card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; cursor: pointer; transition: all 0.15s; text-decoration: none; color: inherit; display: flex; flex-direction: column; min-width: 0; }
-.card:hover { border-color: var(--border2); box-shadow: 0 4px 16px rgba(0,0,0,0.07); transform: translateY(-1px); }
-.card-head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
-.card-logo { width: 36px; height: 36px; border-radius: 8px; background: var(--bg3); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: var(--text2); flex-shrink: 0; overflow: hidden; }
-.card-logo img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
-.card-head-info { flex: 1; min-width: 0; }
-.card-name { font-size: 14px; font-weight: 600; letter-spacing: -0.2px; color: var(--text); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.card-badges { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 3px; }
-.card-actions { display: flex; align-items: center; gap: 6px; margin-left: auto; flex-shrink: 0; padding-left: 6px; }
-.card-views { font-size: 11px; color: var(--text3); white-space: nowrap; }
-.fav-btn { background: none; border: none; cursor: pointer; font-size: 15px; color: var(--text3); padding: 2px; line-height: 1; transition: color 0.1s, transform 0.1s; }
-.fav-btn:hover { color: var(--red); transform: scale(1.2); }
-.fav-btn.active { color: var(--red); }
-.card-desc { font-size: 12px; color: var(--text3); line-height: 1.45; margin-bottom: 10px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; flex: 1; min-height: 32px; }
-.card-metrics { display: flex; border-top: 1px solid var(--border); padding-top: 10px; margin-top: auto; align-items: stretch; }
-.cm { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: space-between; gap: 4px; }
-.cm + .cm { border-left: 1px solid var(--border); padding-left: 10px; margin-left: 10px; }
-.card-metrics .cm:first-child { flex: 1.5; }  /* wider Rev.30d column so value + growth fit */
-.cm-label { font-size: 9px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cm-val { font-size: 14px; font-weight: 700; letter-spacing: -0.2px; color: var(--text); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cm-sub { font-size: 10px; font-weight: 600; margin-left: 2px; }
-.badge-link { cursor: pointer; transition: background .12s, color .12s, border-color .12s; }
-.badge-link:hover { background: var(--text); color: #fff; border-color: var(--text); }
-.anon-tag { font-size: 9px; color: var(--text3); font-weight: 500; letter-spacing: 0.03em; margin-left: 4px; cursor: help; border-bottom: 1px dotted var(--border2); }
-.card-extra { font-size: 11px; color: var(--text3); display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 4px; margin-bottom: 8px; }
-.card-extra-item { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
-.badge-new { background: var(--green-bg); color: var(--green); border: 1px solid rgba(0,194,122,0.25); font-weight: 600; }
-.name-blur { filter: blur(5px); transition: filter 0.2s; user-select: none; }
-.card:hover .name-blur { filter: blur(3px); }
-.logo-blur { filter: blur(4px); user-select: none; }
-.up { color: var(--trading-up); }
-.dn { color: var(--trading-down); }
+/* trust bar */
+.trustbar{border-top:1px solid rgba(255,255,255,.07);border-bottom:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.015)}
+.trustin{max-width:1200px;margin:0 auto;padding:20px 24px;display:flex;align-items:center;gap:30px;flex-wrap:wrap}
+.trustlbl{color:var(--text3);font-size:13px;font-weight:500}
+.tstats{margin-left:auto;display:flex;align-items:center;gap:34px;flex-wrap:wrap}
+.tstat b{font-size:19px;font-weight:700;letter-spacing:-.3px;color:var(--text)}
+.tstat span{display:block;color:var(--text3);font-size:12px;margin-top:1px}
 
-@keyframes loadpulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-@media (max-width: 900px) { .body { grid-template-columns: 1fr; } .sidebar-block { position: static; max-height: none; } }
-@media (max-width: 640px) { .hero { padding: 24px 16px 16px; } .hero-title { font-size: 26px; } .cards { grid-template-columns: 1fr; } .body { padding: 12px 16px 60px; } .stat-n { font-size: 18px; } .stat-l { font-size: 9px; } .stat-item { padding: 14px 8px; } }
+/* product cards */
+.feed{max-width:1200px;margin:0 auto;padding:34px 24px 16px}
+.feedhead{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.feedhead .ico{display:flex;width:34px;height:34px;border-radius:9px;background:rgba(252,213,53,.14);color:var(--accent);align-items:center;justify-content:center;flex:none}
+.feedhead h2{font-size:22px;font-weight:700;color:var(--text)}
+.feedhead .all{margin-left:auto;color:var(--text2);font-weight:500;font-size:14px;display:inline-flex;align-items:center;gap:6px;text-decoration:none}
+.feedhead .all:hover{color:var(--accent)}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.lcard{background:var(--bg2);border:1px solid var(--bg3);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px;text-decoration:none;color:inherit;transition:border-color .15s,transform .15s}
+.lcard:hover{border-color:var(--border2);transform:translateY(-2px)}
+.chead{display:flex;align-items:center;gap:10px}
+.cinfo{min-width:0;flex:1}
+.cinfo b{font-size:15px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+.cinfo .src{display:flex;align-items:center;gap:5px;color:var(--text3);font-size:12px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.salepill{margin-left:auto;flex:none;font-size:11px;font-weight:600;color:var(--accent2);background:rgba(252,213,53,.12);border-radius:5px;padding:3px 8px;align-self:flex-start}
+.cmrr{display:flex;align-items:baseline;gap:9px}
+.cmrr b{font-size:23px;font-weight:700;letter-spacing:-.5px;color:var(--text)}
+.cmrr small{color:var(--text3);font-size:12px}
+.cmrr .g{margin-left:auto;font-size:13px;font-weight:600}
+.cfoot{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--bg3);padding-top:12px;font-size:13px}
+.cfoot .price{color:var(--text2)}
+.cfoot .price b{color:var(--text);font-weight:600}
+.cfoot .open{color:var(--accent2);font-weight:600;display:inline-flex;align-items:center;gap:4px}
+
+/* generic sections */
+.sec{max-width:1100px;margin:0 auto;padding:56px 24px}
+.sechead{text-align:center;max-width:680px;margin:0 auto 36px}
+.kicker{display:inline-block;color:var(--accent2);font-weight:600;font-size:13px;letter-spacing:.07em;text-transform:uppercase;margin-bottom:10px}
+.sechead h2{font-size:32px;font-weight:700;letter-spacing:-.6px;color:var(--text)}
+.sechead p{color:var(--text2);font-size:16px;margin-top:10px;line-height:1.5}
+
+.incl{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.iitem{background:var(--bg2);border:1px solid var(--bg3);border-radius:12px;padding:20px}
+.iitem .ic{display:flex;width:40px;height:40px;border-radius:10px;background:rgba(14,203,129,.12);color:var(--green);align-items:center;justify-content:center;margin-bottom:13px}
+.iitem b{display:block;font-size:15px;margin-bottom:5px;color:var(--text)}
+.iitem>span:last-child{color:var(--text2);font-size:13px;line-height:1.5}
+.inclnote{margin-top:16px;display:flex;align-items:center;gap:11px;justify-content:center;background:rgba(252,213,53,.08);border:1px solid rgba(252,213,53,.22);border-radius:12px;padding:14px 18px;color:var(--text);font-weight:500}
+.inclnote svg{color:var(--accent2);flex:none}
+.inclnote b{color:var(--accent2)}
+
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.col{border-radius:14px;padding:24px 26px}
+.col.bad{background:rgba(246,70,93,.06);border:1px solid rgba(246,70,93,.22)}
+.col.good{background:rgba(14,203,129,.06);border:1px solid rgba(14,203,129,.22)}
+.col h3{font-size:17px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:9px;color:var(--text)}
+.col h3 .hic{display:inline-flex}
+.col.bad h3 .hic{color:var(--red)}
+.col.good h3 .hic{color:var(--green)}
+.cmp{display:flex;gap:12px;padding:14px 0;border-top:1px solid rgba(255,255,255,.06)}
+.cmp .ic{flex:none;margin-top:1px}
+.col.bad .cmp .ic{color:var(--red)}
+.col.good .cmp .ic{color:var(--green)}
+.cmp b{display:block;font-size:14px;font-weight:600;margin-bottom:3px;color:var(--text)}
+.cmp span:not(.ic){color:var(--text2);font-size:13px;line-height:1.5}
+
+.steps4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.st{background:var(--bg2);border:1px solid var(--bg3);border-radius:12px;padding:22px}
+.st .n{display:flex;width:34px;height:34px;border-radius:50%;background:var(--accent);color:#181A20;font-weight:700;align-items:center;justify-content:center;margin-bottom:14px}
+.st b{display:block;font-size:15px;margin-bottom:6px;color:var(--text)}
+.st>span:last-child{color:var(--text2);font-size:13px;line-height:1.5}
+.stepsnote{margin-top:18px;display:flex;align-items:center;gap:11px;justify-content:center;text-align:center;color:var(--text2);font-size:14px;background:var(--bg2);border:1px solid var(--bg3);border-radius:12px;padding:16px 20px}
+.stepsnote svg{color:var(--accent2);flex:none}
+
+.plans{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;max-width:860px;margin:0 auto}
+.plan{position:relative;background:var(--bg2);border:1px solid var(--bg3);border-radius:16px;padding:28px}
+.plan.hot{border-color:var(--accent2)}
+.phot{position:absolute;top:-11px;left:28px;background:var(--accent);color:#181A20;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:4px 10px;border-radius:6px}
+.pname{font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text3)}
+.plan.hot .pname{color:var(--accent2)}
+.plan .price{font-size:40px;font-weight:700;letter-spacing:-1px;margin:8px 0 2px;color:var(--text)}
+.plan .price small{font-size:15px;color:var(--text3);font-weight:500;letter-spacing:0}
+.plan .pdesc{color:var(--text2);font-size:14px;margin:6px 0 18px;min-height:40px}
+.plan ul{list-style:none;display:flex;flex-direction:column;gap:11px;margin-bottom:22px}
+.plan li{display:flex;gap:9px;font-size:14px;color:var(--text);line-height:1.4}
+.plan li>svg{flex:none;width:18px;height:18px;margin-top:1px;color:var(--green)}
+.plan li.off{color:var(--text3)}
+.plan li.off>svg{color:var(--text3)}
+.plan .pcta{display:block;width:100%;text-align:center;padding:12px;border-radius:10px;font-weight:600;font-size:14px;cursor:pointer;text-decoration:none;font-family:inherit;border:0}
+.plan .pcta.ghost{background:var(--bg3);color:var(--text)}
+.plan .pcta.ghost:hover{background:var(--border2)}
+.plan .pcta.solid{background:var(--accent);color:#181A20}
+.plan .pcta.solid:hover{background:var(--accent2)}
+
+.seller{max-width:1100px;margin:0 auto;padding:56px 24px}
+.sellerin{position:relative;overflow:hidden;background:linear-gradient(100deg,#1E2329,#181A20);border:1px solid var(--bg3);border-radius:18px;padding:40px;display:grid;grid-template-columns:1.05fr 1fr;gap:40px;align-items:center}
+.sellerin h2{font-size:27px;font-weight:700;letter-spacing:-.5px;max-width:460px;margin-top:8px;color:var(--text)}
+.sellerin p{color:var(--text2);margin:12px 0 22px;max-width:440px;font-size:15px}
+.sellerin .btn-y{display:inline-flex;align-items:center;background:var(--accent);color:#181A20;font-weight:600;border:0;border-radius:10px;padding:13px 26px;font-size:15px;cursor:pointer;font-family:inherit}
+.sellerin .btn-y:hover{background:var(--accent2)}
+.sellerfeat{display:flex;flex-direction:column;gap:16px}
+.sf{display:flex;gap:13px}
+.sf .ic{flex:none;width:40px;height:40px;border-radius:10px;background:rgba(252,213,53,.14);color:var(--accent);display:flex;align-items:center;justify-content:center}
+.sf b{display:block;font-size:14px;margin-bottom:3px;color:var(--text)}
+.sf span{color:var(--text2);font-size:13px;line-height:1.45}
+
+.faq{max-width:760px;margin:0 auto}
+.faq details{border-bottom:1px solid var(--bg3)}
+.faq summary{list-style:none;cursor:pointer;padding:18px 2px;display:flex;align-items:center;gap:12px;font-weight:600;font-size:16px;color:var(--text)}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary .pm{margin-left:auto;color:var(--text3);font-size:22px;font-weight:400;line-height:1;transition:transform .2s}
+.faq details[open] summary .pm{transform:rotate(45deg);color:var(--accent2)}
+.faq p{color:var(--text2);font-size:14px;line-height:1.6;padding:0 2px 18px;max-width:680px}
+
+.final{position:relative;text-align:center;padding:76px 24px 88px;overflow:hidden;border-top:1px solid var(--bg2)}
+.fglow{position:absolute;left:50%;bottom:-220px;transform:translateX(-50%);width:900px;height:480px;background:radial-gradient(closest-side,rgba(252,213,53,.14),transparent 72%);pointer-events:none}
+.final h2{position:relative;font-size:36px;font-weight:700;letter-spacing:-.6px;max-width:640px;margin:0 auto;color:var(--text)}
+.final p{position:relative;color:var(--text2);margin:14px auto 28px;max-width:520px;font-size:16px}
+.final .btn-y{position:relative;display:inline-flex;align-items:center;background:var(--accent);color:#181A20;font-weight:600;border:0;border-radius:11px;padding:16px 42px;font-size:16px;cursor:pointer;font-family:inherit}
+.final .btn-y:hover{background:var(--accent2)}
+
+@media(max-width:1000px){.cards{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:920px){
+  .hero{grid-template-columns:1fr;gap:30px}
+  .bignum b{font-size:58px}
+  .tstats{margin-left:0;gap:24px}
+  .incl,.steps4{grid-template-columns:repeat(2,1fr)}
+  .compare,.plans,.sellerin{grid-template-columns:1fr}
+  .sechead h2,.final h2,.sellerin h2{font-size:26px}
+}
+@media(max-width:560px){.incl,.steps4,.cards{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 
 <div id="navPlaceholder"></div>
 
-<div class="hero">
-  <div class="hero-title"><span data-i18n="idx.heroTitle">Найди</span> <em data-i18n="idx.heroSpan">верифицированный</em><br><span data-i18n="idx.heroEnd">стартап с выручкой</span></div>
-  <div class="hero-sub" data-i18n="idx.heroSub">Только подтверждённые данные. Каждый показатель проверен через платёжные провайдеры напрямую.</div>
+<div class="wrap">
+  <div class="glow"></div>
+  <section class="hero">
+    <div>
+      <div class="eyebrow"><span class="dot"></span>Маркетплейс стартапов с проверенным MRR</div>
+      <h1>Получите доступ к стартапам<br>с <span class="y">подтверждённой выручкой</span></h1>
 
-  <div class="provider-icons">
-    <div class="provider-wrap"><div class="provider-icon"><img src="https://cdn.simpleicons.org/stripe/635BFF" alt="Stripe" onerror="this.onerror=null;this.parentElement.textContent='S'"/></div><div class="provider-tip">Stripe</div></div>
-    <div class="provider-wrap"><div class="provider-icon"><img src="https://cdn.simpleicons.org/lemonsqueezy/FFC233" alt="LemonSqueezy" onerror="this.onerror=null;this.parentElement.textContent='LS'"/></div><div class="provider-tip">LemonSqueezy</div></div>
-    <div class="provider-wrap"><div class="provider-icon"><img src="https://www.google.com/s2/favicons?domain=polar.sh&amp;sz=64" alt="Polar" onerror="this.onerror=null;this.parentElement.textContent='P'"/></div><div class="provider-tip">Polar</div></div>
-    <div class="provider-wrap"><div class="provider-icon"><img src="https://cdn.simpleicons.org/revenuecat/F5454C" alt="RevenueCat" onerror="this.onerror=null;this.parentElement.textContent='RC'"/></div><div class="provider-tip">RevenueCat</div></div>
-    <div class="provider-wrap"><div class="provider-icon"><img src="https://cdn.simpleicons.org/paddle/FDDD35" alt="Paddle" onerror="this.onerror=null;this.parentElement.textContent='Pa'"/></div><div class="provider-tip">Paddle</div></div>
-    <div class="provider-wrap"><div class="provider-icon"><img src="https://www.google.com/s2/favicons?domain=chargebee.com&amp;sz=64" alt="Chargebee" onerror="this.onerror=null;this.parentElement.textContent='CB'"/></div><div class="provider-tip">Chargebee</div></div>
-    <div class="provider-wrap"><div class="provider-icon"><img src="https://cdn.simpleicons.org/braintree/0070BA" alt="Braintree" onerror="this.onerror=null;this.parentElement.textContent='BT'"/></div><div class="provider-tip">Braintree</div></div>
-    <div class="provider-wrap"><div class="provider-icon"><img src="https://fastspring.com/favicon.ico" alt="FastSpring" onerror="this.onerror=null;this.parentElement.textContent='FS'"/></div><div class="provider-tip">FastSpring</div></div>
-  </div>
+      <div class="herologos">
+        <span class="lbl">Проверено напрямую через</span>
+        <span class="logos">
+          <span class="lg"><img src="https://cdn.simpleicons.org/stripe/white" alt="Stripe" onerror="this.style.display='none'">Stripe</span>
+          <span class="lg"><img src="https://cdn.simpleicons.org/lemonsqueezy/FFC233" alt="LemonSqueezy" onerror="this.style.display='none'">LemonSqueezy</span>
+          <span class="lg"><img src="https://www.google.com/s2/favicons?domain=polar.sh&sz=64" alt="Polar" onerror="this.style.display='none'">Polar</span>
+        </span>
+      </div>
 
-  <div class="stats-bar">
-    <div class="stat-item"><div class="stat-n" id="statTotal">—</div><div class="stat-l" data-i18n="idx.statTotal">Стартапов в базе</div></div>
-    <div class="stat-item"><div class="stat-n" id="statSale">—</div><div class="stat-l" data-i18n="idx.statSale">На продаже</div></div>
-    <div class="stat-item"><div class="stat-n" id="statRevenue">—</div><div class="stat-l" data-i18n="idx.statRev30">Выручка (30д)</div></div>
-    <div class="stat-item"><div class="stat-n" id="statMRR">—</div><div class="stat-l" data-i18n="idx.statMrr">Суммарный MRR</div></div>
-  </div>
+      <div class="bignum">
+        <b><span class="y">$</span><span id="heroMrr">—</span></b><small>/ мес</small>
+        <span class="gpill"><span class="dot"></span>обновляется ежедневно</span>
+      </div>
+      <div class="bigcap">суммарная MRR всех стартапов в каталоге — <span class="upd">читается напрямую из платёжных провайдеров</span></div>
 
+      <div class="cta">
+        <a class="btn-y" href="/auth.html">Получить доступ</a>
+        <button class="selllink" onclick="openSellModal()">Продать стартап →</button>
+      </div>
+    </div>
+
+    <div class="herocol">
+      <div class="freebadge"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v9H4v-9M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg></span><span><b>3 бесплатных просмотра</b> контактов — сразу после регистрации, без карты</span></div>
+      <div class="panel2">
+        <div class="p2head"><span class="tt"><span class="live"></span>Свежие листинги</span><span class="upd">обновлено только что</span></div>
+        <div id="list">
+          <div style="padding:28px 14px;text-align:center;color:var(--text3);font-size:13px">Загрузка листингов…</div>
+        </div>
+        <div class="unlock"><span>Названия откроются после входа</span><a href="/catalog">Весь каталог ›</a></div>
+      </div>
+    </div>
+  </section>
 </div>
 
-<div class="body">
-  <aside>
-    <div class="sidebar-block">
-      <div class="sb-header">
-        <span class="sb-title" data-i18n="idx.fltTitle">Фильтры</span>
-        <span class="sb-reset" onclick="resetFilters()" data-i18n="idx.fltReset">Сбросить</span>
-      </div>
-      <div class="sb-section">
-        <div class="search-wrap">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-          <input class="search-input" id="searchInput" type="text" data-i18n-placeholder="idx.fltSearch" placeholder="Поиск по названию..." oninput="onSearch(this.value)"/>
-        </div>
-      </div>
-      <div class="sb-section">
-        <div class="sb-label" data-i18n="idx.fltStatus">Статус</div>
-        <div class="status-opts">
-          <div class="status-opt sel" data-filter="sale" onclick="setStatus(this)"><span data-i18n="idx.fltStatusSale">На продаже</span> <span class="cnt" id="cntSale">—</span></div>
-          <div class="status-opt" data-filter="all" onclick="setStatus(this)"><span data-i18n="idx.fltStatusAll">Все</span> <span class="cnt" id="cntAll">—</span></div>
-        </div>
-      </div>
-      <div class="sb-section">
-        <div class="sb-label" data-i18n="idx.fltCats">Категории</div>
-        <select class="sb-select" id="catSelect" onchange="onCategoryChange(this.value)">
-          <option value="" data-i18n="idx.fltCatsAll">Все категории...</option>
-          <option>AI</option><option>SaaS</option><option>Developer Tools</option>
-          <option>Fintech</option><option>Marketing</option><option>E-commerce</option>
-          <option>Productivity</option><option>No-code</option><option>Analytics</option>
-        </select>
-      </div>
-      <div class="sb-section">
-        <div class="sb-label"><span data-i18n="idx.fltRev30">Выручка 30 дней</span> <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box" data-i18n="idx.tipRev30">Суммарная выручка за последние 30 дней</span></span></div>
-        <div class="range-row"><input class="sb-input" id="rev30Min" type="text" placeholder="$ Min"><div class="range-sep">—</div><input class="sb-input" id="rev30Max" type="text" placeholder="$ Max"></div>
-      </div>
-      <div class="sb-section">
-        <div class="sb-label">MRR <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box" data-i18n="idx.tipMrr">Monthly Recurring Revenue</span></span></div>
-        <div class="range-row"><input class="sb-input" id="mrrMin" type="text" placeholder="$ Min"><div class="range-sep">—</div><input class="sb-input" id="mrrMax" type="text" placeholder="$ Max"></div>
-      </div>
-      <div class="sb-section">
-        <div class="sb-label"><span data-i18n="idx.fltGrowth">Рост 30 дней</span> <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box" data-i18n="idx.tipGrowth">Изменение MRR за 30 дней в %</span></span></div>
-        <div class="range-row"><input class="sb-input" id="growthMin" type="text" placeholder="Min %"><div class="range-sep">—</div><input class="sb-input" id="growthMax" type="text" placeholder="Max %"></div>
-      </div>
-      <div class="sb-section">
-        <div class="sb-label"><span data-i18n="idx.fltPrice">Цена продажи</span> <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box" data-i18n="idx.tipPrice">Запрашиваемая цена за 100% доли</span></span></div>
-        <div class="range-row"><input class="sb-input" id="priceMin" type="text" placeholder="$ Min"><div class="range-sep">—</div><input class="sb-input" id="priceMax" type="text" placeholder="$ Max"></div>
-      </div>
-      <div class="sb-section">
-        <div class="sb-label"><span data-i18n="idx.fltMultiple">Мультипликатор</span> <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box" data-i18n="idx.tipMultiple">Цена / годовой MRR</span></span></div>
-        <select class="sb-select" id="multipleSelect">
-          <option value="" data-i18n="idx.fltAny">Любой</option><option value="1">До 1×</option><option value="2">До 2×</option>
-          <option value="3">До 3×</option><option value="5">До 5×</option><option value="10">До 10×</option>
-        </select>
-      </div>
-      <div class="sb-section">
-        <div class="sb-label"><span data-i18n="idx.fltMargin">Маржа прибыли</span></div>
-        <div class="range-row"><input class="sb-input" id="marginMin" type="text" placeholder="Min %"><div class="range-sep">—</div><input class="sb-input" id="marginMax" type="text" placeholder="Max %"></div>
-      </div>
-      <div class="sb-section">
-        <div class="sb-label" data-i18n="idx.fltAudience">Аудитория</div>
-        <select class="sb-select" id="audienceSelect">
-          <option value="" data-i18n="idx.fltAny">Любая</option><option value="b2b">B2B</option><option value="b2c">B2C</option><option value="b2b2c">B2B2C</option>
-        </select>
-      </div>
-      <div class="sb-section">
-        <div class="sb-label" data-i18n="idx.fltMobile">Мобильное приложение</div>
-        <select class="sb-select" id="mobileSelect">
-          <option value="" data-i18n="idx.fltAny">Любое</option><option value="yes" data-i18n="idx.fltHas">Есть</option><option value="no" data-i18n="idx.fltNo">Нет</option>
-        </select>
-      </div>
-      <div class="sb-section"><button class="apply-btn" onclick="applyFilters()" data-i18n="idx.fltApply">Применить фильтры</button></div>
+<div class="trustbar">
+  <div class="trustin">
+    <span class="trustlbl">Проверённые данные каталога:</span>
+    <div class="tstats">
+      <div class="tstat"><b id="tsTotal">—</b><span>стартапов в базе</span></div>
+      <div class="tstat"><b id="tsArr">—</b><span>выручки в каталоге / год</span></div>
+      <div class="tstat"><b id="tsSale">—</b><span>на продаже сейчас</span></div>
+      <div class="tstat"><b>8</b><span>платёжных провайдеров</span></div>
     </div>
-  </aside>
-
-  <main>
-    <div class="grid-header">
-      <span class="grid-count" id="gridCount" data-i18n="idx.loading">Загрузка...</span>
-      <div class="sort-wrap">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="9" y2="18"/></svg>
-        <select class="sort-select" id="sortSelect" onchange="onSortChange(this.value)">
-          <option value="revenue-desc" data-i18n="idx.sortRev">Выручка ↓</option>
-          <option value="growth-desc" data-i18n="idx.sortGrowth">Рост ↓</option>
-          <option value="price-asc" data-i18n="idx.sortPriceAsc">Цена ↑</option>
-          <option value="price-desc" data-i18n="idx.sortPriceDesc">Цена ↓</option>
-        </select>
-      </div>
-    </div>
-    <div class="cards" id="cards">
-      <div style="grid-column:1/-1;text-align:center;padding:60px 0;">
-        <div style="font-size:14px;color:var(--text2);margin-bottom:16px;" data-i18n="idx.loading">Загружаем стартапы...</div>
-        <div style="width:160px;height:3px;background:var(--border);border-radius:2px;margin:0 auto;overflow:hidden;"><div style="height:100%;width:40%;background:var(--accent);border-radius:2px;animation:loadpulse 1.5s ease-in-out infinite;"></div></div>
-      </div>
-    </div>
-    <div id="scroll-sentinel" style="height:1px;margin-top:24px;"></div>
-  </main>
+  </div>
 </div>
 
-<footer><a href="#">Условия</a> &nbsp;·&nbsp; <a href="#">Конфиденциальность</a></footer>
+<section class="feed">
+  <div class="feedhead">
+    <span class="ico"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5.5-5.5 4 4L21 7"/><path d="M15 7h6v6"/></svg></span>
+    <h2>Топ растущих стартапов</h2>
+    <a class="all" href="/catalog">Смотреть весь каталог <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+  </div>
+  <div class="cards" id="cards">
+    <div style="grid-column:1/-1;text-align:center;padding:40px 0;color:var(--text3);font-size:13px">Загрузка стартапов…</div>
+  </div>
+</section>
+
+<!-- 1. Что входит в доступ -->
+<section class="sec">
+  <div class="sechead"><span class="kicker">Доступ</span><h2>Что входит в доступ</h2><p>Каждый листинг — проверенные данные, а не скриншот в чате.</p></div>
+  <div class="incl">
+    <div class="iitem"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M7 17v-6M12 17V7M17 17v-9"/></svg></span><b>Полная история MRR</b><span>Помесячная динамика с запуска — виден тренд, а не одна цифра.</span></div>
+    <div class="iitem"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg></span><b>Подключённые провайдеры</b><span>Stripe, LemonSqueezy, Polar. Данные читаются из API по read-only ключу.</span></div>
+    <div class="iitem"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5.5-5.5 4 4L21 7"/><path d="M15 7h6v6"/></svg></span><b>Динамика роста</b><span>Темп за 30 и 90 дней. Сразу видно: бизнес ускоряется или затухает.</span></div>
+    <div class="iitem"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.6-3.8 4.8-5 8-5s6.4 1.2 8 5"/></svg></span><b>Контакты продавца</b><span>Прямой контакт основателя — договаривайтесь без посредников.</span></div>
+    <div class="iitem"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h9M19 7h1M4 17h1M11 17h9"/><circle cx="16" cy="7" r="2.5"/><circle cx="8" cy="17" r="2.5"/></svg></span><b>Фильтры и поиск</b><span>Сортировка по нише, MRR, росту, цене и мультипликатору.</span></div>
+    <div class="iitem"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v13M3.5 7.5L7 4l3.5 3.5M17 20V7M13.5 16.5L17 20l3.5-3.5"/></svg></span><b>Мультипликаторы</b><span>Цена к годовому MRR по всему каталогу — находите недооценённые сделки.</span></div>
+  </div>
+  <div class="inclnote"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v9H4v-9M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg><span><b>Первые 3 просмотра контактов</b> — бесплатно, без карты.</span></div>
+</section>
+
+<!-- 2. Почему не искать самостоятельно -->
+<section class="sec">
+  <div class="sechead"><h2>Почему не искать самостоятельно</h2><p>Открытые площадки и чаты не дают главного — доказательства, что цифрам можно верить.</p></div>
+  <div class="compare">
+    <div class="col bad">
+      <h3><span class="hic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span>Открытые площадки и чаты</h3>
+      <div class="cmp"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span><div><b>Поддельные скриншоты</b><span>Цифры рисуют в редакторе. Проверить невозможно.</span></div></div>
+      <div class="cmp"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span><div><b>Нет верификации</b><span>Никто не сверяет выручку с платёжным провайдером.</span></div></div>
+      <div class="cmp"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span><div><b>Потеря времени</b><span>Недели переписки ради сделки, что разваливается на проверке.</span></div></div>
+    </div>
+    <div class="col good">
+      <h3><span class="hic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>MRRket</h3>
+      <div class="cmp"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span><div><b>Данные из API провайдеров</b><span>Выручка читается напрямую — продавец не может её изменить.</span></div></div>
+      <div class="cmp"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span><div><b>Верификация каждого листинга</b><span>Зелёная галка означает: метрики подтверждены источником.</span></div></div>
+      <div class="cmp"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span><div><b>Всё в одном каталоге</b><span>Тысячи проверенных стартапов с фильтрами. Сделка — за дни.</span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 3. Как это работает -->
+<section class="sec">
+  <div class="sechead"><span class="kicker">Процесс</span><h2>Как это работает</h2><p>Четыре шага от подписки до сделки.</p></div>
+  <div class="steps4">
+    <div class="st"><span class="n">1</span><b>Оформите доступ</b><span>Подписка за пару минут. Сразу 3 бесплатных просмотра контактов.</span></div>
+    <div class="st"><span class="n">2</span><b>Изучите метрики</b><span>История MRR, рост, провайдер, мультипликатор — всё проверено.</span></div>
+    <div class="st"><span class="n">3</span><b>Свяжитесь с продавцом</b><span>Откройте прямой контакт основателя без посредников.</span></div>
+    <div class="st"><span class="n">4</span><b>Закройте сделку</b><span>Проводите сделку напрямую, вне платформы — прозрачно и без комиссий.</span></div>
+  </div>
+  <div class="stepsnote"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg><span>MRRket — каталог данных. Сделки проходят напрямую между покупателем и продавцом: меньше посредников, прозрачные условия.</span></div>
+</section>
+
+<!-- 4. Тарифы -->
+<section class="sec">
+  <div class="sechead"><span class="kicker">Тарифы</span><h2>Выберите доступ по своей роли</h2><p>Оплата помесячно. Отмена в один клик.</p></div>
+  <div class="plans">
+    <div class="plan">
+      <div class="pname">Исследователь</div>
+      <div class="price">$19<small>/ мес</small></div>
+      <div class="pdesc">Для тех, кто изучает рынок и сравнивает ниши.</div>
+      <ul>
+        <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span>20 просмотров контактов в месяц</span></li>
+        <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span>Полная история MRR и динамика роста</span></li>
+        <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span>Фильтры по нише, выручке и росту</span></li>
+        <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span>Мультипликаторы по всему каталогу</span></li>
+        <li class="off"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/></svg><span>Алерты о новых листингах</span></li>
+        <li class="off"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/></svg><span>Экспорт и сравнение данных</span></li>
+      </ul>
+      <a class="pcta ghost" href="/auth.html">Оформить доступ</a>
+    </div>
+    <div class="plan hot">
+      <span class="phot">Рекомендуем</span>
+      <div class="pname">Инвестор</div>
+      <div class="price">$99<small>/ мес</small></div>
+      <div class="pdesc">Для активной покупки онлайн-бизнеса.</div>
+      <ul>
+        <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span>Безлимит просмотров контактов</span></li>
+        <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span>Всё из тарифа «Исследователь»</span></li>
+        <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span>Алерты о новых листингах в ваших нишах</span></li>
+        <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span>Экспорт и сравнение листингов</span></li>
+        <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span>Ранний доступ к новым стартапам</span></li>
+        <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span>Приоритетная поддержка</span></li>
+      </ul>
+      <a class="pcta solid" href="/auth.html">Оформить доступ</a>
+    </div>
+  </div>
+</section>
+
+<!-- 5. Для продавцов -->
+<section class="seller">
+  <div class="sellerin">
+    <div>
+      <span class="kicker">Для продавцов</span>
+      <h2>Разместите стартап перед целевой аудиторией покупателей</h2>
+      <p>MRRket видят инвесторы и предприниматели, которые покупают онлайн-бизнес. Не случайный трафик — заинтересованные покупатели с бюджетом.</p>
+      <button class="btn-y" onclick="openSellModal()">Разместить стартап</button>
+    </div>
+    <div class="sellerfeat">
+      <div class="sf"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c1.2-3.4 3.8-4.5 6.5-4.5s5.3 1.1 6.5 4.5"/><path d="M16 5a3.5 3.5 0 0 1 0 7M17.5 15.7c2 .6 3.4 1.9 4 4.3"/></svg></span><div><b>Доступ к базе покупателей</b><span>Ваш стартап видят зарегистрированные инвесторы маркетплейса.</span></div></div>
+      <div class="sf"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg></span><div><b>Верификация метрик</b><span>Подключите провайдера — получите зелёную галку доверия.</span></div></div>
+      <div class="sf"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></span><div><b>Статистика просмотров</b><span>Видно, сколько инвесторов открыли листинг и контакты.</span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 6. FAQ -->
+<section class="sec">
+  <div class="sechead"><span class="kicker">FAQ</span><h2>Частые вопросы</h2></div>
+  <div class="faq">
+    <details open><summary>Как подтверждается выручка?<span class="pm">+</span></summary><p>Продавец подключает платёжный провайдер — Stripe, LemonSqueezy или Polar — по read-only ключу. MRR и историю мы читаем напрямую из API провайдера. Нарисовать или завысить цифры невозможно.</p></details>
+    <details><summary>Почему сделки проходят вне платформы?<span class="pm">+</span></summary><p>MRRket — каталог проверенных данных, а не эскроу-сервис. Прямая сделка между покупателем и продавцом убирает посредника и комиссию, а условия стороны согласуют сами.</p></details>
+    <details><summary>Есть ли гарантия сделки?<span class="pm">+</span></summary><p>Мы гарантируем достоверность метрик выручки на момент просмотра. Юридические и финансовые условия стороны определяют напрямую — рекомендуем стандартный due diligence и договор.</p></details>
+    <details><summary>Можно ли отменить подписку?<span class="pm">+</span></summary><p>Да. Отмена в один клик в личном кабинете, без звонков и удержаний. Доступ сохраняется до конца оплаченного периода.</p></details>
+    <details><summary>Проверяете ли вы бизнес юридически?<span class="pm">+</span></summary><p>Мы верифицируем метрики выручки, а не юридический статус компании. Проверку правовой чистоты бизнеса покупатель проводит самостоятельно перед сделкой.</p></details>
+  </div>
+</section>
+
+<!-- 7. Финальный CTA -->
+<section class="final">
+  <div class="fglow"></div>
+  <h2>Получите доступ к проверенным стартапам уже сегодня</h2>
+  <p>Тысячи стартапов с подтверждённой выручкой. Первые 3 просмотра — бесплатно.</p>
+  <a class="btn-y" href="/auth.html">Оформить подписку</a>
+</section>
+
+<footer><a href="/acquire.html">Как это работает</a> &nbsp;·&nbsp; <a href="/catalog">Каталог</a> &nbsp;·&nbsp; <a href="#">Условия</a> &nbsp;·&nbsp; <a href="#">Конфиденциальность</a></footer>
 
 <script>
 applyLangToDoc();
 document.getElementById('navPlaceholder').innerHTML = buildNavHTML('home');
 initNavAuth();
 
-/* ── CONSTANTS ─────────────────────────────────────────────────────────────── */
-const API   = '/api';
-const LIMIT = 50;
-const LS_KEY  = 'sm_v5_p1';   // bump version to clear old caches
-const LS_FAVS = 'sm_favs';
-const CACHE_TTL  = 7 * 24 * 3600 * 1000; // serve stale cache up to 7 days
-const FRESH_TTL  = 24 *      3600 * 1000; // background refresh only if >24h old
+// Preserve legacy deep-links (/?category=…&search=…&sort=…) — the filterable
+// catalog now lives at /catalog, so forward any query params there.
+(function(){
+  const q = new URLSearchParams(location.search);
+  if (q.has('category') || q.has('search') || q.has('sort')) location.replace('/catalog' + location.search);
+})();
 
-/* ── STATE ─────────────────────────────────────────────────────────────────── */
-let loadedItems  = [];   // all items received from API across pages
-let displayItems = [];   // after client-side filters
-let apiPage      = 0;
-let hasMore      = false;
-let isLoading    = false;
-let apiMeta      = null; // last meta from API { total, hasMore } — reflects current filter
-let dbTotal      = null; // total startups in DB (no filter) — for "Startups in database" stat
-let dbOnSale     = null; // total onSale items (from a dedicated count fetch)
-let dbRev30      = null; // 30-day revenue summed across ALL startups (cents, /api/stats)
-let dbMrr        = null; // MRR summed across ALL startups (cents, /api/stats)
-let searchTimer;
+const API = '/api';
+const CHK = '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#0B0E11" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg>';
+const AV = ['#F0B90B','#0ECB81','#627EEA','#F6465D','#9C6CFF','#3B82F6','#F97316','#14B8A6'];
 
-let filters = {
-  onSale:true, category:'', sort:'revenue-desc',
-  search:'',
-  mrrMin:0, mrrMax:0, rev30Min:0, rev30Max:0,
-  priceMin:0, priceMax:0, growthMin:'', growthMax:'',
-  multipleMax:0, marginMin:0, marginMax:0,
-  audience:'', mobile:'', saleFirst:false
-};
-
-/* ── CACHE ─────────────────────────────────────────────────────────────────── */
-function cacheRead() {
-  try { const c=JSON.parse(localStorage.getItem(LS_KEY)||'null'); return c&&c.data&&c.ts?c:null; } catch{return null;}
-}
-function cacheWrite(data,hasMore,total) {
-  try { localStorage.setItem(LS_KEY,JSON.stringify({data,hasMore,total,ts:Date.now()})); } catch{}
-}
-function isDefault() { return filters.onSale===true&&!filters.category&&filters.sort==='revenue-desc'; }
-
-/* ── FAVOURITES ────────────────────────────────────────────────────────────── */
-function getFavs() { try{return JSON.parse(localStorage.getItem(LS_FAVS)||'[]');}catch{return[];} }
-function isFav(slug) { return getFavs().includes(slug); }
-function toggleFav(e, slug) {
-  e.preventDefault(); e.stopPropagation();
-  if (!window._access || !window._access.authenticated) {
-    location.href='/auth.html?from='+encodeURIComponent(location.pathname); return;
-  }
-  const favs=getFavs(), idx=favs.indexOf(slug);
-  if(idx===-1) favs.push(slug); else favs.splice(idx,1);
-  try{localStorage.setItem(LS_FAVS,JSON.stringify(favs));}catch{}
-  const btn=document.querySelector('.fav-btn[data-slug="'+slug+'"]');
-  if(btn){const on=favs.includes(slug);btn.innerHTML=icon(on?'heartFill':'heart',{size:15});btn.classList.toggle('active',on);}
-}
-
-/* ── LOAD ──────────────────────────────────────────────────────────────────── */
-async function loadInitial() {
-  if (isDefault()) {
-    const c = cacheRead();
-    if (c && Date.now()-c.ts < CACHE_TTL) {
-      loadedItems = c.data;
-      hasMore     = c.hasMore;
-      apiPage     = 1;
-      apiMeta     = { total: c.total };
-      displayItems = applyClientFilters(loadedItems);
-      updateStats(); renderCards(); updateCount();
-      if (Date.now()-c.ts > FRESH_TTL) fetchPage(1, true);
-      return;
-    }
-  }
-  showLoading();
-  await fetchPage(1, false);
-}
-
-async function fetchPage(page, bg) {
-  if (isLoading && !bg) return;
-  isLoading = true;
-  try {
-    const p = new URLSearchParams({page, limit:LIMIT, sort:filters.sort});
-    if (filters.onSale===true) p.set('onSale','true');
-    if (filters.category) p.set('category', filters.category);
-
-    const res = await fetch(API+'/startups?'+p);
-    if (!res.ok) throw new Error('api');
-    const {data, meta} = await res.json();
-    const items = (data||[]).filter(s=>s&&s.slug);
-
-    if (page===1) {
-      if (bg && items.length === 0) return; // don't wipe display on empty background response
-      loadedItems  = items;
-      hasMore      = !!(meta&&meta.hasMore);
-      apiPage      = 1;
-      apiMeta      = meta||null;
-      if (isDefault()) cacheWrite(items, hasMore, meta&&meta.total);
-      displayItems = applyClientFilters(loadedItems);
-      updateStats(); renderCards(); updateCount();
-    } else {
-      const fresh = items.filter(s=>!loadedItems.find(x=>x.slug===s.slug));
-      loadedItems  = loadedItems.concat(fresh);
-      hasMore      = !!(meta&&meta.hasMore);
-      apiPage      = page;
-      // Re-filter the whole set so anonymous items keep sinking to the bottom
-      // even as new pages stream in via infinite scroll.
-      displayItems = applyClientFilters(loadedItems);
-      renderCards();
-      updateCount();
-    }
-  } catch {
-    if (!bg && page===1) {
-      const c = cacheRead();
-      if (c&&c.data) {
-        loadedItems=c.data; hasMore=c.hasMore; apiPage=1; apiMeta={total:c.total};
-        displayItems=applyClientFilters(loadedItems);
-        updateStats(); renderCards(); updateCount();
-      } else showError();
-    }
-  } finally { isLoading=false; }
-}
-
-/* ── CLIENT-SIDE FILTERS ──────────────────────────────────────────────────── */
-// Stable client-side sort — anonymous to the bottom, then by data completeness
-// descending, then the API's chosen order for ties. Buyers see the richest
-// cards first without losing the global revenue/growth/price sort.
-function rankAnonLast(arr) {
-  // When browsing by tag/category (saleFirst), for-sale startups float to the top.
-  const saleFirst = !!filters.saleFirst;
-  const indexed = arr.map((s, i) => ({ s, i, sale: (saleFirst && s.onSale) ? 0 : 1, anon: (s.name||'').toLowerCase().includes('anonymous') ? 1 : 0, score: dataScore(s) }));
-  indexed.sort((a, b) => (a.sale - b.sale) || (a.anon - b.anon) || (b.score - a.score) || (a.i - b.i));
-  return indexed.map(x => x.s);
-}
-function applyClientFilters(items) {
-  const q = filters.search.toLowerCase();
-  const filtered = items.filter(s => {
-    if (q && !s.name.toLowerCase().includes(q) && !(s.description||'').toLowerCase().includes(q)) return false;
-    const mrr   = s.revenue&&s.revenue.mrr||0;
-    const rev   = s.revenue&&s.revenue.last30Days||0;
-    const price = s.askingPrice||0;
-    const mult  = parseFloat(s.multiple)||0;
-    const g     = s.growth30d;
-    const margin= s.profitMarginLast30Days;
-    if (filters.mrrMin >0 && mrr  < filters.mrrMin *100) return false;
-    if (filters.mrrMax >0 && mrr  > filters.mrrMax *100) return false;
-    if (filters.rev30Min>0 && rev < filters.rev30Min*100) return false;
-    if (filters.rev30Max>0 && rev > filters.rev30Max*100) return false;
-    if (filters.priceMin>0 && price < filters.priceMin*100) return false;
-    if (filters.priceMax>0 && price > filters.priceMax*100) return false;
-    if (filters.growthMin!=='' && (g==null||g<parseFloat(filters.growthMin))) return false;
-    if (filters.growthMax!=='' && (g==null||g>parseFloat(filters.growthMax))) return false;
-    if (filters.multipleMax>0 && mult>filters.multipleMax) return false;
-    if (filters.marginMin>0 && (margin==null||margin<filters.marginMin)) return false;
-    if (filters.marginMax>0 && (margin==null||margin>filters.marginMax)) return false;
-    if (filters.audience && s.targetAudience && !s.targetAudience.toLowerCase().includes(filters.audience)) return false;
-    if (filters.mobile==='yes' && !s.hasMobileApp) return false;
-    if (filters.mobile==='no' && s.hasMobileApp) return false;
-    return true;
-  });
-  return rankAnonLast(filtered);
-}
-
-/* ── RENDER ────────────────────────────────────────────────────────────────── */
-function renderCards() {
-  const grid = document.getElementById('cards');
-  grid.innerHTML = '';
-  if (!displayItems.length) {
-    grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:60px 0;color:var(--text3)">'+t('idx','notFound')+'</div>';
-    return;
-  }
-  displayItems.forEach(s => grid.insertAdjacentHTML('beforeend', cardHTML(s)));
-  setupScroll();
-}
-
-function appendCards(items) {
-  const grid = document.getElementById('cards');
-  items.forEach(s => grid.insertAdjacentHTML('beforeend', cardHTML(s)));
-}
-
-let scrollObs = null;
-function setupScroll() {
-  if (scrollObs) scrollObs.disconnect();
-  const el = document.getElementById('scroll-sentinel');
-  if (!el) return;
-  scrollObs = new IntersectionObserver(async ([e]) => {
-    if (!e.isIntersecting||isLoading||!hasMore) return;
-    await fetchPage(apiPage+1, false);
-  }, {rootMargin:'400px'});
-  scrollObs.observe(el);
-}
-
-// Real country flag (flagcdn SVG — renders identically on every OS, unlike the
-// Apple/Windows flag emoji) followed by the ISO code.
-function flagBadge(code) {
-  if (!code) return '';
-  const cc = String(code).trim().toLowerCase();
-  if (!/^[a-z]{2}$/.test(cc)) return escHtml(code);
-  return '<img class="flag-img" src="https://flagcdn.com/' + cc + '.svg" alt="' + escHtml(code) + '" loading="lazy"> ' + escHtml(code);
-}
-
-// Score each startup by how many user-facing fields are populated.
-// Used as a tiebreaker so well-documented cards float above sparse anonymous-ish ones.
-function dataScore(s) {
-  let n = 0;
-  if (s && s.description && s.description.length > 20) n += 2;
-  if (s && s.icon) n += 1;
-  if (s && s.foundedDate) n += 1;
-  if (s && s.country) n += 1;
-  if (s && s.targetAudience) n += 1;
-  if (s && s.profitMarginLast30Days != null) n += 1;
-  if (s && s.growth30d != null) n += 1;
-  if (s && s.multiple != null) n += 1;
-  if (s && s.revenue && s.revenue.mrr > 0) n += 1;
-  if (s && s.visitorsLast30Days != null) n += 1;
-  if (s && s.askingPrice) n += 1;
-  if (s && s.xHandle) n += 1;
-  return n;
-}
-
-function cardHTML(s) {
-  const init = s.name.split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase()||'?';
-  const isAnon = (s.name||'').toLowerCase().includes('anonymous');
-  const revealed = isRevealed(s.slug);          // already unblurred elsewhere → keep it unblurred here
-  const blurName = !isAnon && !revealed;        // blur non-anonymous names until revealed
-  const blurLogo = !isAnon && !revealed;
-  const iconInner = s.icon
-    ? '<img src="'+escHtml(s.icon)+'" loading="lazy" onerror="this.parentElement.textContent=\''+init+'\'"/>'
+function avatarHTML(s, size) {
+  const name = s.name || '?';
+  const init = (name.trim()[0] || '?').toUpperCase();
+  const col = AV[[...name].reduce((a,c)=>a+c.charCodeAt(0),0) % AV.length];
+  const blur = !name.toLowerCase().includes('anonymous') && !isRevealed(s.slug);
+  const inner = s.icon
+    ? '<img src="'+escHtml(s.icon)+'" loading="lazy" onerror="this.parentElement.textContent=\''+init+'\'">'
     : init;
-  const logoMarkup = blurLogo ? '<div class="logo-blur">'+iconInner+'</div>' : iconInner;
-  const nameHtml = blurName
-    ? '<span class="name-blur">'+escHtml(s.name)+'</span>'
-    : escHtml(s.name);
-  const g = s.growth30d;
-  const gh = g!=null?' <span class="cm-sub '+(g>=0?'up':'dn')+'">'+(g>=0?'↑':'↓')+Math.abs(parseFloat(g)).toFixed(1)+'%</span>':'';
-  const hasP = s.onSale&&s.askingPrice;
-  const lblRev = t('idx','cardRev') || 'Rev. 30d';
-  const lblAsk = t('idx','cardAsk') || 'Ask. price';
-  const lblMult= t('idx','cardMult')|| 'Multiple';
-  const lblMrr = t('idx','cardMrr') || 'MRR';
-  // Tooltips explaining each metric/tag on hover (req) + clickable category (req: tag → filtered page)
-  const tRev = escHtml(t('idx','tipRev30')||'');
-  const tAsk = escHtml(t('idx','tipPrice')||'');
-  const tMul = escHtml(t('idx','tipMultiple')||'');
-  const tMrr = escHtml(t('idx','tipMrr')||'');
-  const catEnc = s.category ? encodeURIComponent(s.category).replace(/'/g,'%27') : '';
-  const catTip = s.category ? escHtml((t('idx','tipCategory')||'Show all {cat} startups').replace('{cat}', s.category)) : '';
-  const pBlock = hasP
-    ? '<div class="cm" title="'+tAsk+'"><div class="cm-label">'+lblAsk+'</div><div class="cm-val">'+formatMoney(s.askingPrice)+'</div></div><div class="cm" title="'+tMul+'"><div class="cm-label">'+lblMult+'</div><div class="cm-val">'+(s.multiple?parseFloat(s.multiple).toFixed(1)+'×':'—')+'</div></div>'
-    : '<div class="cm" title="'+tMrr+'"><div class="cm-label">'+lblMrr+'</div><div class="cm-val">'+formatMoney(s.revenue&&s.revenue.mrr)+'</div></div>';
-  const views = s.views?'<span class="card-views">'+icon('eye',{size:11})+' '+(s.views>999?(s.views/1000).toFixed(1)+'k':s.views)+'</span>':'';
-  const favOn = isFav(s.slug);
-  const anonTag = isAnon
-    ? '<span class="anon-tag" title="'+(t('idx','anonHint')||'Owner chose to stay anonymous')+'">·&nbsp;'+(t('idx','anonLabel')||'anonymous')+'</span>'
-    : '';
-  const desc = s.description && s.description.trim()
-    ? escHtml(s.description)
-    : (isAnon ? (t('idx','anonNoDesc') || 'Seller chose not to disclose product details.') : '');
-  // "NEW" badge if listed for sale within the last 7 days
-  const daysListed = s.firstListedForSaleAt
-    ? Math.floor((Date.now() - new Date(s.firstListedForSaleAt).getTime()) / 86400000)
-    : null;
-  const isNew = daysListed != null && daysListed >= 0 && daysListed < 7;
-  // Extra meta row: flag + year + listed/margin
-  const year = s.foundedDate ? new Date(s.foundedDate).getFullYear() : null;
-  const extraBits = [];
-  if (s.country) extraBits.push('<span class="card-extra-item">'+flagBadge(s.country)+'</span>');
-  if (year && year > 1990) extraBits.push('<span class="card-extra-item">'+icon('calendar',{size:11})+' '+year+'</span>');
-  if (s.profitMarginLast30Days != null) extraBits.push('<span class="card-extra-item">'+icon('trending',{size:11})+' '+Math.round(s.profitMarginLast30Days)+'% margin</span>');
-  if (daysListed != null && daysListed >= 0 && !isNew) extraBits.push('<span class="card-extra-item">'+icon('clock',{size:11})+' '+daysListed+'d listed</span>');
-  const extraHtml = extraBits.length ? '<div class="card-extra">'+extraBits.join('')+'</div>' : '';
-  return '<a class="card" href="/startup/'+escHtml(s.slug)+'.html" onclick="saveStartup(\''+escHtml(s.slug)+'\')">'+
-    '<div class="card-head">'+
-      '<div class="card-logo">'+logoMarkup+'</div>'+
-      '<div class="card-head-info">'+
-        '<div class="card-name">'+nameHtml+anonTag+'</div>'+
-        '<div class="card-badges">'+
-          (s.category?'<span class="badge badge-cat badge-link" title="'+catTip+'" onclick="goCategory(event,\''+catEnc+'\')">'+escHtml(s.category)+'</span>':'')+
-          '<span class="badge badge-verified" title="'+escHtml(t('idx','tipVerified')||'')+'">✓ verified</span>'+
-          (s.onSale?'<span class="badge badge-sale" title="'+escHtml(t('idx','tipForSaleBadge')||'')+'">'+(t('idx','statSale')||'For sale')+'</span>':'')+
-          (isNew?'<span class="badge badge-new" title="'+escHtml(t('idx','tipNew')||'')+'">NEW</span>':'')+
-        '</div>'+
+  return '<span class="lav'+(blur?' logo-blur':'')+'" style="width:'+size+'px;height:'+size+'px;background:'+(s.icon?'var(--bg3)':col)+';font-size:'+Math.round(size*0.42)+'px">'+inner+'</span>';
+}
+function nameHTML(s) {
+  const blur = !(s.name||'').toLowerCase().includes('anonymous') && !isRevealed(s.slug);
+  return '<b'+(blur?' class="name-blur"':'')+'>'+escHtml(s.name||'')+'</b>';
+}
+function growthPill(g) {
+  if (g == null) return '';
+  const up = g >= 0;
+  return '<span class="g '+(up?'up':'down')+'">'+(up?'↑':'↓')+Math.abs(parseFloat(g)).toFixed(1)+'%</span>';
+}
+
+function renderWidget(items) {
+  const el = document.getElementById('list');
+  if (!el) return;
+  if (!items.length) { el.innerHTML = '<div style="padding:24px 14px;text-align:center;color:var(--text3);font-size:13px">Скоро здесь появятся листинги</div>'; return; }
+  el.innerHTML = items.map(s => {
+    const mult = s.multiple ? '×'+parseFloat(s.multiple).toFixed(1)+' MRR' : '';
+    return '<a class="lrow" href="/startup/'+escHtml(s.slug)+'.html">'+
+      '<span class="pv">'+avatarHTML(s,34)+'<span class="chk">'+CHK+'</span></span>'+
+      '<div class="lname">'+nameHTML(s)+'<span class="src">'+escHtml(s.category||'Стартап')+'</span></div>'+
+      '<div class="mrr"><b>'+formatMoney(s.revenue&&s.revenue.mrr)+'</b><div class="mrow2">'+growthPill(s.growth30d)+'<span class="mult">'+mult+'</span></div></div>'+
+    '</a>';
+  }).join('');
+}
+
+function renderCards(items) {
+  const el = document.getElementById('cards');
+  if (!el) return;
+  if (!items.length) { el.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px 0;color:var(--text3);font-size:13px">Скоро здесь появятся стартапы</div>'; return; }
+  el.innerHTML = items.map(s => {
+    const hasP = s.onSale && s.askingPrice;
+    const mult = s.multiple ? '×'+parseFloat(s.multiple).toFixed(1) : '';
+    const priceLine = hasP
+      ? 'Цена <b>'+formatMoney(s.askingPrice)+'</b>'+(mult?' · '+mult:'')
+      : '<span style="color:var(--text3)">MRR '+formatMoney(s.revenue&&s.revenue.mrr)+'</span>';
+    return '<a class="lcard" href="/startup/'+escHtml(s.slug)+'.html">'+
+      '<div class="chead"><span class="pv">'+avatarHTML(s,40)+'<span class="chk">'+CHK+'</span></span>'+
+        '<div class="cinfo">'+nameHTML(s)+'<span class="src">'+escHtml(s.category||'Стартап')+'</span></div>'+
+        (s.onSale?'<span class="salepill">На продаже</span>':'')+
       '</div>'+
-      '<div class="card-actions">'+views+
-        '<button class="fav-btn'+(favOn?' active':'')+'" data-slug="'+escHtml(s.slug)+'" onclick="toggleFav(event,\''+escHtml(s.slug)+'\')" title="'+(t('idx','favorites')||'Favorites')+'">'+icon(favOn?'heartFill':'heart',{size:15})+'</button>'+
-      '</div>'+
-    '</div>'+
-    '<div class="card-desc">'+desc+'</div>'+
-    extraHtml+
-    '<div class="card-metrics">'+
-      '<div class="cm" title="'+tRev+'"><div class="cm-label">'+lblRev+'</div><div class="cm-val">'+formatMoney(s.revenue&&s.revenue.last30Days)+gh+'</div></div>'+
-      pBlock+
-    '</div>'+
-  '</a>';
+      '<div class="cmrr"><b>'+formatMoney(s.revenue&&s.revenue.mrr)+'</b><small>/ мес</small>'+growthPill(s.growth30d)+'</div>'+
+      '<div class="cfoot"><span class="price">'+priceLine+'</span><span class="open">Открыть ›</span></div>'+
+    '</a>';
+  }).join('');
 }
 
-function saveStartup(slug) {
-  const s=loadedItems.find(x=>x.slug===slug);
-  if(s){try{sessionStorage.setItem('startup_detail',JSON.stringify(s));}catch{}}
-}
-
-// Clicking a category badge on a card opens the catalog filtered by that tag,
-// with for-sale startups floated to the top (see applyUrlParams + rankAnonLast).
-// catEnc is already URL-encoded; stop the parent card link from navigating.
-function goCategory(e, catEnc) {
-  if (e) { e.preventDefault(); e.stopPropagation(); }
-  location.href = '/?category=' + catEnc;
-}
-
-/* ── STATS ─────────────────────────────────────────────────────────────────── */
-function updateStats() {
-  // totalDB = true DB total (no filter), provided exclusively by fetchTotalsMeta().
-  // Falling back to the cached/filtered total caused a flash from 1766 → 7410
-  // on page load (cache had the onSale total, not the DB total).
-  const totalDB    = dbTotal != null
-    ? dbTotal
-    : (apiMeta && !filters.onSale ? apiMeta.total : null);
-  const onSaleTotal= dbOnSale != null
-    ? dbOnSale
-    : (filters.onSale===true && apiMeta ? apiMeta.total : loadedItems.filter(s=>s.onSale).length);
-  // Catalog-wide sums from /api/stats; until they arrive, fall back to the sum
-  // over loaded items (page 1) so the block isn't empty on first paint.
-  const rev = dbRev30 != null ? dbRev30 : loadedItems.reduce((a,s)=>a+(s.revenue&&s.revenue.last30Days||0),0);
-  const mrr = dbMrr  != null ? dbMrr  : loadedItems.reduce((a,s)=>a+(s.revenue&&s.revenue.mrr||0),0);
-  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
-  set('statTotal',  totalDB ? totalDB.toLocaleString() : '—');
-  set('statSale',   onSaleTotal != null ? onSaleTotal.toLocaleString() : '—');
-  set('statRevenue',formatMoney(rev));
-  set('statMRR',    formatMoney(mrr));
-  set('cntSale',    onSaleTotal != null ? onSaleTotal.toLocaleString() : '—');
-  set('cntAll',     totalDB ? totalDB.toLocaleString() : '—');
-}
-
-// Fetch catalog-wide stats: true totals + revenue/MRR summed across ALL
-// startups (/api/stats, recomputed nightly by the cron). Falls back to the
-// two limit=1 meta fetches if the stats endpoint has nothing cached yet.
-async function fetchTotalsMeta() {
+async function loadLanding() {
+  // Catalog-wide numbers from /api/stats (cron-fed). Hero shows summed MRR; trust
+  // bar shows total, annualised revenue (MRR×12) and on-sale count.
   try {
-    const s = await fetch(API+'/stats').then(r=>r.json()).catch(()=>null);
-    if (s && s.total != null) {
-      dbTotal  = s.total;
-      dbOnSale = s.onSale != null ? s.onSale : dbOnSale;
-      if (s.rev30 != null) dbRev30 = s.rev30;
-      if (s.mrr   != null) dbMrr   = s.mrr;
-      updateStats();
-      return;
+    const st = await fetch(API+'/stats').then(r=>r.json()).catch(()=>null);
+    const set = (id,v)=>{const e=document.getElementById(id); if(e) e.textContent=v;};
+    if (st) {
+      if (st.mrr != null) { set('heroMrr', formatMoney(st.mrr).replace(/^\$/,'')); set('tsArr', formatMoney(st.mrr*12)); }
+      if (st.total != null) set('tsTotal', st.total.toLocaleString());
+      if (st.onSale != null) set('tsSale', st.onSale.toLocaleString());
     }
-    const [a, b] = await Promise.all([
-      fetch(API+'/startups?page=1&limit=1&sort=revenue-desc').then(r=>r.json()).catch(()=>null),
-      fetch(API+'/startups?onSale=true&page=1&limit=1&sort=revenue-desc').then(r=>r.json()).catch(()=>null),
-    ]);
-    if (a && a.meta && a.meta.total != null) dbTotal  = a.meta.total;
-    if (b && b.meta && b.meta.total != null) dbOnSale = b.meta.total;
-    updateStats();
   } catch {}
-}
-
-function updateCount() {
-  const n=displayItems.length; const gc=document.getElementById('gridCount'); if(!gc)return;
-  const lang=getLang();
-  let word=t('idx','countStartups');
-  if(lang==='ru'){ const s=n%100>10&&n%100<20?'ов':n%10===1?'':(n%10>=2&&n%10<=4)?'а':'ов'; word='стартап'+s; }
-  const suffix=filters.onSale===true?' '+t('idx','countOnSale'):'';
-  gc.textContent=n.toLocaleString()+(hasMore?'+':'')+' '+word+suffix;
-}
-
-function showLoading() {
-  document.getElementById('cards').innerHTML='<div style="grid-column:1/-1;text-align:center;padding:60px 0;"><div style="font-size:14px;color:var(--text2);margin-bottom:16px;">'+t('idx','loading')+'</div><div style="width:160px;height:3px;background:var(--border);border-radius:2px;margin:0 auto;overflow:hidden;"><div style="height:100%;width:40%;background:var(--accent);border-radius:2px;animation:loadpulse 1.5s ease-in-out infinite;"></div></div></div>';
-}
-function showError() {
-  document.getElementById('cards').innerHTML='<div style="grid-column:1/-1;text-align:center;padding:60px 0;color:var(--text3);"><div style="font-size:24px;margin-bottom:8px;">⚠️</div><div>'+t('idx','error')+'</div></div>';
-}
-
-/* ── FILTER HANDLERS ──────────────────────────────────────────────────────── */
-function reloadFromAPI() { loadedItems=[];displayItems=[];apiPage=0;hasMore=false;showLoading();loadInitial(); }
-
-function setStatus(el) {
-  document.querySelectorAll('.status-opt').forEach(o=>o.classList.remove('sel'));
-  el.classList.add('sel');
-  filters.onSale=el.dataset.filter==='sale'?true:null;
-  reloadFromAPI();
-}
-function onCategoryChange(v) { filters.category=v; reloadFromAPI(); }
-function onSortChange(v) { filters.sort = v; reloadFromAPI(); }
-function onSearch(v) {
-  filters.search=v.trim(); clearTimeout(searchTimer);
-  searchTimer=setTimeout(()=>{displayItems=applyClientFilters(loadedItems);renderCards();updateCount();},300);
-}
-function applyFilters() {
-  const n=id=>{const v=parseFloat(document.getElementById(id)&&document.getElementById(id).value);return isNaN(v)?0:v;};
-  const sel=id=>{const e=document.getElementById(id);return e?e.value:'';};
-  filters.mrrMin=n('mrrMin');filters.mrrMax=n('mrrMax');
-  filters.rev30Min=n('rev30Min');filters.rev30Max=n('rev30Max');
-  filters.priceMin=n('priceMin');filters.priceMax=n('priceMax');
-  filters.growthMin=document.getElementById('growthMin').value.trim();
-  filters.growthMax=document.getElementById('growthMax').value.trim();
-  filters.multipleMax=parseFloat(sel('multipleSelect'))||0;
-  filters.marginMin=n('marginMin');filters.marginMax=n('marginMax');
-  filters.audience=sel('audienceSelect');
-  filters.mobile=sel('mobileSelect');
-  displayItems=applyClientFilters(loadedItems);
-  renderCards();updateCount();
-}
-function resetFilters() {
-  document.querySelectorAll('.sb-input').forEach(i=>i.value='');
-  document.querySelectorAll('.sb-select').forEach(s=>s.selectedIndex=0);
-  document.querySelectorAll('.status-opt').forEach(o=>o.classList.remove('sel'));
-  document.querySelector('.status-opt[data-filter="sale"]').classList.add('sel');
-  const si=document.getElementById('searchInput'); if(si) si.value='';
-  const ss=document.getElementById('sortSelect'); if(ss) ss.value='revenue-desc';
-  filters={onSale:true,category:'',sort:'revenue-desc',search:'',mrrMin:0,mrrMax:0,rev30Min:0,rev30Max:0,priceMin:0,priceMax:0,growthMin:'',growthMax:'',multipleMax:0,marginMin:0,marginMax:0,audience:'',mobile:'',saleFirst:false};
-  reloadFromAPI();
-}
-
-// Deep-link support: /?search= , /?category= , /?sort= — e.g. clicking a tag or
-// category on a startup page lands here pre-filtered. Tag/category deep-links
-// search the whole catalog (not just the on-sale subset).
-function applyUrlParams() {
-  const p = new URLSearchParams(location.search);
-  const search   = (p.get('search')   || '').trim();
-  const category = (p.get('category') || '').trim();
-  const sort     = (p.get('sort')     || '').trim();
-  if (search) {
-    filters.search = search;
-    const si = document.getElementById('searchInput'); if (si) si.value = search;
-  }
-  if (category) {
-    filters.category = category;
-    const cs = document.getElementById('catSelect');
-    if (cs) { cs.value = category; if (cs.value !== category) { const o = document.createElement('option'); o.value = category; o.textContent = category; cs.appendChild(o); cs.value = category; } }
-  }
-  if (['revenue-desc','growth-desc','price-asc','price-desc'].includes(sort)) {
-    filters.sort = sort;
-    const ss = document.getElementById('sortSelect'); if (ss) ss.value = sort;
-  }
-  if (search || category) {
-    filters.onSale = null;
-    filters.saleFirst = true;   // tag/category deep-link → show for-sale startups first
-    document.querySelectorAll('.status-opt').forEach(o => o.classList.remove('sel'));
-    const allOpt = document.querySelector('.status-opt[data-filter="all"]'); if (allOpt) allOpt.classList.add('sel');
+  // Top growing on-sale startups → live widget + product cards.
+  try {
+    const r = await fetch(API+'/startups?onSale=true&page=1&limit=8&sort=growth-desc').then(r=>r.json()).catch(()=>null);
+    const items = ((r&&r.data)||[]).filter(s=>s&&s.slug);
+    renderWidget(items.slice(0,5));
+    renderCards(items.slice(0,4));
+  } catch {
+    renderWidget([]); renderCards([]);
   }
 }
+loadLanding();
 
-applyUrlParams();
-loadInitial();
-fetchTotalsMeta();
+// "Live market" feel: briefly highlight a random growth value every few seconds.
+setInterval(() => {
+  const gs = document.querySelectorAll('#list .g');
+  if (!gs.length) return;
+  const el = gs[Math.floor(Math.random()*gs.length)];
+  el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+}, 2400);
 </script>
 </body>
 </html>

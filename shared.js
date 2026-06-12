@@ -2,7 +2,7 @@
 const T = {
   en: {
     dir:'ltr', flag:'🇬🇧', code:'EN',
-    nav: { home:'Home', acquire:'Buy', sell:'Sell a startup', apiKey:'API key', top:'Top growing' },
+    nav: { home:'Home', catalog:'Catalog', acquire:'Buy', sell:'Sell a startup', apiKey:'API key', top:'Top growing' },
     hero: { badge:'Data verified via Stripe, LemonSqueezy & Polar', title:'Find a ', span:'verified startup', titleEnd:' with confirmed revenue', sub:'Real MRR data only. No made-up numbers — every metric verified directly through payment providers.', btn1:'View for sale', btn2:'All startups' },
     stats: { total:'Startups in database', sale:'For sale right now', mrr:'Total MRR' },
     filter: { search:'Search by name...', allCats:'All categories', sortRevDesc:'By revenue', sortGrowth:'By growth', sortPriceAsc:'Cheapest first', sortPriceDesc:'Most expensive', sortMultiple:'Best value', sortListed:'Recently listed', sortDeal:'Best deals', chipAll:'All', chipSale:'For sale' },
@@ -23,7 +23,7 @@ const T = {
   },
   de: {
     dir:'ltr', flag:'🇩🇪', code:'DE',
-    nav: { home:'Startseite', acquire:'Kaufen', sell:'Startup verkaufen', apiKey:'API-Schlüssel', top:'Top-Wachstum' },
+    nav: { home:'Startseite', catalog:'Katalog', acquire:'Kaufen', sell:'Startup verkaufen', apiKey:'API-Schlüssel', top:'Top-Wachstum' },
     hero: { badge:'Daten verifiziert über Stripe, LemonSqueezy & Polar', title:'Finde ein ', span:'verifiziertes Startup', titleEnd:' mit bestätigtem Umsatz', sub:'Nur echte MRR-Daten. Keine erfundenen Zahlen.', btn1:'Zum Verkauf', btn2:'Alle Startups' },
     stats: { total:'Startups in der Datenbank', sale:'Gerade zum Verkauf', mrr:'Gesamt MRR' },
     filter: { search:'Nach Name suchen...', allCats:'Alle Kategorien', sortRevDesc:'Nach Umsatz', sortGrowth:'Nach Wachstum', sortPriceAsc:'Günstigste zuerst', sortPriceDesc:'Teuerste zuerst', sortMultiple:'Bestes Preis-Umsatz', sortListed:'Zuletzt gelistet', sortDeal:'Beste Deals', chipAll:'Alle', chipSale:'Zum Verkauf' },
@@ -44,7 +44,7 @@ const T = {
   },
   fr: {
     dir:'ltr', flag:'🇫🇷', code:'FR',
-    nav: { home:'Accueil', acquire:'Acheter', sell:'Vendre une startup', apiKey:'Clé API', top:'En croissance' },
+    nav: { home:'Accueil', catalog:'Catalogue', acquire:'Acheter', sell:'Vendre une startup', apiKey:'Clé API', top:'En croissance' },
     hero: { badge:'Données vérifiées via Stripe, LemonSqueezy & Polar', title:'Trouvez une ', span:'startup vérifiée', titleEnd:' avec des revenus confirmés', sub:'Uniquement des données MRR réelles. Aucun chiffre inventé.', btn1:'Voir à vendre', btn2:'Toutes les startups' },
     stats: { total:'Startups dans la base', sale:'En vente maintenant', mrr:'MRR total' },
     filter: { search:'Rechercher par nom...', allCats:'Toutes les catégories', sortRevDesc:'Par revenu', sortGrowth:'Par croissance', sortPriceAsc:'Moins cher', sortPriceDesc:'Plus cher', sortMultiple:'Meilleur rapport', sortListed:'Récemment listés', sortDeal:'Meilleures offres', chipAll:'Tous', chipSale:'À vendre' },
@@ -65,7 +65,7 @@ const T = {
   },
   it: {
     dir:'ltr', flag:'🇮🇹', code:'IT',
-    nav: { home:'Home', acquire:'Acquista', sell:'Vendi startup', apiKey:'Chiave API', top:'In crescita' },
+    nav: { home:'Home', catalog:'Catalogo', acquire:'Acquista', sell:'Vendi startup', apiKey:'Chiave API', top:'In crescita' },
     hero: { badge:'Dati verificati tramite Stripe, LemonSqueezy e Polar', title:'Trova una ', span:'startup verificata', titleEnd:' con ricavi confermati', sub:'Solo dati MRR reali. Nessun numero inventato.', btn1:'Vedi in vendita', btn2:'Tutte le startup' },
     stats: { total:'Startup nel database', sale:'In vendita adesso', mrr:'MRR totale' },
     filter: { search:'Cerca per nome...', allCats:'Tutte le categorie', sortRevDesc:'Per fatturato', sortGrowth:'Per crescita', sortPriceAsc:'Più economico', sortPriceDesc:'Più costoso', sortMultiple:'Miglior rapporto', sortListed:'Aggiunti di recente', sortDeal:'Migliori offerte', chipAll:'Tutti', chipSale:'In vendita' },
@@ -86,7 +86,7 @@ const T = {
   },
   ru: {
     dir:'ltr', flag:'🇷🇺', code:'RU',
-    nav: { home:'Главная', acquire:'Купить', sell:'Продать стартап', apiKey:'API ключ', top:'Топ растущих' },
+    nav: { home:'Главная', catalog:'Каталог', acquire:'Купить', sell:'Продать стартап', apiKey:'API ключ', top:'Топ растущих' },
     hero: { badge:'Данные верифицированы через Stripe, LemonSqueezy и Polar', title:'Найди ', span:'верифицированный стартап', titleEnd:' с подтверждённой выручкой', sub:'Только реальные MRR-данные. Никаких выдуманных цифр — каждый показатель проверен через платёжные провайдеры напрямую.', btn1:'На продаже', btn2:'Все стартапы' },
     stats: { total:'Стартапов в базе', sale:'На продаже сейчас', mrr:'Суммарный MRR' },
     filter: { search:'Поиск по названию...', allCats:'Все категории', sortRevDesc:'По выручке', sortGrowth:'По росту', sortPriceAsc:'Дешевле сначала', sortPriceDesc:'Дороже сначала', sortMultiple:'Лучшая цена/выручка', sortListed:'Недавно добавлены', sortDeal:'Лучшие сделки', chipAll:'Все', chipSale:'На продаже' },
@@ -107,7 +107,7 @@ const T = {
   },
   zh: {
     dir:'ltr', flag:'🇨🇳', code:'ZH',
-    nav: { home:'首页', acquire:'购买', sell:'出售初创公司', apiKey:'API 密钥', top:'增长榜' },
+    nav: { home:'首页', catalog:'目录', acquire:'购买', sell:'出售初创公司', apiKey:'API 密钥', top:'增长榜' },
     hero: { badge:'数据通过 Stripe、LemonSqueezy 和 Polar 验证', title:'找到', span:'经过验证的初创公司', titleEnd:'，收入经过确认', sub:'只有真实的 MRR 数据。没有虚构数字。', btn1:'查看在售', btn2:'所有初创公司' },
     stats: { total:'数据库中的初创公司', sale:'当前在售', mrr:'总 MRR' },
     filter: { search:'按名称搜索...', allCats:'所有类别', sortRevDesc:'按收入', sortGrowth:'按增长', sortPriceAsc:'价格从低到高', sortPriceDesc:'价格从高到低', sortMultiple:'最佳性价比', sortListed:'最近上架', sortDeal:'最佳交易', chipAll:'全部', chipSale:'在售' },
@@ -128,7 +128,7 @@ const T = {
   },
   ar: {
     dir:'rtl', flag:'🇸🇦', code:'AR',
-    nav: { home:'الرئيسية', acquire:'شراء', sell:'بيع شركة ناشئة', apiKey:'مفتاح API', top:'الأسرع نموًا' },
+    nav: { home:'الرئيسية', catalog:'الكتالوج', acquire:'شراء', sell:'بيع شركة ناشئة', apiKey:'مفتاح API', top:'الأسرع نموًا' },
     hero: { badge:'البيانات موثقة عبر Stripe و LemonSqueezy و Polar', title:'ابحث عن ', span:'شركة ناشئة موثقة', titleEnd:' بإيرادات مؤكدة', sub:'بيانات MRR حقيقية فقط. لا أرقام مخترعة.', btn1:'عرض المعروضة للبيع', btn2:'جميع الشركات الناشئة' },
     stats: { total:'الشركات الناشئة في قاعدة البيانات', sale:'معروضة للبيع الآن', mrr:'إجمالي MRR' },
     filter: { search:'بحث بالاسم...', allCats:'جميع الفئات', sortRevDesc:'حسب الإيرادات', sortGrowth:'حسب النمو', sortPriceAsc:'الأرخص أولاً', sortPriceDesc:'الأغلى أولاً', sortMultiple:'أفضل قيمة', sortListed:'المضافة حديثاً', sortDeal:'أفضل الصفقات', chipAll:'الكل', chipSale:'للبيع' },
@@ -340,6 +340,7 @@ function buildNavHTML(activePage) {
     <a class="nav-logo" href="/"><span class="nav-logo-dot"></span>MRRket</a>
     <div class="nav-center">
       <a href="/" class="nav-link ${activePage==='home'?'active':''}">${l.nav.home}</a>
+      <a href="/catalog" class="nav-link ${activePage==='catalog'?'active':''}">${l.nav.catalog || (T.en.nav.catalog) || 'Catalog'}</a>
       <a href="/acquire.html" class="nav-link ${activePage==='acquire'?'active':''}">${l.nav.acquire}</a>
       <a href="/top.html" class="nav-link ${activePage==='top'?'active':''}">${l.nav.top || 'Top growing'}</a>
     </div>
