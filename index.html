@@ -238,13 +238,13 @@
     </div>
 
     <div class="herocol">
-      <div class="freebadge"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v9H4v-9M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg></span><span><b>3 бесплатных просмотра</b> контактов — сразу после регистрации, без карты</span></div>
+      <div class="freebadge"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v9H4v-9M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg></span><span><b>Полный доступ ко всем метрикам</b> — бесплатно, без карты</span></div>
       <div class="panel2">
-        <div class="p2head"><span class="tt"><span class="live"></span>Свежие листинги</span><span class="upd">обновлено только что</span></div>
+        <div class="p2head"><span class="tt"><span class="live"></span>Лидеры по выручке</span><span class="upd">за 30 дней</span></div>
         <div id="list">
           <div style="padding:28px 14px;text-align:center;color:var(--text3);font-size:13px">Загрузка листингов…</div>
         </div>
-        <div class="unlock"><span>Названия откроются после входа</span><a href="/catalog">Весь каталог ›</a></div>
+        <div class="unlock"><span>Проверенные данные каждого листинга</span><a href="/catalog">Весь каталог ›</a></div>
       </div>
     </div>
   </section>
@@ -308,9 +308,9 @@
 
 <!-- 3. Как это работает -->
 <section class="sec">
-  <div class="sechead"><span class="kicker">Процесс</span><h2>Как это работает</h2><p>Четыре шага от подписки до сделки.</p></div>
+  <div class="sechead"><span class="kicker">Процесс</span><h2>Как это работает</h2><p>Четыре шага от регистрации до сделки.</p></div>
   <div class="steps4">
-    <div class="st"><span class="n">1</span><b>Оформите доступ</b><span>Подписка за пару минут. Сразу 3 бесплатных просмотра контактов.</span></div>
+    <div class="st"><span class="n">1</span><b>Создайте аккаунт</b><span>Бесплатно, за пару минут — и сразу полный доступ к каталогу.</span></div>
     <div class="st"><span class="n">2</span><b>Изучите метрики</b><span>История MRR, рост, провайдер, мультипликатор — всё проверено.</span></div>
     <div class="st"><span class="n">3</span><b>Свяжитесь с продавцом</b><span>Откройте прямой контакт основателя без посредников.</span></div>
     <div class="st"><span class="n">4</span><b>Закройте сделку</b><span>Проводите сделку напрямую, вне платформы — прозрачно и без комиссий.</span></div>
@@ -318,8 +318,8 @@
   <div class="stepsnote"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg><span>MRRket — каталог данных. Сделки проходят напрямую между покупателем и продавцом: меньше посредников, прозрачные условия.</span></div>
 </section>
 
-<!-- 4. Тарифы -->
-<section class="sec">
+<!-- 4. Тарифы — секция скрыта на время открытой беты (единый бесплатный доступ) -->
+<section class="sec" style="display:none">
   <div class="sechead"><span class="kicker">Тарифы</span><h2>Выберите доступ по своей роли</h2><p>Оплата помесячно. Отмена в один клик.</p></div>
   <div class="plans">
     <div class="plan">
@@ -378,7 +378,6 @@
     <details open><summary>Как подтверждается выручка?<span class="pm">+</span></summary><p>Продавец подключает платёжный провайдер — Stripe, LemonSqueezy или Polar — по read-only ключу. MRR и историю мы читаем напрямую из API провайдера. Нарисовать или завысить цифры невозможно.</p></details>
     <details><summary>Почему сделки проходят вне платформы?<span class="pm">+</span></summary><p>MRRket — каталог проверенных данных, а не эскроу-сервис. Прямая сделка между покупателем и продавцом убирает посредника и комиссию, а условия стороны согласуют сами.</p></details>
     <details><summary>Есть ли гарантия сделки?<span class="pm">+</span></summary><p>Мы гарантируем достоверность метрик выручки на момент просмотра. Юридические и финансовые условия стороны определяют напрямую — рекомендуем стандартный due diligence и договор.</p></details>
-    <details><summary>Можно ли отменить подписку?<span class="pm">+</span></summary><p>Да. Отмена в один клик в личном кабинете, без звонков и удержаний. Доступ сохраняется до конца оплаченного периода.</p></details>
     <details><summary>Проверяете ли вы бизнес юридически?<span class="pm">+</span></summary><p>Мы верифицируем метрики выручки, а не юридический статус компании. Проверку правовой чистоты бизнеса покупатель проводит самостоятельно перед сделкой.</p></details>
   </div>
 </section>
@@ -387,8 +386,8 @@
 <section class="final">
   <div class="fglow"></div>
   <h2>Получите доступ к проверенным стартапам уже сегодня</h2>
-  <p>Тысячи стартапов с подтверждённой выручкой. Первые 3 просмотра — бесплатно.</p>
-  <a class="btn-y" href="/auth.html">Оформить подписку</a>
+  <p>Тысячи стартапов с подтверждённой выручкой. Полный доступ — бесплатно во время беты.</p>
+  <a class="btn-y" href="/catalog">Смотреть каталог</a>
 </section>
 
 <footer><a href="/acquire.html">Как это работает</a> &nbsp;·&nbsp; <a href="/catalog">Каталог</a> &nbsp;·&nbsp; <a href="#">Условия</a> &nbsp;·&nbsp; <a href="#">Конфиденциальность</a></footer>
@@ -434,11 +433,10 @@ function renderWidget(items) {
   if (!el) return;
   if (!items.length) { el.innerHTML = '<div style="padding:24px 14px;text-align:center;color:var(--text3);font-size:13px">Скоро здесь появятся листинги</div>'; return; }
   el.innerHTML = items.map(s => {
-    const mult = s.multiple ? '×'+parseFloat(s.multiple).toFixed(1)+' MRR' : '';
     return '<a class="lrow" href="/startup/'+escHtml(s.slug)+'.html">'+
       '<span class="pv">'+avatarHTML(s,34)+'<span class="chk">'+CHK+'</span></span>'+
       '<div class="lname">'+nameHTML(s)+'<span class="src">'+escHtml(s.category||'Стартап')+'</span></div>'+
-      '<div class="mrr"><b>'+formatMoney(s.revenue&&s.revenue.mrr)+'</b><div class="mrow2">'+growthPill(s.growth30d)+'<span class="mult">'+mult+'</span></div></div>'+
+      '<div class="mrr"><b>'+formatMoney(s.revenue&&s.revenue.last30Days)+'</b><div class="mrow2">'+growthPill(s.growth30d)+'<span class="mult">/ 30 дней</span></div></div>'+
     '</a>';
   }).join('');
 }
@@ -476,15 +474,19 @@ async function loadLanding() {
       if (st.onSale != null) set('tsSale', st.onSale.toLocaleString());
     }
   } catch {}
-  // Top growing on-sale startups → live widget + product cards.
+  // Revenue leaders — highest 30-day revenue across the whole catalog → widget.
+  try {
+    const r = await fetch(API+'/startups?page=1&limit=20&sort=revenue-desc').then(r=>r.json()).catch(()=>null);
+    const items = ((r&&r.data)||[]).filter(s=>s&&s.slug)
+      .sort((a,b)=>((b.revenue&&b.revenue.last30Days)||0)-((a.revenue&&a.revenue.last30Days)||0));
+    renderWidget(items.slice(0,5));
+  } catch { renderWidget([]); }
+  // Top growing on-sale startups → product cards.
   try {
     const r = await fetch(API+'/startups?onSale=true&page=1&limit=8&sort=growth-desc').then(r=>r.json()).catch(()=>null);
     const items = ((r&&r.data)||[]).filter(s=>s&&s.slug);
-    renderWidget(items.slice(0,5));
     renderCards(items.slice(0,4));
-  } catch {
-    renderWidget([]); renderCards([]);
-  }
+  } catch { renderCards([]); }
 }
 loadLanding();
 

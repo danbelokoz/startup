@@ -301,7 +301,8 @@ function fillData() {
   const nickEl = document.getElementById('nickInput'); if (nickEl) nickEl.value = n;
   const mailEl = document.getElementById('emailInput'); if (mailEl) mailEl.value = email;
 
-  show('limitsCard', !pro); show('upgradeCard', !pro); show('proCard', pro);
+  // Beta: open access — no daily limits, no paid tiers. Hide limit/upgrade/Pro cards.
+  show('limitsCard', false); show('upgradeCard', false); show('proCard', false);
   if (!pro) {
     const used = ACCESS && ACCESS.viewsUsed != null ? ACCESS.viewsUsed : 0;
     setText('viewsUsed', used + ' / 8');

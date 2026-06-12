@@ -31,16 +31,19 @@
     .info-table td { padding: 12px 16px; font-size: 14px; }
     .info-table td:first-child { color: var(--text3); width: 40%; }
     .info-table td:last-child { font-weight: 500; }
-    .sale-box { background: rgba(108,99,255,0.06); border: 1.5px solid rgba(108,99,255,0.25); border-radius: var(--radius); padding: 24px; margin-bottom: 32px; }
-    .sale-box-title { font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif; font-size: 20px; font-weight: 700; margin-bottom: 16px; color: var(--accent); }
-    .sale-price-row { display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px; }
-    .sale-price { font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif; font-size: 40px; font-weight: 700; }
-    .sale-multiple { font-size: 16px; color: var(--text2); }
-    .sale-actions { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
+    /* Compact asking-price chip — lives in the header next to the startup name */
+    .price-chip { display: inline-flex; align-items: baseline; gap: 9px; background: rgba(252,213,53,0.10); border: 1px solid rgba(252,213,53,0.32); border-radius: 999px; padding: 5px 9px 5px 14px; white-space: nowrap; }
+    .price-chip .pc-cap { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--accent2); }
+    .price-chip b { font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif; font-size: 19px; font-weight: 700; letter-spacing: -0.4px; color: var(--text); }
+    .price-chip .pc-mult { font-size: 11px; font-weight: 600; color: var(--text3); background: var(--bg3); border-radius: 999px; padding: 2px 9px; align-self: center; }
+    /* Slim for-sale strip: listed date on the left, seller contacts on the right */
+    .sale-strip { display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; margin-bottom: 32px; }
+    .sale-strip .sale-listed { margin-top: 0; }
+    .sale-strip #contactSection .contact-revealed, .sale-strip #contactSection .contact-cta { margin-bottom: 0; }
     .not-sale-box { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 32px; text-align: center; color: var(--text2); }
     .loading-state { text-align: center; padding: 80px 24px; color: var(--text3); }
     .loading-state h3 { font-size: 18px; color: var(--text2); margin-bottom: 8px; }
-    @media (max-width: 640px) { .page-wrap { padding: 16px 16px 60px; } .startup-header { flex-direction: column; } .startup-header-meta h1 { font-size: 24px; } .metrics-grid { grid-template-columns: 1fr 1fr; } .sale-price { font-size: 30px; } }
+    @media (max-width: 640px) { .page-wrap { padding: 16px 16px 60px; } .startup-header { flex-direction: column; } .startup-header-meta h1 { font-size: 24px; } .metrics-grid { grid-template-columns: 1fr 1fr; } .price-chip b { font-size: 17px; } }
   .contact-locked { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; }
   .contact-locked svg { flex-shrink: 0; color: var(--text3); }
   .contact-locked span { flex: 1; font-size: 13px; color: var(--text2); }
@@ -324,20 +327,13 @@ function renderStartup(s) {
       }</div>`
     : '';
 
-  // Sale box now uses a 2-column row: price on the left, contact reveal on the right.
+  // Asking price now shows as a compact gold chip in the header (headerPrice).
+  // Here we keep only a slim strip: listed date on the left, seller-contact
+  // buttons (#contactSection) on the right.
   const saleBlock = s.onSale&&s.askingPrice ? `
-    <div class="sale-box">
-      <div class="sale-box-row">
-        <div class="sale-box-left">
-          <div class="sale-box-title">${t('startupPage','forSale')}</div>
-          <div class="sale-price-row">
-            <div class="sale-price">${formatMoney(s.askingPrice)}</div>
-            ${s.multiple?`<div class="sale-multiple">${parseFloat(s.multiple).toFixed(2)}x ${t('startupPage','multiple')}</div>`:''}
-          </div>
-          ${listedDate}
-        </div>
-        <div class="sale-box-right" id="contactSection"></div>
-      </div>
+    <div class="sale-strip">
+      ${listedDate || '<span></span>'}
+      <div id="contactSection"></div>
     </div>` : `<div class="not-sale-box">${t('startupPage','notForSale')}</div>`;
 
   const ai = (s.aiEnrichment && typeof s.aiEnrichment === 'object') ? s.aiEnrichment : {};
@@ -352,6 +348,10 @@ function renderStartup(s) {
   // Non-onSale startups get a small inline reveal pill in the header.
   const headerReveal   = (!s.onSale && wantBlur)
     ? `<button class="header-reveal" onclick="tryReveal()">${icon('lock',{size:12})} ${t('startupPage','revealBtn')||'Reveal'}</button>`
+    : '';
+  // Compact asking-price chip shown in the header next to the name (on-sale only).
+  const headerPrice    = (s.onSale && s.askingPrice)
+    ? `<span class="price-chip" title="${escHtml(t('startupPage','price'))}"><span class="pc-cap">${escHtml(t('startupPage','price'))}</span><b>$${Math.round(s.askingPrice).toLocaleString()}</b>${s.multiple?`<span class="pc-mult">${parseFloat(s.multiple).toFixed(2)}x</span>`:''}</span>`
     : '';
 
   // ── Startup insights grid (TrustMRR-style) ───────────────────────────────────
@@ -415,6 +415,7 @@ function renderStartup(s) {
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
           <h1 class="${blurNameCls}" style="margin-bottom:0;">${escHtml(s.name)}</h1>
           ${headerReveal}
+          ${headerPrice}
         </div>
         <div class="header-badges" style="margin-top:8px;">
           ${s.category?`<a class="badge badge-cat" href="/?category=${encodeURIComponent(s.category)}" style="text-decoration:none;" title="${escHtml((t('idx','tipCategory')||'Browse {cat} startups').replace('{cat}', s.category))}">${escHtml(s.category)}</a>`:''}
@@ -966,14 +967,14 @@ function renderChart() {
   const { points, projected, stepped } = computePoints(metric, _chartPeriod);
 
   const fmt = (v) => {
-    if (metric.kind === 'money') return formatMoney(v);   // all money series are stored in cents
+    if (metric.kind === 'money') return formatMoney(v);   // money series are in whole USD
     if (metric.kind === 'pct') return (v >= 0 ? '+' : '') + parseFloat(v).toFixed(1) + '%';
     return Number(v).toLocaleString();
   };
   // Full-precision formatter for the header total and the hover tooltip
   const fmtFull = (v) => {
     if (v == null) return '—';
-    if (metric.kind === 'money') return '$' + Math.round(v / 100).toLocaleString();
+    if (metric.kind === 'money') return '$' + Math.round(v).toLocaleString();
     if (metric.kind === 'pct') return (v >= 0 ? '+' : '') + parseFloat(v).toFixed(1) + '%';
     return Number(Math.round(v)).toLocaleString();
   };
@@ -1118,7 +1119,7 @@ function onChartMove(e) {
     if (p.charges != null && p.charges > 0) {
       rows += `<span class="tt-row">${p.charges} ${pluralPayments(p.charges)}</span>`;
       if (geom.flow) {
-        const per = p.val / p.charges;   // average payment size (cents) → formatMoney
+        const per = p.val / p.charges;   // average payment size in USD → formatMoney
         rows += `<span class="tt-row">≈ ${formatMoney(per)} / платёж</span>`;
       }
     }

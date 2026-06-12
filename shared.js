@@ -154,9 +154,13 @@ function getLang() { return localStorage.getItem('lang') || 'ru'; }
 function setLangCode(code) { localStorage.setItem('lang', code); location.reload(); }
 function t(section, key) { const lang = getLang(); return (T[lang]||T.en)[section]?.[key] || (T.en[section]?.[key] || ''); }
 
-function formatMoney(cents) {
-  if (cents == null) return '—';
-  const d = cents / 100;
+// TrustMRR returns every monetary value in whole US dollars (NOT cents) — e.g.
+// {mrr: 1888} renders as "$1,888", askingPrice 1150000 as "$1,150,000". Format
+// the dollar amount directly. (Older code wrongly divided by 100, making every
+// figure 100× too small — see scrape-daily-revenue.js for the same correction.)
+function formatMoney(dollars) {
+  if (dollars == null) return '—';
+  const d = dollars;
   if (d >= 1000000) return '$' + (d/1000000).toFixed(1) + 'M';
   if (d >= 1000) return '$' + (d/1000).toFixed(1) + 'K';
   return '$' + Math.round(d).toLocaleString();
@@ -171,7 +175,10 @@ function escHtml(str) {
 // here so it stays un-blurred everywhere (home catalog + leaderboard) and across
 // sessions. Stored in localStorage as a list of slugs.
 function getRevealedSlugs() { try { return JSON.parse(localStorage.getItem('sm_revealed') || '[]'); } catch { return []; } }
-function isRevealed(slug)   { return !!slug && getRevealedSlugs().includes(slug); }
+// Beta: all content is open. Every startup is treated as already revealed, so
+// names, logos, seller contacts and websites are visible to everyone with no
+// daily view limit. Flip this back to the localStorage check to re-gate.
+function isRevealed(slug)   { return true; }
 function addRevealedSlug(slug) {
   if (!slug) return;
   const list = getRevealedSlugs();
@@ -427,6 +434,10 @@ document.addEventListener('click', (e) => {
 // Single floating tooltip wired to any .paywall-blur / .name-blur / .logo-blur
 // / .owner-blur element. Messages adapt to the auth state from window._access.
 function getPaywallState() {
+  // Beta: paywall fully disabled — all content is open (see isRevealed). No
+  // tooltip or upgrade modal is ever shown.
+  return null;
+  /* eslint-disable no-unreachable */
   const a = window._access;
   if (!a || !a.authenticated) {
     return {

@@ -96,7 +96,6 @@ const FROM = encodeURIComponent('/acquire.html');
 const BUY_STEPS = [
   { ico: 'users',     t: 'b1t', d: 'b1d' },                                   // account — CTA set dynamically
   { ico: 'search',    t: 'b2t', d: 'b2d', cta: 'ctaBrowse',  href: '/' },
-  { ico: 'zap',       t: 'b3t', d: 'b3d', cta: 'ctaUpgrade', href: '/dashboard.html#upgrade' },
   { ico: 'handshake', t: 'b4t', d: 'b4d', cta: 'ctaBrowse',  href: '/' },
 ];
 const SELL_STEPS = [
@@ -138,21 +137,16 @@ function stepHTML(step, idx, total, state) {
 }
 
 function renderStatus() {
-  const a = window._access;
+  // Beta: open access — no tier/limit status pill is shown.
   const host = document.getElementById('rmStatus');
-  if (activeTab !== 'buy') { host.innerHTML = ''; return; }
-  let cls = 'guest', text = t('roadmap','statusGuest');
-  if (a && a.authenticated && a.role === 'subscriber') { cls = 'pro';  text = t('roadmap','statusPro'); }
-  else if (a && a.authenticated)                        { cls = 'user'; const left = a.viewsLeft != null ? a.viewsLeft : 8; text = t('roadmap','statusUser') + ' · ' + left + ' ' + t('roadmap','revealsLeft'); }
-  host.innerHTML = '<span class="rm-status-pill ' + cls + '"><span class="dot"></span>' + text + '</span>';
+  if (host) host.innerHTML = '';
 }
 
 function renderBuy() {
   const a = window._access;
   let states;
-  if (!a || !a.authenticated)        states = ['current', 'todo', 'todo', 'todo'];
-  else if (a.role === 'subscriber')  states = ['done', 'done', 'done', 'current'];
-  else                               states = ['done', 'done', 'current', 'todo'];
+  if (!a || !a.authenticated)        states = ['current', 'todo', 'todo'];
+  else                               states = ['done', 'done', 'current'];
 
   // Step 1 (account) CTA depends on auth state
   const loggedIn = a && a.authenticated;
