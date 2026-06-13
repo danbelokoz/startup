@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Startup — StartupMarket</title>
+  <title>Startup — MRRket</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -80,7 +80,29 @@
   .pp-section p  { font-size: 14px; color: var(--text2); line-height: 1.55; }
   .ai-tags { display: flex; flex-wrap: wrap; gap: 6px; }
   .ai-tag  { font-size: 11px; padding: 3px 9px; background: var(--bg3); border: 1px solid var(--border); border-radius: 999px; color: var(--text2); text-decoration: none; transition: all 0.12s; display: inline-flex; align-items: center; gap: 4px; }
-  .ai-tag:hover { background: var(--text); color: white; border-color: var(--text); }
+  .ai-tag:hover { background: rgba(252,213,53,0.16); color: var(--accent); border-color: rgba(252,213,53,0.5); box-shadow: 0 0 0 3px rgba(252,213,53,0.10); }
+  /* Warm hover for header badges — replaces the old white-on-white hover/rest states */
+  .badge { transition: background .15s, border-color .15s, color .15s, box-shadow .15s; }
+  .header-badges .badge:hover { background: rgba(252,213,53,0.16) !important; border-color: rgba(252,213,53,0.5) !important; color: var(--accent) !important; box-shadow: 0 0 0 3px rgba(252,213,53,0.10), 0 2px 10px rgba(252,213,53,0.14); }
+  /* Hover description bubble — text comes from data-tip; nested-safe via :not(:has()) so the
+     price chip and its multiple show separate tips without overlapping. */
+  .has-tip { position: relative; }
+  .has-tip:hover:not(:has(.has-tip:hover))::after {
+    content: attr(data-tip);
+    position: absolute; left: 50%; bottom: calc(100% + 9px); transform: translateX(-50%);
+    width: max-content; max-width: 230px;
+    background: #0B0E11; color: #EAECEF; font-size: 11.5px; font-weight: 400; line-height: 1.45; text-align: left;
+    padding: 8px 11px; border-radius: 9px; border: 1px solid var(--border2);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5); white-space: normal; z-index: 400; pointer-events: none;
+  }
+  .has-tip:hover:not(:has(.has-tip:hover))::before {
+    content: ''; position: absolute; left: 50%; bottom: calc(100% + 4px); transform: translateX(-50%);
+    border: 5px solid transparent; border-top-color: #0B0E11; z-index: 401; pointer-events: none;
+  }
+  @media (max-width: 640px) {
+    .has-tip:hover:not(:has(.has-tip:hover))::after { left: 0; transform: none; max-width: 76vw; }
+    .has-tip:hover:not(:has(.has-tip:hover))::before { left: 16px; transform: none; }
+  }
   .badge-stealth { background: rgba(34,34,34,0.08); color: var(--text); border: 1px solid var(--border2); }
   .badge-cofounder { background: rgba(0,194,122,0.1); color: var(--green); border: 1px solid rgba(0,194,122,0.25); }
   .badge-funding { background: rgba(255,167,38,0.1); color: #c47700; border: 1px solid rgba(255,167,38,0.25); }
@@ -338,12 +360,12 @@ function renderStartup(s) {
 
   const ai = (s.aiEnrichment && typeof s.aiEnrichment === 'object') ? s.aiEnrichment : {};
   const tags = Array.isArray(ai.tags) ? ai.tags : [];
-  const stealthBadge   = s.stealthMode ? `<span class="badge badge-stealth" title="${escHtml(t('startupPage','tipStealth'))}">${icon('ghost',{size:10})} Stealth</span>` : '';
-  const cofounderBadge = s.lookingForCofounder ? `<span class="badge badge-cofounder" title="${escHtml(t('startupPage','tipCofounder'))}">${icon('handshake',{size:10})} Hiring cofounder</span>` : '';
-  const fundingBadge   = ai.fundingStatus && ai.fundingStatus !== 'Unknown' ? `<span class="badge badge-funding" title="${escHtml(t('startupPage','tipFunding'))}">${escHtml(ai.fundingStatus)}</span>` : '';
-  const scoreBadge     = s.acquireScore != null ? `<span class="badge badge-score" title="${escHtml(t('startupPage','tipScore'))}">${icon('trophy',{size:10})} Score ${(s.acquireScore * 100).toFixed(0)}</span>` : '';
+  const stealthBadge   = s.stealthMode ? `<span class="badge badge-stealth has-tip" data-tip="${escHtml(t('startupPage','tipStealth'))}">${icon('ghost',{size:10})} Stealth</span>` : '';
+  const cofounderBadge = s.lookingForCofounder ? `<span class="badge badge-cofounder has-tip" data-tip="${escHtml(t('startupPage','tipCofounder'))}">${icon('handshake',{size:10})} Hiring cofounder</span>` : '';
+  const fundingBadge   = ai.fundingStatus && ai.fundingStatus !== 'Unknown' ? `<span class="badge badge-funding has-tip" data-tip="${escHtml(t('startupPage','tipFunding'))}">${escHtml(ai.fundingStatus)}</span>` : '';
+  const scoreBadge     = s.acquireScore != null ? `<span class="badge badge-score has-tip" data-tip="${escHtml(t('startupPage','tipScore'))}">${icon('trophy',{size:10})} Score ${(s.acquireScore * 100).toFixed(0)}</span>` : '';
   // Tags are now clickable — link home filter by tag as a search keyword
-  const tagBadges      = tags.slice(0, 6).map(tg => `<a class="ai-tag" href="/?search=${encodeURIComponent(tg)}" title="Browse ${escHtml(tg)} startups">${icon('tag',{size:10})} ${escHtml(tg)}</a>`).join('');
+  const tagBadges      = tags.slice(0, 6).map(tg => `<a class="ai-tag has-tip" href="/?search=${encodeURIComponent(tg)}" data-tip="${escHtml('Показать стартапы с тегом «' + tg + '»')}">${icon('tag',{size:10})} ${escHtml(tg)}</a>`).join('');
   const tagsRow        = tagBadges ? `<div class="ai-tags" style="margin-top:8px;">${tagBadges}</div>` : '';
   // Non-onSale startups get a small inline reveal pill in the header.
   const headerReveal   = (!s.onSale && wantBlur)
@@ -351,7 +373,7 @@ function renderStartup(s) {
     : '';
   // Compact asking-price chip shown in the header next to the name (on-sale only).
   const headerPrice    = (s.onSale && s.askingPrice)
-    ? `<span class="price-chip" title="${escHtml(t('startupPage','price'))}"><span class="pc-cap">${escHtml(t('startupPage','price'))}</span><b>$${Math.round(s.askingPrice).toLocaleString()}</b>${s.multiple?`<span class="pc-mult">${parseFloat(s.multiple).toFixed(2)}x</span>`:''}</span>`
+    ? `<span class="price-chip has-tip" data-tip="${escHtml(t('idx','tipPrice'))}"><span class="pc-cap">${escHtml(t('startupPage','price'))}</span><b>$${Math.round(s.askingPrice).toLocaleString()}</b>${s.multiple?`<span class="pc-mult has-tip" data-tip="${escHtml(t('idx','tipMultiple'))}">${parseFloat(s.multiple).toFixed(2)}x</span>`:''}</span>`
     : '';
 
   // ── Startup insights grid (TrustMRR-style) ───────────────────────────────────
@@ -418,15 +440,15 @@ function renderStartup(s) {
           ${headerPrice}
         </div>
         <div class="header-badges" style="margin-top:8px;">
-          ${s.category?`<a class="badge badge-cat" href="/?category=${encodeURIComponent(s.category)}" style="text-decoration:none;" title="${escHtml((t('idx','tipCategory')||'Browse {cat} startups').replace('{cat}', s.category))}">${escHtml(s.category)}</a>`:''}
-          ${s.onSale?`<span class="badge badge-sale" title="${escHtml(t('idx','tipForSaleBadge'))}">${t('startupPage','forSale')}</span>`:''}
-          ${s.paymentProvider?`<span class="badge badge-green" title="${escHtml(t('startupPage','tipProvider'))}">${s.paymentProvider}</span>`:''}
-          ${s.isMerchantOfRecord?`<span class="badge badge-cat" title="${escHtml(t('startupPage','tipMor'))}">MoR</span>`:''}
+          ${s.category?`<a class="badge badge-cat has-tip" href="/?category=${encodeURIComponent(s.category)}" style="text-decoration:none;" data-tip="${escHtml((t('idx','tipCategory')||'Browse {cat} startups').replace('{cat}', s.category))}">${escHtml(s.category)}</a>`:''}
+          ${s.onSale?`<span class="badge badge-sale has-tip" data-tip="${escHtml(t('idx','tipForSaleBadge'))}">${t('startupPage','forSale')}</span>`:''}
+          ${s.paymentProvider?`<span class="badge badge-green has-tip" data-tip="${escHtml(t('startupPage','tipProvider'))}">${s.paymentProvider}</span>`:''}
+          ${s.isMerchantOfRecord?`<span class="badge badge-cat has-tip" data-tip="${escHtml(t('startupPage','tipMor'))}">MoR</span>`:''}
           ${stealthBadge}
           ${cofounderBadge}
           ${fundingBadge}
           ${scoreBadge}
-          ${s.rank?`<span class="badge badge-cat" title="${escHtml(t('startupPage','tipRank'))}">#${s.rank}</span>`:''}
+          ${s.rank?`<span class="badge badge-cat has-tip" data-tip="${escHtml(t('startupPage','tipRank'))}">#${s.rank}</span>`:''}
         </div>
         ${tagsRow}
       </div>
