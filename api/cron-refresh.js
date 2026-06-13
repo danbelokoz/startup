@@ -26,6 +26,11 @@ async function redisSet(key, value, ttl) {
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+// Records this run's status for the admin "Парсеры" tab (see api/admin.js).
+async function recordParserRun(id, ok, count, note) {
+  try { await redisSet(`sm_parser_${id}`, { ts: Date.now(), ok: !!ok, count: count || 0, note: String(note || '') }); } catch {}
+}
+
 export default async function handler(req, res) {
   if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -47,10 +52,11 @@ export default async function handler(req, res) {
       const r = await fetch(`https://trustmrr.com/api/v1/startups?${params}`, {
         headers: { Authorization: `Bearer ${apiKey}` },
       });
-      if (r.status === 401) return res.status(500).json({ error: 'Invalid TrustMRR API key', page });
-      if (!r.ok)            return res.status(500).json({ error: `TrustMRR ${r.status}`, page });
+      if (r.status === 401) { await recordParserRun('catalog', false, totalStartups, 'Неверный ключ TrustMRR API'); return res.status(500).json({ error: 'Invalid TrustMRR API key', page }); }
+      if (!r.ok)            { await recordParserRun('catalog', false, totalStartups, `TrustMRR ${r.status} на стр. ${page}`); return res.status(500).json({ error: `TrustMRR ${r.status}`, page }); }
       data = await r.json();
     } catch (err) {
+      await recordParserRun('catalog', false, totalStartups, `Ошибка на стр. ${page}: ${err.message}`);
       return res.status(500).json({ error: err.message, page });
     }
 
@@ -127,5 +133,6 @@ export default async function handler(req, res) {
     } catch {}
   }
 
+  await recordParserRun('catalog', true, totalStartups, `${page - 1} стр. · снимков в Supabase: ${snapshotsWritten}`);
   return res.status(200).json({ ok: true, pages: page - 1, startups: totalStartups, snapshots: snapshotsWritten, pruned: snapshotsPruned });
 }

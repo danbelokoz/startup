@@ -34,6 +34,16 @@ async function redisSet(key, value, ttl) {
   } catch {}
 }
 
+// Records this run for the admin "Парсеры" tab + per-UTC-day "обновлено сегодня".
+async function recordRun(id, ok, note) {
+  try {
+    await redisSet(`sm_parser_${id}`, { ts: Date.now(), ok: !!ok, count: 1, note: String(note || '') });
+    const k = `sm_parser_${id}_n_${new Date().toISOString().slice(0, 10)}`;
+    await kv('POST', `/incrby/${encodeURIComponent(k)}/1`);
+    await kv('POST', `/expire/${encodeURIComponent(k)}/172800`);
+  } catch {}
+}
+
 function parseMeta(html, name, prop) {
   const p = prop ? 'property' : 'name';
   const r1 = new RegExp('<meta[^>]+' + p + '=["\']' + name + '["\'][^>]+content=["\']([^"\']+)', 'i');
@@ -163,6 +173,7 @@ export default async function handler(req, res) {
     if (!r.ok) {
       const data = { ok: false, status: r.status, latencyMs: elapsed, url: rawUrl };
       await redisSet(cacheKey, data, 3600); // 1h for failed responses
+      await recordRun('site', false, `${host}: HTTP ${r.status}`);
       return res.status(200).json({ data });
     }
 
@@ -193,10 +204,12 @@ export default async function handler(req, res) {
     };
 
     await redisSet(cacheKey, data, CACHE_TTL);
+    await recordRun('site', true, host);
     res.setHeader('X-Cache', 'MISS');
     res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate=604800');
     return res.status(200).json({ data });
   } catch (e) {
+    await recordRun('site', false, `${host}: ${(e && e.name === 'AbortError') ? 'timeout' : (e.message || 'fetch_error')}`);
     return res.status(200).json({ data: { ok: false, error: (e && e.name === 'AbortError') ? 'timeout' : (e.message || 'fetch_error'), url: rawUrl } });
   }
 }

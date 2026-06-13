@@ -2,6 +2,7 @@
 // profiles.role = 'admin' (granted manually — see supabase-admin-migration.sql).
 //
 // GET  ?section=overview&days=30     — daily traffic + signups + KPI counters
+// GET  ?section=parsers              — scraper/cron run status (last/next run, count, ok)
 // GET  ?section=listings             — seller listing requests (keys masked)
 // GET  ?section=reveal_key&id=<uuid> — decrypt one stored payment-provider key
 // GET  ?section=topviews&days=30     — most-viewed startups (registered + guests)
@@ -90,6 +91,60 @@ async function topviews(days, res) {
   return res.status(200).json({ top });
 }
 
+// ── Parsers status ("Парсеры" tab) ───────────────────────────────────────────
+// Each scraper/cron writes sm_parser_<id> = {ts,ok,count,note} to Redis on every
+// run (see cron-refresh.js, enrich.js, scrape-site.js, scripts/scrape-daily-revenue.js).
+// On-demand parsers also keep a per-UTC-day counter sm_parser_<id>_n_<date>.
+const PARSERS = [
+  { id:'catalog', name:'Каталог — ночной свод', source:'Vercel Cron', scheduleText:'Каждый день в 03:00 UTC', sched:{ m:0, h:[3] },
+    desc:'Тянет все страницы каталога из TrustMRR API в Redis, пересчитывает суммарные метрики и пишет дневные снимки в Supabase для графиков.' },
+  { id:'daily-revenue', name:'Графики дневной выручки', source:'GitHub Actions', scheduleText:'Дважды в день — 04:00 и 16:00 UTC', sched:{ m:0, h:[4,16] },
+    desc:'Скрейпит графики дневной выручки со страниц TrustMRR (Puppeteer) и пишет их в Supabase. За запуск обрабатывает ротационный батч; стартапы на продаже в приоритете.' },
+  { id:'enrich', name:'AI-обогащение (TrustMRR)', source:'Vercel · по запросу', scheduleText:'При открытии карточки · кэш 24 ч', sched:null,
+    desc:'Достаёт доп. поля с публичной страницы TrustMRR: AI-описание, теги, Acquire Score, соцсети. Запускается при открытии карточки стартапа, если кэш устарел.' },
+  { id:'site', name:'Сайты стартапов', source:'Vercel · по запросу', scheduleText:'При открытии карточки · кэш 7 дней', sched:null,
+    desc:'Парсит сайт самого стартапа: скриншот, OG-теги, тех-стек, цены, соцсети, мобильные приложения. Запускается при открытии карточки.' },
+];
+
+// Next UTC occurrence for a simple {minute, hours[]} daily schedule.
+function nextRunISO(sched) {
+  if (!sched) return null;
+  const now = Date.now();
+  const hours = [...sched.h].sort((a, b) => a - b);
+  for (let addDays = 0; addDays <= 1; addDays++) {
+    const base = new Date(now);
+    for (const h of hours) {
+      const t = Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), base.getUTCDate() + addDays, h, sched.m, 0, 0);
+      if (t > now) return new Date(t).toISOString();
+    }
+  }
+  return null;
+}
+
+async function parsers(res) {
+  const day = new Date().toISOString().slice(0, 10);
+  const cmds = [];
+  for (const p of PARSERS) cmds.push(['GET', `sm_parser_${p.id}`], ['GET', `sm_parser_${p.id}_n_${day}`]);
+  const pipe = (await redisPipeline(cmds)) || [];
+  const list = PARSERS.map((p, i) => {
+    let st = null;
+    const raw = pipe[i * 2] && pipe[i * 2].result;
+    if (raw) { try { const o = JSON.parse(raw); st = (o && typeof o === 'object' && o.value) ? JSON.parse(o.value) : o; } catch {} }
+    const tRaw = pipe[i * 2 + 1] && pipe[i * 2 + 1].result;
+    return {
+      id: p.id, name: p.name, desc: p.desc, source: p.source, scheduleText: p.scheduleText,
+      onDemand: !p.sched,
+      nextRun: nextRunISO(p.sched),
+      lastRun: st && st.ts ? new Date(st.ts).toISOString() : null,
+      ok:      st ? !!st.ok : null,
+      count:   st && st.count != null ? st.count : null,
+      note:    st && st.note ? st.note : null,
+      today:   tRaw != null ? (parseInt(tRaw, 10) || 0) : null,
+    };
+  });
+  return res.status(200).json({ parsers: list });
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -119,6 +174,7 @@ export default async function handler(req, res) {
     const days = Math.min(Math.max(parseInt(req.query.days || '30', 10) || 30, 1), 90);
     switch (req.query.section) {
       case 'overview': return await overview(days, res);
+      case 'parsers':  return await parsers(res);
       case 'topviews': return await topviews(days, res);
       case 'listings': {
         const { ok, data } = await sb(

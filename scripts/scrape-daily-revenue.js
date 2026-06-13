@@ -30,8 +30,24 @@ const ROTATE_HOURS             = parseInt(process.env.ROTATE_HOURS || '24', 10);
 const ON_SALE_ONLY             = process.env.ON_SALE_ONLY === '1';
 const DEBUG                    = process.env.DEBUG === '1';
 const PAGE_DELAY_MS            = 2500;
+const KV_REST_API_URL          = process.env.KV_REST_API_URL;
+const KV_REST_API_TOKEN        = process.env.KV_REST_API_TOKEN;
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// Reports run status to Redis so the admin "Парсеры" tab can show last run /
+// count / success. Optional — needs KV_REST_API_URL + KV_REST_API_TOKEN secrets
+// in the workflow; silently no-ops without them.
+async function recordParserRun(id, ok, count, note) {
+  if (!KV_REST_API_URL || !KV_REST_API_TOKEN) return;
+  try {
+    await fetch(`${KV_REST_API_URL}/set/${encodeURIComponent('sm_parser_' + id)}`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${KV_REST_API_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ value: JSON.stringify({ ts: Date.now(), ok: !!ok, count: count || 0, note: String(note || '') }) }),
+    });
+  } catch {}
+}
 
 // ── Revenue detection ─────────────────────────────────────────────────────────
 // TrustMRR loads chart data via a client-side fetch. We don't know the exact
@@ -336,6 +352,7 @@ async function main() {
 
   if (!slugs.length) {
     console.log('Nothing to scrape in this window. Exiting.');
+    await recordParserRun('daily-revenue', true, 0, 'Пустое окно ротации');
     return;
   }
 
@@ -415,6 +432,12 @@ async function main() {
   console.log(`Scraped ${slugs.length} startups.`);
   console.log(`Chart data found: ${found}/${slugs.length}`);
   console.log(`Revenue rows stored: ${totalRows}`);
+
+  await recordParserRun('daily-revenue', true, found, `${found}/${slugs.length} с графиками · ${totalRows} строк`);
 }
 
-main().catch(e => { console.error(e); process.exit(1); });
+main().catch(async (e) => {
+  console.error(e);
+  await recordParserRun('daily-revenue', false, 0, e && e.message ? e.message : 'fatal error');
+  process.exit(1);
+});

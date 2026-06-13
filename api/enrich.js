@@ -31,6 +31,17 @@ async function redisSet(key, value, ttl) {
   } catch {}
 }
 
+// Records this run for the admin "Парсеры" tab. On-demand parser → also bumps a
+// per-UTC-day counter so the panel can show "обновлено сегодня: N".
+async function recordRun(id, ok, note) {
+  try {
+    await redisSet(`sm_parser_${id}`, { ts: Date.now(), ok: !!ok, count: 1, note: String(note || '') });
+    const k = `sm_parser_${id}_n_${new Date().toISOString().slice(0, 10)}`;
+    await kv('POST', `/incrby/${encodeURIComponent(k)}/1`);
+    await kv('POST', `/expire/${encodeURIComponent(k)}/172800`);
+  } catch {}
+}
+
 // Walks a decoded RSC payload and isolates the JSON object that contains
 // "slug":"<slug>" by walking balanced braces backwards then forwards.
 function findStartupObject(decoded, slug) {
@@ -125,7 +136,7 @@ export default async function handler(req, res) {
     const r = await fetch(`https://trustmrr.com/startup/${encodeURIComponent(slug)}`, {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; MRRketBot/1.0)' },
     });
-    if (!r.ok) return res.status(200).json({ data: {}, note: 'fetch_failed_' + r.status });
+    if (!r.ok) { await recordRun('enrich', false, `${slug}: HTTP ${r.status}`); return res.status(200).json({ data: {}, note: 'fetch_failed_' + r.status }); }
     const html = await r.text();
 
     // RSC payloads: self.__next_f.push([N,"...escaped JSON..."])
@@ -141,11 +152,13 @@ export default async function handler(req, res) {
 
     const result = enriched || {};
     if (Object.keys(result).length) await redisSet(cacheKey, result, CACHE_TTL);
+    await recordRun('enrich', Object.keys(result).length > 0, slug);
 
     res.setHeader('X-Cache', 'MISS');
     res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=86400');
     return res.status(200).json({ data: result });
   } catch (e) {
+    await recordRun('enrich', false, `${slug}: parse_error`);
     return res.status(200).json({ data: {}, note: 'parse_error' });
   }
 }

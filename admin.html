@@ -52,6 +52,8 @@
 .adm-msg { text-align: center; padding: 70px 24px; color: var(--text3); font-size: 14px; }
 .adm-msg a { color: var(--accent); font-weight: 600; }
 .adm-mini { font-size: 12px; color: var(--text3); }
+.l2 { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px; }
+.v2 { font-size: 13px; font-weight: 600; color: var(--text); }
 .adm-copy { border: 1px solid var(--border2); background: var(--bg2); border-radius: 8px; font-size: 12px; font-weight: 600; padding: 6px 12px; cursor: pointer; color: var(--text2); font-family: inherit; }
 .adm-copy:hover { color: var(--text); border-color: var(--text); }
 .adm-toggle { display: inline-flex; gap: 4px; }
@@ -72,6 +74,7 @@
     <button class="adm-tab" data-tab="listings" onclick="openTab('listings')">Заявки</button>
     <button class="adm-tab" data-tab="topviews" onclick="openTab('topviews')">Топ просмотров</button>
     <button class="adm-tab" data-tab="waitlist" onclick="openTab('waitlist')">Вейтлист</button>
+    <button class="adm-tab" data-tab="parsers" onclick="openTab('parsers')">Парсеры</button>
   </div>
   <div id="admContent"><div class="adm-msg">Загружаем…</div></div>
 </div>
@@ -99,7 +102,7 @@ const fmtDateTime = iso => { const d = new Date(iso); return d.toLocaleDateStrin
 function openTab(tab) {
   document.querySelectorAll('.adm-tab').forEach(b => b.classList.toggle('sel', b.dataset.tab === tab));
   $('admContent').innerHTML = '<div class="adm-msg">Загружаем…</div>';
-  ({ overview: renderOverview, listings: renderListings, topviews: renderTopviews, waitlist: renderWaitlist })[tab]()
+  ({ overview: renderOverview, listings: renderListings, topviews: renderTopviews, waitlist: renderWaitlist, parsers: renderParsers })[tab]()
     .catch(e => { $('admContent').innerHTML = '<div class="adm-msg">Ошибка: ' + esc(e.message) + '</div>'; });
 }
 
@@ -239,6 +242,48 @@ async function renderWaitlist() {
     <table class="adm-table"><tr><th>Email</th><th>Источник</th><th>Дата</th></tr>
     ${waitlist.map(w => `<tr><td>${esc(w.email)}</td><td>${esc(w.source)}</td><td>${fmtDateTime(w.created_at)}</td></tr>`).join('')}
     </table></div>`;
+}
+
+/* ── Парсеры ───────────────────────────────────────────────────────────────── */
+function relTime(iso) {
+  if (!iso) return '';
+  let s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  const future = s < 0; s = Math.abs(s);
+  const unit = s < 3600 ? [Math.round(s/60),'мин'] : s < 86400 ? [Math.round(s/3600),'ч'] : [Math.round(s/86400),'дн'];
+  return future ? `через ${unit[0]} ${unit[1]}` : `${unit[0]} ${unit[1]} назад`;
+}
+async function renderParsers() {
+  const { parsers } = await api('/api/admin?section=parsers');
+  const dt = iso => iso ? fmtDateTime(iso) : '—';
+  $('admContent').innerHTML = `<div class="adm-card">
+    <h3>Парсеры и обновления <span class="adm-mini">время в UTC</span></h3>
+    <div class="adm-mini" style="margin-bottom:14px;">Каждый парсер пишет статус в Redis при каждом запуске. «Сегодня» — за текущие сутки по UTC.</div>
+    <div style="display:grid;gap:12px;">
+    ${parsers.map(p => {
+      const okBadge = p.lastRun == null
+        ? '<span class="adm-pill">нет данных</span>'
+        : (p.ok ? '<span class="adm-pill" style="border-color:rgba(14,203,129,0.4);color:var(--green);">✓ успешно</span>'
+                : '<span class="adm-pill" style="border-color:rgba(246,70,93,0.5);color:#f6465d;">✕ ошибка</span>');
+      const cnt = p.onDemand
+        ? (p.today != null ? p.today.toLocaleString() : '—')
+        : (p.count != null ? p.count.toLocaleString() : '—');
+      return `<div style="border:1px solid var(--border);border-radius:12px;padding:14px 16px;background:var(--bg3);">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
+          <div style="font-size:14px;font-weight:700;color:var(--text);">${esc(p.name)}</div>
+          <div style="display:flex;gap:6px;align-items:center;">${okBadge}<span class="adm-pill">${esc(p.source)}</span></div>
+        </div>
+        <div class="adm-mini" style="line-height:1.5;margin-bottom:12px;">${esc(p.desc)}</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;">
+          <div><div class="l2">Последнее обновление</div><div class="v2">${dt(p.lastRun)}</div>${p.lastRun?`<div class="adm-mini">${relTime(p.lastRun)}</div>`:''}</div>
+          <div><div class="l2">Следующее обновление</div><div class="v2">${p.onDemand ? 'по запросу' : dt(p.nextRun)}</div>${p.onDemand?'':(p.nextRun?`<div class="adm-mini">${relTime(p.nextRun)}</div>`:'')}</div>
+          <div><div class="l2">${p.onDemand ? 'Обновлено сегодня' : 'Стартапов за запуск'}</div><div class="v2">${cnt}</div></div>
+          <div><div class="l2">Расписание</div><div class="v2" style="font-size:12px;line-height:1.4;">${esc(p.scheduleText)}</div></div>
+        </div>
+        ${p.note ? `<div class="adm-mini" style="margin-top:10px;">Детали последнего запуска: ${esc(p.note)}</div>` : ''}
+      </div>`;
+    }).join('')}
+    </div>
+  </div>`;
 }
 
 /* ── Вход ──────────────────────────────────────────────────────────────────── */
