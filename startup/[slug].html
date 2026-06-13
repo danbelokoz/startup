@@ -106,7 +106,7 @@
   .badge-stealth { background: rgba(34,34,34,0.08); color: var(--text); border: 1px solid var(--border2); }
   .badge-cofounder { background: rgba(0,194,122,0.1); color: var(--green); border: 1px solid rgba(0,194,122,0.25); }
   .badge-funding { background: rgba(255,167,38,0.1); color: #c47700; border: 1px solid rgba(255,167,38,0.25); }
-  .badge-score { background: var(--text); color: white; font-weight: 600; }
+  .badge-score { background: var(--bg3); color: var(--text2); border: 1px solid var(--border); font-weight: 600; }
   .analytics-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
   .analytics-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 3px 8px; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; color: var(--text2); }
   /* Startup insights — TrustMRR-style grid of info cards */
@@ -206,7 +206,7 @@
 <div id="modalPlaceholder"></div>
 <div class="page-wrap">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-    <a href="/" class="back-link" id="backLink">← Back</a>
+    <a href="/catalog" class="back-link" id="backLink">← Back</a>
     <button class="fav-detail" id="favBtn" onclick="toggleDetailFav()" title="Добавить в избранное"></button>
   </div>
   <div id="content"><div class="loading-state"><h3>Loading...</h3></div></div>
@@ -253,7 +253,7 @@ async function loadStartup(slug) {
     const { data } = await res.json();
     renderStartup(data);
   } catch(e) {
-    document.getElementById('content').innerHTML = `<div class="loading-state"><h3>⚠️ Not found</h3><p>${t('errors','load')}</p><a href="/" class="btn btn-primary" style="margin-top:16px;display:inline-flex;">${t('startupPage','back')}</a></div>`;
+    document.getElementById('content').innerHTML = `<div class="loading-state"><h3>⚠️ Not found</h3><p>${t('errors','load')}</p><a href="/catalog" class="btn btn-primary" style="margin-top:16px;display:inline-flex;">${t('startupPage','back')}</a></div>`;
   }
 }
 
@@ -365,7 +365,7 @@ function renderStartup(s) {
   const fundingBadge   = ai.fundingStatus && ai.fundingStatus !== 'Unknown' ? `<span class="badge badge-funding has-tip" data-tip="${escHtml(t('startupPage','tipFunding'))}">${escHtml(ai.fundingStatus)}</span>` : '';
   const scoreBadge     = s.acquireScore != null ? `<span class="badge badge-score has-tip" data-tip="${escHtml(t('startupPage','tipScore'))}">${icon('trophy',{size:10})} Score ${(s.acquireScore * 100).toFixed(0)}</span>` : '';
   // Tags are now clickable — link home filter by tag as a search keyword
-  const tagBadges      = tags.slice(0, 6).map(tg => `<a class="ai-tag has-tip" href="/?search=${encodeURIComponent(tg)}" data-tip="${escHtml('Показать стартапы с тегом «' + tg + '»')}">${icon('tag',{size:10})} ${escHtml(tg)}</a>`).join('');
+  const tagBadges      = tags.slice(0, 6).map(tg => `<a class="ai-tag has-tip" href="/catalog?search=${encodeURIComponent(tg)}" data-tip="${escHtml('Показать стартапы с тегом «' + tg + '»')}">${icon('tag',{size:10})} ${escHtml(tg)}</a>`).join('');
   const tagsRow        = tagBadges ? `<div class="ai-tags" style="margin-top:8px;">${tagBadges}</div>` : '';
   // Non-onSale startups get a small inline reveal pill in the header.
   const headerReveal   = (!s.onSale && wantBlur)
@@ -415,7 +415,7 @@ function renderStartup(s) {
     ? `${ai.targetPersona ? escHtml(ai.targetPersona) : ''}${s.targetAudience ? `<div class="insight-list" style="margin-top:6px;"><span class="insight-chip">${escHtml(s.targetAudience.toUpperCase())}</span></div>` : ''}`
     : '';
   const marketBody = (tags.length || s.category)
-    ? `<div class="insight-list">${(s.category?[`<span class="insight-chip">${escHtml(s.category)}</span>`]:[]).concat(tags.slice(0,8).map(tg=>`<a class="insight-chip" href="/?search=${encodeURIComponent(tg)}" style="text-decoration:none;color:inherit;" title="Browse ${escHtml(tg)} startups">${escHtml(tg)}</a>`)).join('')}</div>`
+    ? `<div class="insight-list">${(s.category?[`<span class="insight-chip">${escHtml(s.category)}</span>`]:[]).concat(tags.slice(0,8).map(tg=>`<a class="insight-chip" href="/catalog?search=${encodeURIComponent(tg)}" style="text-decoration:none;color:inherit;" title="Browse ${escHtml(tg)} startups">${escHtml(tg)}</a>`)).join('')}</div>`
     : '';
   const cards = [
     insightCard('lightbulb', 'Value proposition', ai.valueProposition ? escHtml(ai.valueProposition) : ''),
@@ -440,7 +440,7 @@ function renderStartup(s) {
           ${headerPrice}
         </div>
         <div class="header-badges" style="margin-top:8px;">
-          ${s.category?`<a class="badge badge-cat has-tip" href="/?category=${encodeURIComponent(s.category)}" style="text-decoration:none;" data-tip="${escHtml((t('idx','tipCategory')||'Browse {cat} startups').replace('{cat}', s.category))}">${escHtml(s.category)}</a>`:''}
+          ${s.category?`<a class="badge badge-cat has-tip" href="/catalog?category=${encodeURIComponent(s.category)}" style="text-decoration:none;" data-tip="${escHtml((t('idx','tipCategory')||'Browse {cat} startups').replace('{cat}', s.category))}">${escHtml(s.category)}</a>`:''}
           ${s.onSale?`<span class="badge badge-sale has-tip" data-tip="${escHtml(t('idx','tipForSaleBadge'))}">${t('startupPage','forSale')}</span>`:''}
           ${s.paymentProvider?`<span class="badge badge-green has-tip" data-tip="${escHtml(t('startupPage','tipProvider'))}">${s.paymentProvider}</span>`:''}
           ${s.isMerchantOfRecord?`<span class="badge badge-cat has-tip" data-tip="${escHtml(t('startupPage','tipMor'))}">MoR</span>`:''}

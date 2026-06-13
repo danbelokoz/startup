@@ -90,6 +90,28 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
 .cm-sub { font-size: 10px; font-weight: 600; margin-left: 2px; }
 .badge-link { cursor: pointer; transition: background .12s, color .12s, border-color .12s; }
 .badge-link:hover { background: var(--accent); color: #181A20; border-color: var(--accent); }
+/* Warm hover highlight + on-hover description bubble for card badges (mirrors the detail page) */
+.badge { transition: background .15s, border-color .15s, color .15s, box-shadow .15s; }
+.has-tip { position: relative; }
+.badge.has-tip { cursor: help; }
+.badge.badge-link.has-tip { cursor: pointer; }
+.card-badges .badge.has-tip:hover { background: rgba(252,213,53,0.16) !important; border-color: rgba(252,213,53,0.5) !important; color: var(--accent) !important; box-shadow: 0 0 0 3px rgba(252,213,53,0.10), 0 2px 10px rgba(252,213,53,0.14); }
+.has-tip:hover:not(:has(.has-tip:hover))::after {
+  content: attr(data-tip);
+  position: absolute; left: 50%; bottom: calc(100% + 9px); transform: translateX(-50%);
+  width: max-content; max-width: 230px;
+  background: #0B0E11; color: #EAECEF; font-size: 11.5px; font-weight: 400; line-height: 1.45; text-align: left;
+  padding: 8px 11px; border-radius: 9px; border: 1px solid var(--border2);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5); white-space: normal; z-index: 400; pointer-events: none;
+}
+.has-tip:hover:not(:has(.has-tip:hover))::before {
+  content: ''; position: absolute; left: 50%; bottom: calc(100% + 4px); transform: translateX(-50%);
+  border: 5px solid transparent; border-top-color: #0B0E11; z-index: 401; pointer-events: none;
+}
+@media (max-width: 640px) {
+  .has-tip:hover:not(:has(.has-tip:hover))::after { left: 0; transform: none; max-width: 76vw; }
+  .has-tip:hover:not(:has(.has-tip:hover))::before { left: 16px; transform: none; }
+}
 .anon-tag { font-size: 9px; color: var(--text3); font-weight: 500; letter-spacing: 0.03em; margin-left: 4px; cursor: help; border-bottom: 1px dotted var(--border2); }
 .card-extra { font-size: 11px; color: var(--text3); display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 4px; margin-bottom: 8px; }
 .card-extra-item { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
@@ -507,10 +529,10 @@ function cardHTML(s) {
       '<div class="card-head-info">'+
         '<div class="card-name">'+nameHtml+anonTag+'</div>'+
         '<div class="card-badges">'+
-          (s.category?'<span class="badge badge-cat badge-link" title="'+catTip+'" onclick="goCategory(event,\''+catEnc+'\')">'+escHtml(s.category)+'</span>':'')+
-          '<span class="badge badge-verified" title="'+escHtml(t('idx','tipVerified')||'')+'">✓ verified</span>'+
-          (s.onSale?'<span class="badge badge-sale" title="'+escHtml(t('idx','tipForSaleBadge')||'')+'">'+(t('idx','statSale')||'For sale')+'</span>':'')+
-          (isNew?'<span class="badge badge-new" title="'+escHtml(t('idx','tipNew')||'')+'">NEW</span>':'')+
+          (s.category?'<span class="badge badge-cat badge-link has-tip" data-tip="'+catTip+'" onclick="goCategory(event,\''+catEnc+'\')">'+escHtml(s.category)+'</span>':'')+
+          '<span class="badge badge-verified has-tip" data-tip="'+escHtml(t('idx','tipVerified')||'')+'">✓ verified</span>'+
+          (s.onSale?'<span class="badge badge-sale has-tip" data-tip="'+escHtml(t('idx','tipForSaleBadge')||'')+'">'+(t('idx','statSale')||'For sale')+'</span>':'')+
+          (isNew?'<span class="badge badge-new has-tip" data-tip="'+escHtml(t('idx','tipNew')||'')+'">NEW</span>':'')+
         '</div>'+
       '</div>'+
       '<div class="card-actions">'+views+
@@ -646,7 +668,7 @@ function resetFilters() {
 
 // Deep-link support: /?search= , /?category= , /?sort= — e.g. clicking a tag or
 // category on a startup page lands here pre-filtered. Tag/category deep-links
-// search the whole catalog (not just the on-sale subset).
+// pre-select the tag and restrict to on-sale startups (req).
 function applyUrlParams() {
   const p = new URLSearchParams(location.search);
   const search   = (p.get('search')   || '').trim();
@@ -666,10 +688,10 @@ function applyUrlParams() {
     const ss = document.getElementById('sortSelect'); if (ss) ss.value = sort;
   }
   if (search || category) {
-    filters.onSale = null;
-    filters.saleFirst = true;   // tag/category deep-link → show for-sale startups first
+    filters.onSale = true;      // tag/category deep-link → on-sale startups only (req)
+    filters.saleFirst = true;
     document.querySelectorAll('.status-opt').forEach(o => o.classList.remove('sel'));
-    const allOpt = document.querySelector('.status-opt[data-filter="all"]'); if (allOpt) allOpt.classList.add('sel');
+    const saleOpt = document.querySelector('.status-opt[data-filter="sale"]'); if (saleOpt) saleOpt.classList.add('sel');
   }
 }
 
