@@ -121,6 +121,45 @@ function nextRunISO(sched) {
   return null;
 }
 
+// Schedule adherence: list every run the parser was DUE to make inside [startMs, now]
+// and whether a successful run actually covered it. GitHub Actions fires late, so a
+// run claims the most recent due slot at/just before it. A slot with no successful run
+// that is already overdue (now past its grace window) is 'missed'; one that ran but
+// only with failures is 'fail'; the latest still-fresh slot is 'pending'.
+function expectedRuns(sched, logArr, startMs, nowMs) {
+  if (!sched) return null;
+  const DAY = 86400000;
+  const hours = [...sched.h].sort((a, b) => a - b);
+  const exp = [];
+  for (let base = startMs - DAY; base <= nowMs + DAY; base += DAY) {
+    const d = new Date(base);
+    for (const h of hours) {
+      const ts = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), h, sched.m, 0, 0);
+      if (ts >= startMs && ts <= nowMs) exp.push(ts);
+    }
+  }
+  exp.sort((a, b) => a - b);
+  if (!exp.length) return [];
+
+  // Grace = roughly one full interval (so a late run still counts), capped at 14h.
+  let spacing = DAY;
+  if (exp.length >= 2) spacing = Math.min(...exp.slice(1).map((t, i) => t - exp[i]));
+  const grace = Math.min(Math.max(spacing - 30 * 60000, 3600000), 14 * 3600000);
+
+  const state = exp.map(() => ({ ran: false, ok: false }));
+  for (const rawE of logArr) {
+    let e; try { e = JSON.parse(rawE); } catch { continue; }
+    if (!e || typeof e.t !== 'number') continue;
+    let idx = -1;                                   // latest due slot at/just before this run
+    for (let i = 0; i < exp.length; i++) { if (exp[i] <= e.t + 3600000) idx = i; else break; }
+    if (idx >= 0) { state[idx].ran = true; if (e.ok) state[idx].ok = true; }
+  }
+  return exp.map((ts, i) => ({
+    ts,
+    state: state[i].ok ? 'ok' : state[i].ran ? 'fail' : (nowMs > ts + grace ? 'missed' : 'pending'),
+  }));
+}
+
 const HIST_HOURS = 72; // 3-day history window, hourly buckets
 const HOUR_MS = 3600000;
 
@@ -161,6 +200,7 @@ async function parsers(res) {
       note:    st && st.note ? st.note : null,
       today:   tRaw != null ? (parseInt(tRaw, 10) || 0) : null,
       history: { startMs: startH * HOUR_MS, hourMs: HOUR_MS, hours: HIST_HOURS, buckets },
+      expected: expectedRuns(p.sched, logArr, startH * HOUR_MS, Date.now()),
     };
   });
   return res.status(200).json({ parsers: list });

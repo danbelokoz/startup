@@ -97,7 +97,11 @@ async function api(path, opts = {}) {
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmtDay = d => d.slice(8,10) + '.' + d.slice(5,7);
-const fmtDateTime = iso => { const d = new Date(iso); return d.toLocaleDateString('ru-RU') + ' ' + d.toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'}); };
+// All admin timestamps are shown in Moscow time (МСК, UTC+3) regardless of the
+// viewer's machine timezone.
+const MSK_TZ = 'Europe/Moscow';
+const fmtDateTime = iso => new Date(iso).toLocaleString('ru-RU', { timeZone: MSK_TZ, day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+const fmtMskShort = ms => new Date(ms).toLocaleString('ru-RU', { timeZone: MSK_TZ, day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
 
 function openTab(tab) {
   document.querySelectorAll('.adm-tab').forEach(b => b.classList.toggle('sel', b.dataset.tab === tab));
@@ -252,41 +256,112 @@ function relTime(iso) {
   const unit = s < 3600 ? [Math.round(s/60),'мин'] : s < 86400 ? [Math.round(s/3600),'ч'] : [Math.round(s/86400),'дн'];
   return future ? `через ${unit[0]} ${unit[1]}` : `${unit[0]} ${unit[1]} назад`;
 }
-// Hourly bar chart of the last 3 days: each bar = one hour (green = all runs OK,
-// red = had a failure), bar height = startups updated that hour.
-function parserChart(h) {
+// Custom hover tooltip for the parser charts (native <title> is slow & sparse).
+// Delegated on #admContent so it survives re-renders; bound once.
+let _parserTipsBound = false;
+function attachParserTips() {
+  if (_parserTipsBound) return;
+  const content = $('admContent');
+  if (!content) return;
+  let tip = document.getElementById('parserTip');
+  if (!tip) {
+    tip = document.createElement('div');
+    tip.id = 'parserTip';
+    tip.style.cssText = 'position:fixed;z-index:9999;pointer-events:none;display:none;max-width:270px;background:var(--bg,#0e1116);border:1px solid var(--border,#2a2f3a);border-radius:8px;padding:7px 10px;font-size:12px;line-height:1.5;color:var(--text,#e8e8ea);box-shadow:0 8px 28px rgba(0,0,0,.45);';
+    document.body.appendChild(tip);
+  }
+  const place = (x, y) => {
+    const pad = 14, w = tip.offsetWidth, hgt = tip.offsetHeight;
+    let nx = x + pad, ny = y + pad;
+    if (nx + w > window.innerWidth)  nx = x - w - pad;
+    if (ny + hgt > window.innerHeight) ny = y - hgt - pad;
+    tip.style.left = Math.max(4, nx) + 'px';
+    tip.style.top  = Math.max(4, ny) + 'px';
+  };
+  content.addEventListener('mousemove', e => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (!el) { tip.style.display = 'none'; return; }
+    const parts = (el.getAttribute('data-tip') || '').split('|');
+    tip.innerHTML = parts.map((p, i) => i === 0
+      ? `<div style="font-weight:700;margin-bottom:3px;">${esc(p)}</div>`
+      : `<div>${esc(p)}</div>`).join('');
+    tip.style.display = 'block';
+    place(e.clientX, e.clientY);
+  });
+  content.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+  _parserTipsBound = true;
+}
+
+// Activity chart for the last 3 days (МСК). Bars = one per hour, height ∝ startups
+// updated that hour (green = all runs OK, red = had a failure). The thin band on top
+// marks every run the parser was DUE to make per its schedule: green tick = done,
+// red dashed = missed or failed — so a skipped scheduled run jumps out. Hover any
+// bar or marker for details.
+function parserChart(h, expected) {
   if (!h || !Array.isArray(h.buckets)) return '';
   const b = h.buckets;
   if (!b.some(x => x.runs > 0)) return '<div class="adm-mini" style="margin-top:12px;">Нет запусков за последние 3 дня.</div>';
   const maxN = Math.max(1, ...b.map(x => x.n));
-  const W = 100, H = 30, bw = W / b.length;
+  const W = 100, H = 40, TOP = 9;                 // TOP band (vb units) = schedule markers
+  const plotH = H - TOP - 1;
+  const bw = W / b.length;
+  const windowMs = h.hours * h.hourMs;
+  const xOfMs = ms => ((ms - h.startMs) / windowMs) * W;
+
   const bars = b.map((x, i) => {
     if (!x.runs) return '';
-    const barH = x.n > 0 ? Math.max(1.5, (x.n / maxN) * (H - 3)) : 1.5;
+    const barH = x.n > 0 ? Math.max(1.5, (x.n / maxN) * plotH) : 1.5;
     const allOk = x.ok === x.runs;
-    const d = new Date(h.startMs + i * h.hourMs);
-    const lbl = String(d.getUTCDate()).padStart(2,'0') + '.' + String(d.getUTCMonth()+1).padStart(2,'0') + ' ' + String(d.getUTCHours()).padStart(2,'0') + ':00 UTC';
-    const title = `${lbl} — обновлено ${x.n}, запусков ${x.runs}${allOk ? ' ✓' : ' ✕ есть ошибки'}`;
-    return `<rect x="${(i*bw).toFixed(2)}" y="${(H-barH).toFixed(2)}" width="${(bw*0.74).toFixed(2)}" height="${barH.toFixed(2)}" fill="${allOk ? 'var(--green)' : '#f6465d'}"><title>${esc(title)}</title></rect>`;
+    const tip = fmtMskShort(h.startMs + i * h.hourMs) + ' МСК|обновлено стартапов: ' + x.n
+      + '|запусков за час: ' + x.runs + (allOk ? '|✓ успех' : '|✕ есть ошибки');
+    return `<rect x="${(i*bw).toFixed(2)}" y="${(H-barH).toFixed(2)}" width="${(bw*0.74).toFixed(2)}" height="${barH.toFixed(2)}" fill="${allOk ? 'var(--green)' : '#f6465d'}" data-tip="${esc(tip)}"/>`;
   }).join('');
-  const seps = [24, 48].map(i => `<line x1="${(i*bw).toFixed(2)}" y1="0" x2="${(i*bw).toFixed(2)}" y2="${H}" stroke="var(--border)" stroke-width="0.3" stroke-dasharray="1 1"/>`).join('');
+
+  let okc = 0, failc = 0, miss = 0, marks = '';
+  const COL = { ok:'var(--green)', fail:'#f6465d', missed:'#f6465d', pending:'var(--text3)' };
+  (expected || []).forEach(e => {
+    const x = xOfMs(e.ts);
+    if (x < -0.5 || x > W + 0.5) return;
+    if (e.state === 'ok') okc++; else if (e.state === 'fail') failc++; else if (e.state === 'missed') miss++;
+    const problem = e.state === 'missed' || e.state === 'fail';
+    const label = e.state === 'ok'      ? '✓ запуск выполнен'
+                : e.state === 'fail'    ? '✕ запуск был, но с ошибкой'
+                : e.state === 'missed'  ? '⚠ ПРОПУЩЕН — успешного запуска не было'
+                :                         '… ожидается';
+    const tip = 'по плану: ' + fmtMskShort(e.ts) + ' МСК|' + label;
+    marks += `<line x1="${x.toFixed(2)}" y1="0" x2="${x.toFixed(2)}" y2="${problem ? H : TOP - 1}" stroke="${COL[e.state]}" stroke-width="${problem ? 0.8 : 0.6}"${problem ? ' stroke-dasharray="1.6 1.2"' : ''} opacity="${problem ? 0.92 : 0.7}" data-tip="${esc(tip)}"/>`;
+    marks += `<rect x="${(x-1).toFixed(2)}" y="0" width="2" height="${TOP - 1.5}" fill="${COL[e.state]}" opacity="${problem ? 1 : 0.85}" data-tip="${esc(tip)}"/>`;
+  });
+
+  const seps = [24, 48].map(i => `<line x1="${(i*bw).toFixed(2)}" y1="${TOP}" x2="${(i*bw).toFixed(2)}" y2="${H}" stroke="var(--border)" stroke-width="0.3" stroke-dasharray="1 1"/>`).join('');
+  const summary = (expected && expected.length)
+    ? `<span class="adm-mini">по плану за 3 дня: <b style="color:var(--green);">✓ ${okc}</b>${failc ? ` · <b style="color:#f6465d;">✕ ${failc}</b>` : ''}${miss ? ` · <b style="color:#f6465d;">⚠ пропущено ${miss}</b>` : ''}</span>`
+    : '';
+
   return `<div style="margin-top:14px;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
-      <span class="l2">История за 3 дня · по часам · UTC</span>
-      <span class="adm-mini"><span style="color:var(--green);">▮</span> успех <span style="color:#f6465d;">▮</span> ошибка</span>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;gap:8px;flex-wrap:wrap;">
+      <span class="l2">Активность за 3 дня · по часам · МСК <span class="adm-mini">(высота столбца = обновлено стартапов, макс ${maxN})</span></span>
+      ${summary}
     </div>
-    <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:46px;display:block;background:var(--bg2);border:1px solid var(--border);border-radius:8px;">
-      ${seps}<line x1="0" y1="${H}" x2="${W}" y2="${H}" stroke="var(--border)" stroke-width="0.4"/>${bars}
+    <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:74px;display:block;background:var(--bg2);border:1px solid var(--border);border-radius:8px;">
+      ${seps}
+      <line x1="0" y1="${TOP}" x2="${W}" y2="${TOP}" stroke="var(--border)" stroke-width="0.3"/>
+      <line x1="0" y1="${H}" x2="${W}" y2="${H}" stroke="var(--border)" stroke-width="0.4"/>
+      ${marks}${bars}
     </svg>
-    <div style="display:flex;justify-content:space-between;margin-top:3px;"><span class="adm-mini">3 дня назад</span><span class="adm-mini">сейчас</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:3px;gap:6px;flex-wrap:wrap;">
+      <span class="adm-mini">${esc(fmtMskShort(h.startMs))}</span>
+      <span class="adm-mini"><span style="color:var(--green);">▮</span> успех · <span style="color:#f6465d;">▮</span> ошибка · верх — запуски по расписанию (<span style="color:#f6465d;">⚠ пропуск</span>)</span>
+      <span class="adm-mini">сейчас</span>
+    </div>
   </div>`;
 }
 async function renderParsers() {
   const { parsers } = await api('/api/admin?section=parsers');
   const dt = iso => iso ? fmtDateTime(iso) : '—';
   $('admContent').innerHTML = `<div class="adm-card">
-    <h3>Парсеры и обновления <span class="adm-mini">время в UTC</span></h3>
-    <div class="adm-mini" style="margin-bottom:14px;">Каждый парсер пишет статус в Redis при каждом запуске. «Сегодня» — за текущие сутки по UTC.</div>
+    <h3>Парсеры и обновления <span class="adm-mini">время МСК</span></h3>
+    <div class="adm-mini" style="margin-bottom:14px;">Каждый парсер пишет статус в Redis при каждом запуске. Всё время — московское (МСК). «Обновлено сегодня» считается по UTC-суткам.</div>
     <div style="display:grid;gap:12px;">
     ${parsers.map(p => {
       const okBadge = p.lastRun == null
@@ -305,15 +380,16 @@ async function renderParsers() {
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;">
           <div><div class="l2">Последнее обновление</div><div class="v2">${dt(p.lastRun)}</div>${p.lastRun?`<div class="adm-mini">${relTime(p.lastRun)}</div>`:''}</div>
           <div><div class="l2">Следующее обновление</div><div class="v2">${p.onDemand ? 'по запросу' : dt(p.nextRun)}</div>${p.onDemand?'':(p.nextRun?`<div class="adm-mini">${relTime(p.nextRun)}</div>`:'')}</div>
-          <div><div class="l2">${p.onDemand ? 'Обновлено сегодня' : 'Стартапов за запуск'}</div><div class="v2">${cnt}</div></div>
+          <div><div class="l2">${p.onDemand ? 'Обновлено сегодня (UTC)' : 'Стартапов за запуск'}</div><div class="v2">${cnt}</div></div>
           <div><div class="l2">Расписание</div><div class="v2" style="font-size:12px;line-height:1.4;">${esc(p.scheduleText)}</div></div>
         </div>
         ${p.note ? `<div class="adm-mini" style="margin-top:10px;">Детали последнего запуска: ${esc(p.note)}</div>` : ''}
-        ${parserChart(p.history)}
+        ${parserChart(p.history, p.expected)}
       </div>`;
     }).join('')}
     </div>
   </div>`;
+  attachParserTips();
 }
 
 /* ── Вход ──────────────────────────────────────────────────────────────────── */
