@@ -121,16 +121,36 @@ function nextRunISO(sched) {
   return null;
 }
 
+const HIST_HOURS = 72; // 3-day history window, hourly buckets
+const HOUR_MS = 3600000;
+
 async function parsers(res) {
   const day = new Date().toISOString().slice(0, 10);
   const cmds = [];
-  for (const p of PARSERS) cmds.push(['GET', `sm_parser_${p.id}`], ['GET', `sm_parser_${p.id}_n_${day}`]);
+  // 3 commands per parser: last-run blob, today's counter, run log (for the chart)
+  for (const p of PARSERS) cmds.push(
+    ['GET', `sm_parser_${p.id}`],
+    ['GET', `sm_parser_${p.id}_n_${day}`],
+    ['LRANGE', `sm_parser_${p.id}_log`, '0', '-1'],
+  );
   const pipe = (await redisPipeline(cmds)) || [];
+  const startH = Math.floor(Date.now() / HOUR_MS) - (HIST_HOURS - 1);
   const list = PARSERS.map((p, i) => {
+    const base = i * 3;
     let st = null;
-    const raw = pipe[i * 2] && pipe[i * 2].result;
+    const raw = pipe[base] && pipe[base].result;
     if (raw) { try { const o = JSON.parse(raw); st = (o && typeof o === 'object' && o.value) ? JSON.parse(o.value) : o; } catch {} }
-    const tRaw = pipe[i * 2 + 1] && pipe[i * 2 + 1].result;
+    const tRaw = pipe[base + 1] && pipe[base + 1].result;
+    // Bucket the run log into hourly slots over the last 3 days.
+    const logArr = (pipe[base + 2] && pipe[base + 2].result) || [];
+    const buckets = Array.from({ length: HIST_HOURS }, () => ({ runs: 0, ok: 0, n: 0 }));
+    for (const rawE of logArr) {
+      let e; try { e = JSON.parse(rawE); } catch { continue; }
+      if (!e || typeof e.t !== 'number') continue;
+      const idx = Math.floor(e.t / HOUR_MS) - startH;
+      if (idx < 0 || idx >= HIST_HOURS) continue;
+      buckets[idx].runs++; buckets[idx].ok += (e.ok ? 1 : 0); buckets[idx].n += (e.n || 0);
+    }
     return {
       id: p.id, name: p.name, desc: p.desc, source: p.source, scheduleText: p.scheduleText,
       onDemand: !p.sched,
@@ -140,6 +160,7 @@ async function parsers(res) {
       count:   st && st.count != null ? st.count : null,
       note:    st && st.note ? st.note : null,
       today:   tRaw != null ? (parseInt(tRaw, 10) || 0) : null,
+      history: { startMs: startH * HOUR_MS, hourMs: HOUR_MS, hours: HIST_HOURS, buckets },
     };
   });
   return res.status(200).json({ parsers: list });

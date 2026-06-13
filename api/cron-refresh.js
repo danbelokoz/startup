@@ -4,6 +4,7 @@
 // using the same cache key format as api/startups.js.
 
 import { computeTotals } from './stats.js';
+import { redisPipeline } from './_lib.js';
 
 const FRESH_TTL = 82800; // 23 hour freshness window — must match api/startups.js
 const DELAY_MS  = 3200;  // 3.2s between pages → ~18 req/min (limit is 20)
@@ -26,9 +27,18 @@ async function redisSet(key, value, ttl) {
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-// Records this run's status for the admin "Парсеры" tab (see api/admin.js).
+// Records this run's status for the admin "Парсеры" tab (see api/admin.js):
+// a "last run" blob + an entry in a 3-day run log (capped, auto-expiring).
 async function recordParserRun(id, ok, count, note) {
-  try { await redisSet(`sm_parser_${id}`, { ts: Date.now(), ok: !!ok, count: count || 0, note: String(note || '') }); } catch {}
+  try {
+    await redisSet(`sm_parser_${id}`, { ts: Date.now(), ok: !!ok, count: count || 0, note: String(note || '') });
+    const logKey = `sm_parser_${id}_log`;
+    await redisPipeline([
+      ['LPUSH', logKey, JSON.stringify({ t: Date.now(), ok: ok ? 1 : 0, n: count || 0 })],
+      ['LTRIM', logKey, '0', '999'],
+      ['EXPIRE', logKey, '259200'], // 3 days
+    ]);
+  } catch {}
 }
 
 export default async function handler(req, res) {

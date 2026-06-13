@@ -41,10 +41,20 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 async function recordParserRun(id, ok, count, note) {
   if (!KV_REST_API_URL || !KV_REST_API_TOKEN) return;
   try {
+    const hdr = { Authorization: `Bearer ${KV_REST_API_TOKEN}`, 'Content-Type': 'application/json' };
     await fetch(`${KV_REST_API_URL}/set/${encodeURIComponent('sm_parser_' + id)}`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${KV_REST_API_TOKEN}`, 'Content-Type': 'application/json' },
+      method: 'POST', headers: hdr,
       body: JSON.stringify({ value: JSON.stringify({ ts: Date.now(), ok: !!ok, count: count || 0, note: String(note || '') }) }),
+    });
+    // 3-day run log (capped, auto-expiring) for the admin history chart
+    const logKey = 'sm_parser_' + id + '_log';
+    await fetch(`${KV_REST_API_URL}/pipeline`, {
+      method: 'POST', headers: hdr,
+      body: JSON.stringify([
+        ['LPUSH', logKey, JSON.stringify({ t: Date.now(), ok: ok ? 1 : 0, n: count || 0 })],
+        ['LTRIM', logKey, '0', '999'],
+        ['EXPIRE', logKey, '259200'],
+      ]),
     });
   } catch {}
 }

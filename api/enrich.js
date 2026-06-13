@@ -3,6 +3,8 @@
 // fundingStatus, ...), acquireScore, cachedGrowth, analytics flags, githubActivity,
 // stealthMode, lookingForCofounder, xFollowerCount, xFounderName, etc.
 
+import { redisPipeline } from './_lib.js';
+
 const CACHE_TTL = 86400; // 24h — enrich data refreshes daily on TrustMRR
 
 async function kv(method, path, body) {
@@ -39,6 +41,12 @@ async function recordRun(id, ok, note) {
     const k = `sm_parser_${id}_n_${new Date().toISOString().slice(0, 10)}`;
     await kv('POST', `/incrby/${encodeURIComponent(k)}/1`);
     await kv('POST', `/expire/${encodeURIComponent(k)}/172800`);
+    const logKey = `sm_parser_${id}_log`;
+    await redisPipeline([
+      ['LPUSH', logKey, JSON.stringify({ t: Date.now(), ok: ok ? 1 : 0, n: 1 })],
+      ['LTRIM', logKey, '0', '999'],
+      ['EXPIRE', logKey, '259200'], // 3 days
+    ]);
   } catch {}
 }
 
