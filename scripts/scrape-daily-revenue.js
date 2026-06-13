@@ -59,6 +59,32 @@ async function recordParserRun(id, ok, count, note) {
   } catch {}
 }
 
+// Returns the next batch-window index (0..batchCount-1), advancing a PERSISTED
+// Redis counter so consecutive runs sweep every window in turn — regardless of
+// when GitHub actually fires the schedule. GitHub's cron is irregular (often once
+// a day, hours late), and the old `floor(now / 12h) % batchCount` math skipped
+// windows under that drift: window 0 (the highest-revenue on-sale startups) went
+// unscraped for days, so those pages kept serving stale data. A simple counter
+// guarantees full, even coverage. Falls back to the wall-clock slot if Redis is
+// unavailable (so a run without KV secrets still does something sensible).
+async function nextRotationWindow(batchCount, rotateHours) {
+  if (KV_REST_API_URL && KV_REST_API_TOKEN) {
+    try {
+      const r = await fetch(`${KV_REST_API_URL}/incr/${encodeURIComponent('sm_scrape_cursor')}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${KV_REST_API_TOKEN}` },
+      });
+      if (r.ok) {
+        const j = await r.json();
+        const n = typeof j.result === 'number' ? j.result : parseInt(j.result, 10);
+        if (Number.isFinite(n)) return (((n - 1) % batchCount) + batchCount) % batchCount;
+      }
+    } catch { /* fall through to the time-slot heuristic */ }
+  }
+  const slot = Math.floor(Date.now() / (rotateHours * 3600_000));
+  return ((slot % batchCount) + batchCount) % batchCount;
+}
+
 // ── Revenue detection ─────────────────────────────────────────────────────────
 // TrustMRR loads chart data via a client-side fetch. We don't know the exact
 // shape yet, so we try several heuristics and pick the best match.
@@ -351,11 +377,9 @@ async function main() {
   // consecutive scheduled runs sweep the whole list (then start refreshing it).
   let start = OFFSET;
   if (ROTATE && all.length) {
-    // Bucket time into ROTATE_HOURS-wide slots so two runs on the same day still
-    // land on different windows (slot increments by 1 between consecutive runs).
-    const slot = Math.floor(Date.now() / (ROTATE_HOURS * 3600_000));
     const batchCount = Math.max(1, Math.ceil(all.length / BATCH));
-    start = (slot % batchCount) * BATCH;
+    const w = await nextRotationWindow(batchCount, ROTATE_HOURS);
+    start = w * BATCH;
   }
   const slugs = all.slice(start, start + BATCH);
   console.log(`Got ${all.length} slugs. Processing batch [${start}..${start + slugs.length}) — ${slugs.length} startups.\n`);
