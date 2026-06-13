@@ -210,7 +210,6 @@
 <div id="navPlaceholder"></div>
 
 <div class="wrap">
-  <div class="glow"></div>
   <section class="hero">
     <div>
       <div class="eyebrow"><span class="dot"></span>Маркетплейс стартапов с проверенным MRR</div>
@@ -238,7 +237,6 @@
     </div>
 
     <div class="herocol">
-      <div class="freebadge"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v9H4v-9M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg></span><span><b>Полный доступ ко всем метрикам</b> — бесплатно, без карты</span></div>
       <div class="panel2">
         <div class="p2head"><span class="tt"><span class="live"></span>Лидеры по выручке</span><span class="upd">за 30 дней</span></div>
         <div id="list">
@@ -275,7 +273,6 @@
 
 <!-- 1. Что входит в доступ -->
 <section class="sec">
-  <div class="sechead"><span class="kicker">Доступ</span><h2>Что входит в доступ</h2><p>Каждый листинг — данные из API провайдера, а не скриншот в чате.</p></div>
   <div class="incl">
     <div class="iitem"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M7 17v-6M12 17V7M17 17v-9"/></svg></span><b>Полная история MRR</b><span>Помесячная динамика с запуска — виден тренд, а не одна цифра.</span></div>
     <div class="iitem"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg></span><b>Подключённые провайдеры</b><span>Stripe, LemonSqueezy, Polar. Данные читаются из API по read-only ключу.</span></div>
@@ -476,7 +473,7 @@ async function loadLanding() {
   // Revenue leaders — highest 30-day revenue among on-sale startups → widget.
   try {
     const r = await fetch(API+'/startups?onSale=true&page=1&limit=20&sort=revenue-desc').then(r=>r.json()).catch(()=>null);
-    const items = ((r&&r.data)||[]).filter(s=>s&&s.slug)
+    const items = ((r&&r.data)||[]).filter(s=>s&&s.slug&&!(s.name||'').toLowerCase().includes('anonymous'))
       .sort((a,b)=>((b.revenue&&b.revenue.last30Days)||0)-((a.revenue&&a.revenue.last30Days)||0));
     renderWidget(items.slice(0,5));
   } catch { renderWidget([]); }

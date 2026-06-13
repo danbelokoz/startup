@@ -42,14 +42,14 @@ body {
   line-height: 1.6;
 }
 
-/* NAV — three-column grid so tabs sit dead-center between logo and controls */
+/* NAV — flex row: logo + tabs grouped on the left, controls pushed to the right */
 nav {
   position: sticky; top: 0; z-index: 100;
   background: rgba(11,14,17,0.92);
   backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border);
   padding: 0 28px; height: 54px;
-  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px;
+  display: flex; align-items: center; gap: 18px;
 }
 .nav-logo {
   font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif;
@@ -58,14 +58,14 @@ nav {
   justify-self: start;
 }
 .nav-logo-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
-.nav-center { display: flex; gap: 2px; justify-self: center; }
+.nav-center { display: flex; gap: 2px; }
 .nav-link {
   padding: 5px 12px; border-radius: 6px; font-size: 13px;
   font-weight: 500; color: var(--text2); text-decoration: none; transition: all 0.12s;
 }
 .nav-link:hover { background: var(--bg3); color: var(--text); }
 .nav-link.active { background: var(--bg3); color: var(--accent); }
-.nav-right { display: flex; align-items: center; gap: 8px; justify-self: end; }
+.nav-right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 
 /* BUTTONS */
 .btn {
