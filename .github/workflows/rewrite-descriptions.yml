@@ -1,0 +1,31 @@
+name: Rewrite startup descriptions
+
+# Manual only — run it once to rewrite the current catalog, re-run to cover any new
+# startups. It skips slugs already rewritten, so re-runs are cheap and never overwrite.
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Max new rewrites this run'
+        required: false
+        default: '1500'
+
+jobs:
+  rewrite:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run rewriter
+        working-directory: scripts
+        env:
+          ANTHROPIC_API_KEY:         ${{ secrets.ANTHROPIC_API_KEY }}
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          LIMIT:                     ${{ inputs.limit || '1500' }}
+        run: node rewrite-descriptions.js

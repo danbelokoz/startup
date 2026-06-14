@@ -33,6 +33,22 @@ async function redisSet(key, value, ttl) {
   } catch {}
 }
 
+// Our own rewritten description (so the page isn't a 1:1 copy of trustmrr.com),
+// populated by scripts/rewrite-descriptions.js. Read with the service-role key; the
+// table is RLS-locked. Returns null when not configured / not yet rewritten.
+async function getRewrittenDescription(slug) {
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return null;
+  try {
+    const r = await fetch(
+      `${process.env.SUPABASE_URL}/rest/v1/startup_descriptions?slug=eq.${encodeURIComponent(slug)}&select=description&limit=1`,
+      { headers: { apikey: process.env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}` } }
+    );
+    if (!r.ok) return null;
+    const rows = await r.json();
+    return Array.isArray(rows) && rows[0] && rows[0].description ? rows[0].description : null;
+  } catch { return null; }
+}
+
 // Records this run for the admin "Парсеры" tab. On-demand parser → also bumps a
 // per-UTC-day counter so the panel can show "обновлено сегодня: N".
 async function recordRun(id, ok, note) {
@@ -134,8 +150,11 @@ export default async function handler(req, res) {
   if (!slug) return res.status(400).json({ error: 'Missing slug' });
 
   const cacheKey = `sm_enrich_${slug}`;
-  const cached = await redisGet(cacheKey);
+  // Read our rewritten description alongside the (separately cached) scrape and merge
+  // it into the response without polluting the enrich cache, so it shows immediately.
+  const [cached, rewritten] = await Promise.all([redisGet(cacheKey), getRewrittenDescription(slug)]);
   if (cached) {
+    if (rewritten) cached.description = rewritten;
     res.setHeader('X-Cache', 'HIT');
     return res.status(200).json({ data: cached });
   }
@@ -162,6 +181,7 @@ export default async function handler(req, res) {
     if (Object.keys(result).length) await redisSet(cacheKey, result, CACHE_TTL);
     await recordRun('enrich', Object.keys(result).length > 0, slug);
 
+    if (rewritten) result.description = rewritten; // merge after caching — cache stays description-agnostic
     res.setHeader('X-Cache', 'MISS');
     res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=86400');
     return res.status(200).json({ data: result });
