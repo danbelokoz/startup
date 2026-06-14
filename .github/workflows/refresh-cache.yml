@@ -1,4 +1,4 @@
-name: Refresh startup cache
+name: Refresh startup catalog
 
 on:
   schedule:
@@ -8,11 +8,22 @@ on:
 jobs:
   refresh:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - name: Trigger cache refresh
-        run: |
-          curl -s -X GET \
-            "https://startup-silk-nu.vercel.app/api/startups?limit=50&page=1&sort=revenue-desc" \
-            -H "Authorization: Bearer ${{ secrets.TRUSTMRR_API_KEY }}" \
-            -o /dev/null -w "Status: %{http_code}\n"
-          echo "Cache refresh triggered successfully"
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Full catalog sweep (~8 min). Lives here, not on Vercel cron, because Vercel
+      # Hobby caps functions at 60s and was killing the sweep mid-run every night.
+      - name: Run catalog sweep
+        working-directory: scripts
+        env:
+          KV_REST_API_URL:           ${{ secrets.KV_REST_API_URL }}
+          KV_REST_API_TOKEN:         ${{ secrets.KV_REST_API_TOKEN }}
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          TRUSTMRR_API_KEY:          ${{ secrets.TRUSTMRR_API_KEY }}
+        run: node refresh-catalog.js

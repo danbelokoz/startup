@@ -7,11 +7,5 @@
     { "source": "/api/sell-listing-intent", "destination": "/api/intake?op=listing" },
     { "source": "/api/waitlist", "destination": "/api/intake?op=waitlist" },
     { "source": "/api/track", "destination": "/api/intake?op=track" }
-  ],
-  "crons": [
-    {
-      "path": "/api/cron-refresh",
-      "schedule": "0 3 * * *"
-    }
   ]
 }
