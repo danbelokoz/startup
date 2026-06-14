@@ -6,7 +6,7 @@ on:
       limit:
         description: 'Startups per run (batch size)'
         required: false
-        default: '400'
+        default: '500'
       offset:
         description: 'Start index into the slug list (manual batching)'
         required: false
@@ -20,12 +20,15 @@ on:
         required: false
         default: '0'
   schedule:
-    - cron: '0 4,16 * * *'  # Twice daily (04:00 & 16:00 UTC) — one rotating batch each
+    # Every 6h. With ~1782 on-sale / 500-per-run, the persisted cursor sweeps all
+    # ~4 windows in ~24h — so every on-sale startup refreshes well inside 2.5 days,
+    # with margin even if GitHub drops some scheduled runs.
+    - cron: '0 0,6,12,18 * * *'
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 150
 
     steps:
       - uses: actions/checkout@v4
@@ -49,11 +52,12 @@ jobs:
           KV_REST_API_URL:           ${{ secrets.KV_REST_API_URL }}
           KV_REST_API_TOKEN:         ${{ secrets.KV_REST_API_TOKEN }}
           # Scheduled runs cover for-sale startups only and auto-rotate the batch window
+          # (window order comes from a persisted Redis cursor — see scrape-daily-revenue.js)
           ON_SALE_ONLY: ${{ github.event_name == 'schedule' && '1' || inputs.on_sale_only || '0' }}
-          LIMIT:        ${{ inputs.limit || '400' }}
+          LIMIT:        ${{ inputs.limit || '500' }}
           OFFSET:       ${{ inputs.offset || '0' }}
           ROTATE:       ${{ github.event_name == 'schedule' && '1' || '0' }}
-          # 12h slot matches the twice-daily cron so each run advances to the next batch
-          ROTATE_HOURS: '12'
+          # Only used as a fallback if the Redis cursor is unavailable; matches the 6h cron
+          ROTATE_HOURS: '6'
           DEBUG:        ${{ inputs.debug || '0' }}
         run: node scrape-daily-revenue.js
