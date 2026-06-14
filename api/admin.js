@@ -96,9 +96,9 @@ async function topviews(days, res) {
 // run (see cron-refresh.js, enrich.js, scrape-site.js, scripts/scrape-daily-revenue.js).
 // On-demand parsers also keep a per-UTC-day counter sm_parser_<id>_n_<date>.
 const PARSERS = [
-  { id:'catalog', name:'Каталог — ночной свод', source:'Vercel Cron', scheduleText:'Каждый день в 03:00 UTC', sched:{ m:0, h:[3] },
-    desc:'Тянет все страницы каталога из TrustMRR API в Redis, пересчитывает суммарные метрики и пишет дневные снимки в Supabase для графиков.' },
-  { id:'daily-revenue', name:'Графики дневной выручки', source:'GitHub Actions', scheduleText:'Дважды в день — 04:00 и 16:00 UTC', sched:{ m:0, h:[4,16] },
+  { id:'catalog', name:'Каталог — ночной свод', source:'GitHub Actions', scheduleText:'Каждый день в 03:00 UTC', sched:{ m:0, h:[3] }, maxRunMin:25,
+    desc:'Тянет весь каталог из TrustMRR API (~7400 стартапов, ~150 страниц) в Redis, пересчитывает суммарные метрики и пишет дневные снимки в Supabase. Полный свод идёт ~8 мин — поэтому вынесен в GitHub Actions (на Vercel Hobby лимит 60 с обрывал его на середине).' },
+  { id:'daily-revenue', name:'Графики дневной выручки', source:'GitHub Actions', scheduleText:'Каждые 6 ч — 00, 06, 12, 18 UTC', sched:{ m:0, h:[0,6,12,18] }, maxRunMin:160,
     desc:'Скрейпит графики дневной выручки со страниц TrustMRR (Puppeteer) и пишет их в Supabase. За запуск обрабатывает ротационный батч; стартапы на продаже в приоритете.' },
   { id:'enrich', name:'AI-обогащение (TrustMRR)', source:'Vercel · по запросу', scheduleText:'При открытии карточки · кэш 24 ч', sched:null,
     desc:'Достаёт доп. поля с публичной страницы TrustMRR: AI-описание, теги, Acquire Score, соцсети. Запускается при открытии карточки стартапа, если кэш устарел.' },
@@ -123,9 +123,13 @@ function nextRunISO(sched) {
 
 // Schedule adherence: list every run the parser was DUE to make inside [startMs, now]
 // and whether a successful run actually covered it. GitHub Actions fires late, so a
-// run claims the most recent due slot at/just before it. A slot with no successful run
-// that is already overdue (now past its grace window) is 'missed'; one that ran but
-// only with failures is 'fail'; the latest still-fresh slot is 'pending'.
+// run claims the most recent due slot at/just before it. State per due slot:
+//   ok      — a successful run covered it
+//   fail    — a run was attributed but reported failure
+//   late    — no run yet, overdue past the grace window, but the NEXT due run hasn't
+//             come yet (could still arrive — GitHub is often late)
+//   missed  — no run, and the next due run already passed → definitively skipped
+//   pending — just due, still inside the grace window (GitHub lag is normal)
 function expectedRuns(sched, logArr, startMs, nowMs) {
   if (!sched) return null;
   const DAY = 86400000;
@@ -141,10 +145,11 @@ function expectedRuns(sched, logArr, startMs, nowMs) {
   exp.sort((a, b) => a - b);
   if (!exp.length) return [];
 
-  // Grace = roughly one full interval (so a late run still counts), capped at 14h.
+  // Grace = how long a run may lag its slot before we flag it overdue. Capped at 3h
+  // so a clearly-skipped run surfaces the same day instead of hiding as "pending".
   let spacing = DAY;
   if (exp.length >= 2) spacing = Math.min(...exp.slice(1).map((t, i) => t - exp[i]));
-  const grace = Math.min(Math.max(spacing - 30 * 60000, 3600000), 14 * 3600000);
+  const grace = Math.min(Math.max(spacing - 30 * 60000, 3600000), 3 * 3600000);
 
   const state = exp.map(() => ({ ran: false, ok: false }));
   for (const rawE of logArr) {
@@ -154,10 +159,16 @@ function expectedRuns(sched, logArr, startMs, nowMs) {
     for (let i = 0; i < exp.length; i++) { if (exp[i] <= e.t + 3600000) idx = i; else break; }
     if (idx >= 0) { state[idx].ran = true; if (e.ok) state[idx].ok = true; }
   }
-  return exp.map((ts, i) => ({
-    ts,
-    state: state[i].ok ? 'ok' : state[i].ran ? 'fail' : (nowMs > ts + grace ? 'missed' : 'pending'),
-  }));
+  return exp.map((ts, i) => {
+    const nextDue = exp[i + 1] != null ? exp[i + 1] : ts + spacing;
+    let s;
+    if (state[i].ok)            s = 'ok';
+    else if (state[i].ran)      s = 'fail';
+    else if (nowMs > nextDue)   s = 'missed';   // the following scheduled run already came
+    else if (nowMs > ts + grace) s = 'late';    // overdue, but the window is still open
+    else                        s = 'pending';
+    return { ts, state: s };
+  });
 }
 
 const HIST_HOURS = 72; // 3-day history window, hourly buckets
@@ -166,22 +177,37 @@ const HOUR_MS = 3600000;
 async function parsers(res) {
   const day = new Date().toISOString().slice(0, 10);
   const cmds = [];
-  // 3 commands per parser: last-run blob, today's counter, run log (for the chart)
+  // 4 commands per parser: last-run blob, today's counter, run log (chart), in-flight marker
   for (const p of PARSERS) cmds.push(
     ['GET', `sm_parser_${p.id}`],
     ['GET', `sm_parser_${p.id}_n_${day}`],
     ['LRANGE', `sm_parser_${p.id}_log`, '0', '-1'],
+    ['GET', `sm_parser_${p.id}_run`],
   );
   const pipe = (await redisPipeline(cmds)) || [];
-  const startH = Math.floor(Date.now() / HOUR_MS) - (HIST_HOURS - 1);
+  const nowMs = Date.now();
+  const startH = Math.floor(nowMs / HOUR_MS) - (HIST_HOURS - 1);
   const list = PARSERS.map((p, i) => {
-    const base = i * 3;
+    const base = i * 4;
     let st = null;
     const raw = pipe[base] && pipe[base].result;
     if (raw) { try { const o = JSON.parse(raw); st = (o && typeof o === 'object' && o.value) ? JSON.parse(o.value) : o; } catch {} }
     const tRaw = pipe[base + 1] && pipe[base + 1].result;
     // Bucket the run log into hourly slots over the last 3 days.
     const logArr = (pipe[base + 2] && pipe[base + 2].result) || [];
+    // In-flight marker (written at run start, cleared at run end). If it lingers past
+    // the parser's max expected runtime, the last run started but never finished
+    // (crash / timeout) — distinct from a clean failure that recorded ok:false.
+    let running = null;
+    const runRaw = pipe[base + 3] && pipe[base + 3].result;
+    if (runRaw) {
+      let ro = null;
+      try { const o = JSON.parse(runRaw); ro = (o && typeof o === 'object' && o.value) ? JSON.parse(o.value) : o; } catch {}
+      if (ro && ro.startedAt) {
+        const ageMin = Math.round((nowMs - ro.startedAt) / 60000);
+        running = { startedAt: new Date(ro.startedAt).toISOString(), ageMin, stale: ageMin > (p.maxRunMin || 180) };
+      }
+    }
     const buckets = Array.from({ length: HIST_HOURS }, () => ({ runs: 0, ok: 0, n: 0 }));
     for (const rawE of logArr) {
       let e; try { e = JSON.parse(rawE); } catch { continue; }
@@ -197,10 +223,12 @@ async function parsers(res) {
       lastRun: st && st.ts ? new Date(st.ts).toISOString() : null,
       ok:      st ? !!st.ok : null,
       count:   st && st.count != null ? st.count : null,
+      attempted: st && st.attempted != null ? st.attempted : null,
       note:    st && st.note ? st.note : null,
       today:   tRaw != null ? (parseInt(tRaw, 10) || 0) : null,
+      running,
       history: { startMs: startH * HOUR_MS, hourMs: HOUR_MS, hours: HIST_HOURS, buckets },
-      expected: expectedRuns(p.sched, logArr, startH * HOUR_MS, Date.now()),
+      expected: expectedRuns(p.sched, logArr, startH * HOUR_MS, nowMs),
     };
   });
   return res.status(200).json({ parsers: list });

@@ -38,14 +38,20 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 // Reports run status to Redis so the admin "Парсеры" tab can show last run /
 // count / success. Optional — needs KV_REST_API_URL + KV_REST_API_TOKEN secrets
 // in the workflow; silently no-ops without them.
-async function recordParserRun(id, ok, count, note) {
+async function recordParserRun(id, ok, count, note, attempted) {
   if (!KV_REST_API_URL || !KV_REST_API_TOKEN) return;
   try {
     const hdr = { Authorization: `Bearer ${KV_REST_API_TOKEN}`, 'Content-Type': 'application/json' };
+    const blob = { ts: Date.now(), ok: !!ok, count: count || 0, note: String(note || '') };
+    if (typeof attempted === 'number') blob.attempted = attempted; // взято в работу (vs count = обработано)
     await fetch(`${KV_REST_API_URL}/set/${encodeURIComponent('sm_parser_' + id)}`, {
       method: 'POST', headers: hdr,
-      body: JSON.stringify({ value: JSON.stringify({ ts: Date.now(), ok: !!ok, count: count || 0, note: String(note || '') }) }),
+      body: JSON.stringify({ value: JSON.stringify(blob) }),
     });
+    // This run finished (success or handled error) → clear the in-flight marker.
+    await fetch(`${KV_REST_API_URL}/del/${encodeURIComponent('sm_parser_' + id + '_run')}`, {
+      method: 'POST', headers: { Authorization: `Bearer ${KV_REST_API_TOKEN}` },
+    }).catch(() => {});
     // 3-day run log (capped, auto-expiring) for the admin history chart
     const logKey = 'sm_parser_' + id + '_log';
     await fetch(`${KV_REST_API_URL}/pipeline`, {
@@ -55,6 +61,20 @@ async function recordParserRun(id, ok, count, note) {
         ['LTRIM', logKey, '0', '999'],
         ['EXPIRE', logKey, '259200'],
       ]),
+    });
+  } catch {}
+}
+
+// Marks a run as in-flight so the admin tab can distinguish "crashed / timed out
+// mid-run" (marker lingers) from a clean handled failure (marker cleared, ok:false
+// recorded). Auto-expires past the max expected runtime so a dead run can't pin it.
+async function recordParserStart(id) {
+  if (!KV_REST_API_URL || !KV_REST_API_TOKEN) return;
+  try {
+    await fetch(`${KV_REST_API_URL}/set/${encodeURIComponent('sm_parser_' + id + '_run')}?EX=12600`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${KV_REST_API_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ value: JSON.stringify({ startedAt: Date.now() }) }),
     });
   } catch {}
 }
@@ -368,6 +388,7 @@ async function getSlugs(need) {
 
 async function main() {
   console.log(`TrustMRR daily revenue scraper — batch size ${BATCH}${ON_SALE_ONLY ? ' (on-sale only)' : ''}\n`);
+  await recordParserStart('daily-revenue');
 
   console.log('Fetching slug list from Vercel API...');
   const need = ROTATE ? Infinity : OFFSET + BATCH;
@@ -386,7 +407,7 @@ async function main() {
 
   if (!slugs.length) {
     console.log('Nothing to scrape in this window. Exiting.');
-    await recordParserRun('daily-revenue', true, 0, 'Пустое окно ротации');
+    await recordParserRun('daily-revenue', true, 0, 'Пустое окно ротации', 0);
     return;
   }
 
@@ -467,7 +488,7 @@ async function main() {
   console.log(`Chart data found: ${found}/${slugs.length}`);
   console.log(`Revenue rows stored: ${totalRows}`);
 
-  await recordParserRun('daily-revenue', true, found, `${found}/${slugs.length} с графиками · ${totalRows} строк`);
+  await recordParserRun('daily-revenue', true, found, `${found}/${slugs.length} с графиками · ${totalRows} строк`, slugs.length);
 }
 
 main().catch(async (e) => {

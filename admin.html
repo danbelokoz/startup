@@ -314,28 +314,37 @@ function parserChart(h, expected) {
     const allOk = x.ok === x.runs;
     const tip = fmtMskShort(h.startMs + i * h.hourMs) + ' МСК|обновлено стартапов: ' + x.n
       + '|запусков за час: ' + x.runs + (allOk ? '|✓ успех' : '|✕ есть ошибки');
-    return `<rect x="${(i*bw).toFixed(2)}" y="${(H-barH).toFixed(2)}" width="${(bw*0.74).toFixed(2)}" height="${barH.toFixed(2)}" fill="${allOk ? 'var(--green)' : '#f6465d'}" data-tip="${esc(tip)}"/>`;
+    return `<rect x="${(i*bw).toFixed(2)}" y="${(H-barH).toFixed(2)}" width="${(bw*0.74).toFixed(2)}" height="${barH.toFixed(2)}" fill="${allOk ? 'var(--green)' : '#f5a623'}" data-tip="${esc(tip)}"/>`;
   }).join('');
 
-  let okc = 0, failc = 0, miss = 0, marks = '';
-  const COL = { ok:'var(--green)', fail:'#f6465d', missed:'#f6465d', pending:'var(--text3)' };
+  let okc = 0, failc = 0, latec = 0, missc = 0, marks = '';
+  // fail = ran but errored (solid). late/missed = never ran (dashed). Distinct hues.
+  const COL = { ok:'var(--green)', fail:'#f5a623', late:'#facc15', missed:'#f6465d', pending:'var(--text3)' };
   (expected || []).forEach(e => {
     const x = xOfMs(e.ts);
     if (x < -0.5 || x > W + 0.5) return;
-    if (e.state === 'ok') okc++; else if (e.state === 'fail') failc++; else if (e.state === 'missed') miss++;
-    const problem = e.state === 'missed' || e.state === 'fail';
+    if (e.state === 'ok') okc++; else if (e.state === 'fail') failc++;
+    else if (e.state === 'late') latec++; else if (e.state === 'missed') missc++;
+    const full   = e.state === 'fail' || e.state === 'late' || e.state === 'missed';
+    const dashed = e.state === 'late' || e.state === 'missed';   // didn't run; fail ran → solid
     const label = e.state === 'ok'      ? '✓ запуск выполнен'
-                : e.state === 'fail'    ? '✕ запуск был, но с ошибкой'
-                : e.state === 'missed'  ? '⚠ ПРОПУЩЕН — успешного запуска не было'
-                :                         '… ожидается';
+                : e.state === 'fail'    ? '✕ запущен, но завершился с ошибкой'
+                : e.state === 'late'    ? '⏳ опаздывает — запуска ещё не было'
+                : e.state === 'missed'  ? '⚠ пропущен — запуска не было'
+                :                         '… ожидается (по плану только что)';
     const tip = 'по плану: ' + fmtMskShort(e.ts) + ' МСК|' + label;
-    marks += `<line x1="${x.toFixed(2)}" y1="0" x2="${x.toFixed(2)}" y2="${problem ? H : TOP - 1}" stroke="${COL[e.state]}" stroke-width="${problem ? 0.8 : 0.6}"${problem ? ' stroke-dasharray="1.6 1.2"' : ''} opacity="${problem ? 0.92 : 0.7}" data-tip="${esc(tip)}"/>`;
-    marks += `<rect x="${(x-1).toFixed(2)}" y="0" width="2" height="${TOP - 1.5}" fill="${COL[e.state]}" opacity="${problem ? 1 : 0.85}" data-tip="${esc(tip)}"/>`;
+    marks += `<line x1="${x.toFixed(2)}" y1="0" x2="${x.toFixed(2)}" y2="${full ? H : TOP - 1}" stroke="${COL[e.state]}" stroke-width="${full ? 0.85 : 0.6}"${dashed ? ' stroke-dasharray="1.6 1.2"' : ''} opacity="${full ? 0.95 : 0.7}" data-tip="${esc(tip)}"/>`;
+    marks += `<rect x="${(x-1).toFixed(2)}" y="0" width="2" height="${TOP - 1.5}" fill="${COL[e.state]}" opacity="${full ? 1 : 0.85}" data-tip="${esc(tip)}"/>`;
   });
 
   const seps = [24, 48].map(i => `<line x1="${(i*bw).toFixed(2)}" y1="${TOP}" x2="${(i*bw).toFixed(2)}" y2="${H}" stroke="var(--border)" stroke-width="0.3" stroke-dasharray="1 1"/>`).join('');
+  const sumParts = [];
+  if (okc)   sumParts.push(`<b style="color:var(--green);">✓ ${okc}</b>`);
+  if (failc) sumParts.push(`<b style="color:#f5a623;">✕ ошибка ${failc}</b>`);
+  if (latec) sumParts.push(`<b style="color:#facc15;">⏳ опаздывает ${latec}</b>`);
+  if (missc) sumParts.push(`<b style="color:#f6465d;">⚠ пропущено ${missc}</b>`);
   const summary = (expected && expected.length)
-    ? `<span class="adm-mini">по плану за 3 дня: <b style="color:var(--green);">✓ ${okc}</b>${failc ? ` · <b style="color:#f6465d;">✕ ${failc}</b>` : ''}${miss ? ` · <b style="color:#f6465d;">⚠ пропущено ${miss}</b>` : ''}</span>`
+    ? `<span class="adm-mini">по плану за 3 дня: ${sumParts.join(' · ')}</span>`
     : '';
 
   return `<div style="margin-top:14px;">
@@ -351,7 +360,7 @@ function parserChart(h, expected) {
     </svg>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:3px;gap:6px;flex-wrap:wrap;">
       <span class="adm-mini">${esc(fmtMskShort(h.startMs))}</span>
-      <span class="adm-mini"><span style="color:var(--green);">▮</span> успех · <span style="color:#f6465d;">▮</span> ошибка · верх — запуски по расписанию (<span style="color:#f6465d;">⚠ пропуск</span>)</span>
+      <span class="adm-mini">столбцы — обновления · верх — план: <span style="color:var(--green);">▮</span> выполнен <span style="color:#f5a623;">▮</span> ошибка <span style="color:#facc15;">▮</span> опаздывает <span style="color:#f6465d;">▮</span> пропуск</span>
       <span class="adm-mini">сейчас</span>
     </div>
   </div>`;
@@ -367,20 +376,28 @@ async function renderParsers() {
       const okBadge = p.lastRun == null
         ? '<span class="adm-pill">нет данных</span>'
         : (p.ok ? '<span class="adm-pill" style="border-color:rgba(14,203,129,0.4);color:var(--green);">✓ успешно</span>'
-                : '<span class="adm-pill" style="border-color:rgba(246,70,93,0.5);color:#f6465d;">✕ ошибка</span>');
+                : '<span class="adm-pill" style="border-color:rgba(245,166,35,0.55);color:#f5a623;">✕ завершился с ошибкой</span>');
+      // In-flight / crashed-run badge: ⏳ while running, ⚠ if it started but never finished.
+      const runBadge = p.running
+        ? (p.running.stale
+            ? `<span class="adm-pill" style="border-color:rgba(245,166,35,0.6);color:#f5a623;">⚠ запущен, не завершён · ~${p.running.ageMin} мин</span>`
+            : `<span class="adm-pill" style="border-color:rgba(124,156,255,0.5);color:#7c9cff;">⏳ выполняется · ~${p.running.ageMin} мин</span>`)
+        : '';
       const cnt = p.onDemand
         ? (p.today != null ? p.today.toLocaleString() : '—')
-        : (p.count != null ? p.count.toLocaleString() : '—');
+        : ((p.attempted != null || p.count != null)
+            ? `${p.attempted != null ? p.attempted.toLocaleString() : '—'} → ${p.count != null ? p.count.toLocaleString() : '—'}`
+            : '—');
       return `<div style="border:1px solid var(--border);border-radius:12px;padding:14px 16px;background:var(--bg3);">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
           <div style="font-size:14px;font-weight:700;color:var(--text);">${esc(p.name)}</div>
-          <div style="display:flex;gap:6px;align-items:center;">${okBadge}<span class="adm-pill">${esc(p.source)}</span></div>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">${runBadge}${okBadge}<span class="adm-pill">${esc(p.source)}</span></div>
         </div>
         <div class="adm-mini" style="line-height:1.5;margin-bottom:12px;">${esc(p.desc)}</div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;">
           <div><div class="l2">Последнее обновление</div><div class="v2">${dt(p.lastRun)}</div>${p.lastRun?`<div class="adm-mini">${relTime(p.lastRun)}</div>`:''}</div>
           <div><div class="l2">Следующее обновление</div><div class="v2">${p.onDemand ? 'по запросу' : dt(p.nextRun)}</div>${p.onDemand?'':(p.nextRun?`<div class="adm-mini">${relTime(p.nextRun)}</div>`:'')}</div>
-          <div><div class="l2">${p.onDemand ? 'Обновлено сегодня (UTC)' : 'Стартапов за запуск'}</div><div class="v2">${cnt}</div></div>
+          <div><div class="l2">${p.onDemand ? 'Обновлено сегодня (UTC)' : 'Взято → обработано'}</div><div class="v2">${cnt}</div>${p.onDemand ? '' : '<div class="adm-mini">в работу → реально обработано</div>'}</div>
           <div><div class="l2">Расписание</div><div class="v2" style="font-size:12px;line-height:1.4;">${esc(p.scheduleText)}</div></div>
         </div>
         ${p.note ? `<div class="adm-mini" style="margin-top:10px;">Детали последнего запуска: ${esc(p.note)}</div>` : ''}
