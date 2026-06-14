@@ -20,10 +20,11 @@ on:
         required: false
         default: '0'
   schedule:
-    # Every 6h. With ~1782 on-sale / 500-per-run, the persisted cursor sweeps all
-    # ~4 windows in ~24h — so every on-sale startup refreshes well inside 2.5 days,
-    # with margin even if GitHub drops some scheduled runs.
-    - cron: '0 0,6,12,18 * * *'
+    # Every 3h. GitHub's scheduler is best-effort and silently drops scheduled runs,
+    # so we over-schedule: with ~1782 on-sale / 500-per-run the persisted cursor needs
+    # 4 runs for a full sweep, and 8 attempts/day means even a ~50% drop rate keeps
+    # every on-sale startup refreshed well inside 2.5 days.
+    - cron: '0 0,3,6,9,12,15,18,21 * * *'
 
 jobs:
   scrape:
@@ -57,7 +58,7 @@ jobs:
           LIMIT:        ${{ inputs.limit || '500' }}
           OFFSET:       ${{ inputs.offset || '0' }}
           ROTATE:       ${{ github.event_name == 'schedule' && '1' || '0' }}
-          # Only used as a fallback if the Redis cursor is unavailable; matches the 6h cron
-          ROTATE_HOURS: '6'
+          # Only used as a fallback if the Redis cursor is unavailable; matches the 3h cron
+          ROTATE_HOURS: '3'
           DEBUG:        ${{ inputs.debug || '0' }}
         run: node scrape-daily-revenue.js

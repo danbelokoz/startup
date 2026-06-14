@@ -98,7 +98,7 @@ async function topviews(days, res) {
 const PARSERS = [
   { id:'catalog', name:'Каталог — ночной свод', source:'GitHub Actions', scheduleText:'Каждый день в 03:00 UTC', sched:{ m:0, h:[3] }, maxRunMin:25,
     desc:'Тянет весь каталог из TrustMRR API (~7400 стартапов, ~150 страниц) в Redis, пересчитывает суммарные метрики и пишет дневные снимки в Supabase. Полный свод идёт ~8 мин — поэтому вынесен в GitHub Actions (на Vercel Hobby лимит 60 с обрывал его на середине).' },
-  { id:'daily-revenue', name:'Графики дневной выручки', source:'GitHub Actions', scheduleText:'Каждые 6 ч — 00, 06, 12, 18 UTC', sched:{ m:0, h:[0,6,12,18] }, maxRunMin:160,
+  { id:'daily-revenue', name:'Графики дневной выручки', source:'GitHub Actions', scheduleText:'Каждые 3 ч (00–21 UTC)', sched:{ m:0, h:[0,3,6,9,12,15,18,21] }, maxRunMin:160,
     desc:'Скрейпит графики дневной выручки со страниц TrustMRR (Puppeteer) и пишет их в Supabase. За запуск обрабатывает ротационный батч; стартапы на продаже в приоритете.' },
   { id:'enrich', name:'AI-обогащение (TrustMRR)', source:'Vercel · по запросу', scheduleText:'При открытии карточки · кэш 24 ч', sched:null,
     desc:'Достаёт доп. поля с публичной страницы TrustMRR: AI-описание, теги, Acquire Score, соцсети. Запускается при открытии карточки стартапа, если кэш устарел.' },
