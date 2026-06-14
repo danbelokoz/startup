@@ -292,77 +292,91 @@ function attachParserTips() {
   _parserTipsBound = true;
 }
 
-// Activity chart for the last 3 days (МСК). Bars = one per hour, height ∝ startups
-// updated that hour (green = all runs OK, red = had a failure). The thin band on top
-// marks every run the parser was DUE to make per its schedule: green tick = done,
-// red dashed = missed or failed — so a skipped scheduled run jumps out. Hover any
-// bar or marker for details.
-function parserChart(h, expected) {
+// Activity chart for the last 3 days (МСК). Bars = startups updated per hour, read
+// against the left count axis. The thin strip on the baseline marks every run the
+// parser was DUE to make per its schedule — a small block, not a full column:
+// green = done · amber = late · orange = errored · red = missed. typicalBatch = how
+// many startups it normally takes per run (for the "0 / N" hover on a miss).
+function parserChart(h, expected, typicalBatch) {
   if (!h || !Array.isArray(h.buckets)) return '';
   const b = h.buckets;
-  if (!b.some(x => x.runs > 0)) return '<div class="adm-mini" style="margin-top:12px;">Нет запусков за последние 3 дня.</div>';
+  const hasRuns = b.some(x => x.runs > 0);
+  if (!hasRuns && !(expected && expected.length))
+    return '<div class="adm-mini" style="margin-top:12px;">Нет запусков за последние 3 дня.</div>';
   const maxN = Math.max(1, ...b.map(x => x.n));
-  const W = 100, H = 40, TOP = 9;                 // TOP band (vb units) = schedule markers
-  const plotH = H - TOP - 1;
+  const W = 100, H = 40, MARK = 5;                 // MARK = baseline strip for schedule markers
+  const baseY = H - MARK;
+  const plotH = baseY - 1;
   const bw = W / b.length;
   const windowMs = h.hours * h.hourMs;
   const xOfMs = ms => ((ms - h.startMs) / windowMs) * W;
 
   const bars = b.map((x, i) => {
     if (!x.runs) return '';
-    const barH = x.n > 0 ? Math.max(1.5, (x.n / maxN) * plotH) : 1.5;
+    const barH = x.n > 0 ? Math.max(1, (x.n / maxN) * plotH) : 1;
     const allOk = x.ok === x.runs;
     const tip = fmtMskShort(h.startMs + i * h.hourMs) + ' МСК|обновлено стартапов: ' + x.n
       + '|запусков за час: ' + x.runs + (allOk ? '|✓ успех' : '|✕ есть ошибки');
-    return `<rect x="${(i*bw).toFixed(2)}" y="${(H-barH).toFixed(2)}" width="${(bw*0.74).toFixed(2)}" height="${barH.toFixed(2)}" fill="${allOk ? 'var(--green)' : '#f5a623'}" data-tip="${esc(tip)}"/>`;
+    return `<rect x="${(i*bw).toFixed(2)}" y="${(baseY-barH).toFixed(2)}" width="${(bw*0.74).toFixed(2)}" height="${barH.toFixed(2)}" fill="${allOk ? 'var(--green)' : '#f5a623'}" data-tip="${esc(tip)}"/>`;
   }).join('');
 
+  // Schedule markers: small blocks sitting in the baseline strip (not full columns).
   let okc = 0, failc = 0, latec = 0, missc = 0, marks = '';
-  // fail = ran but errored (solid). late/missed = never ran (dashed). Distinct hues.
   const COL = { ok:'var(--green)', fail:'#f5a623', late:'#facc15', missed:'#f6465d', pending:'var(--text3)' };
+  const ofN = (typeof typicalBatch === 'number' && typicalBatch > 0) ? ' из ~' + typicalBatch.toLocaleString() : '';
+  const mw = Math.min(2.4, bw * 0.85);
   (expected || []).forEach(e => {
     const x = xOfMs(e.ts);
     if (x < -0.5 || x > W + 0.5) return;
     if (e.state === 'ok') okc++; else if (e.state === 'fail') failc++;
     else if (e.state === 'late') latec++; else if (e.state === 'missed') missc++;
-    const full   = e.state === 'fail' || e.state === 'late' || e.state === 'missed';
-    const dashed = e.state === 'late' || e.state === 'missed';   // didn't run; fail ran → solid
     const label = e.state === 'ok'      ? '✓ запуск выполнен'
-                : e.state === 'fail'    ? '✕ запущен, но завершился с ошибкой'
-                : e.state === 'late'    ? '⏳ опаздывает — запуска ещё не было'
-                : e.state === 'missed'  ? '⚠ пропущен — запуска не было'
+                : e.state === 'fail'    ? '✕ запущен, но завершился с ошибкой|обработано 0' + ofN
+                : e.state === 'late'    ? '⏳ опаздывает — запуска ещё не было|обновлено 0' + ofN
+                : e.state === 'missed'  ? '⚠ пропущен — запуска не было|обновлено 0' + ofN
                 :                         '… ожидается (по плану только что)';
     const tip = 'по плану: ' + fmtMskShort(e.ts) + ' МСК|' + label;
-    marks += `<line x1="${x.toFixed(2)}" y1="0" x2="${x.toFixed(2)}" y2="${full ? H : TOP - 1}" stroke="${COL[e.state]}" stroke-width="${full ? 0.85 : 0.6}"${dashed ? ' stroke-dasharray="1.6 1.2"' : ''} opacity="${full ? 0.95 : 0.7}" data-tip="${esc(tip)}"/>`;
-    marks += `<rect x="${(x-1).toFixed(2)}" y="0" width="2" height="${TOP - 1.5}" fill="${COL[e.state]}" opacity="${full ? 1 : 0.85}" data-tip="${esc(tip)}"/>`;
+    marks += `<rect x="${(x-mw/2).toFixed(2)}" y="${(baseY+0.6).toFixed(2)}" width="${mw.toFixed(2)}" height="${(MARK-1.2).toFixed(2)}" rx="0.4" fill="${COL[e.state]}" data-tip="${esc(tip)}"/>`;
   });
 
-  const seps = [24, 48].map(i => `<line x1="${(i*bw).toFixed(2)}" y1="${TOP}" x2="${(i*bw).toFixed(2)}" y2="${H}" stroke="var(--border)" stroke-width="0.3" stroke-dasharray="1 1"/>`).join('');
+  const seps = [24, 48].map(i => `<line x1="${(i*bw).toFixed(2)}" y1="0" x2="${(i*bw).toFixed(2)}" y2="${baseY}" stroke="var(--border)" stroke-width="0.3" stroke-dasharray="1 1"/>`).join('');
+  const grid = [0.5, 1].map(f => `<line x1="0" y1="${(baseY - f*plotH).toFixed(2)}" x2="${W}" y2="${(baseY - f*plotH).toFixed(2)}" stroke="var(--border)" stroke-width="0.25" stroke-dasharray="0.6 0.9"/>`).join('');
+
   const sumParts = [];
   if (okc)   sumParts.push(`<b style="color:var(--green);">✓ ${okc}</b>`);
   if (failc) sumParts.push(`<b style="color:#f5a623;">✕ ошибка ${failc}</b>`);
   if (latec) sumParts.push(`<b style="color:#facc15;">⏳ опаздывает ${latec}</b>`);
   if (missc) sumParts.push(`<b style="color:#f6465d;">⚠ пропущено ${missc}</b>`);
-  const summary = (expected && expected.length)
-    ? `<span class="adm-mini">по плану за 3 дня: ${sumParts.join(' · ')}</span>`
-    : '';
+  const summary = (expected && expected.length) ? `<span class="adm-mini">по плану за 3 дня: ${sumParts.join(' · ')}</span>` : '';
 
+  // Bottom timeline (МСК): a few evenly spaced labels so time reads without hover.
+  const NX = 4;
+  const xLabels = Array.from({ length: NX }, (_, i) => {
+    const lab = i === NX - 1 ? 'сейчас' : esc(fmtMskShort(h.startMs + (i / (NX - 1)) * windowMs));
+    const ta = i === 0 ? 'left' : i === NX - 1 ? 'right' : 'center';
+    return `<span class="adm-mini" style="flex:1;text-align:${ta};">${lab}</span>`;
+  }).join('');
+
+  const CH = 74, padB = Math.round(CH * MARK / H);   // px height + bottom pad so axis "0" meets the baseline
   return `<div style="margin-top:14px;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;gap:8px;flex-wrap:wrap;">
-      <span class="l2">Активность за 3 дня · по часам · МСК <span class="adm-mini">(высота столбца = обновлено стартапов, макс ${maxN})</span></span>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px;flex-wrap:wrap;">
+      <span class="l2">Активность за 3 дня · по часам · МСК</span>
       ${summary}
     </div>
-    <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:74px;display:block;background:var(--bg2);border:1px solid var(--border);border-radius:8px;">
-      ${seps}
-      <line x1="0" y1="${TOP}" x2="${W}" y2="${TOP}" stroke="var(--border)" stroke-width="0.3"/>
-      <line x1="0" y1="${H}" x2="${W}" y2="${H}" stroke="var(--border)" stroke-width="0.4"/>
-      ${marks}${bars}
-    </svg>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:3px;gap:6px;flex-wrap:wrap;">
-      <span class="adm-mini">${esc(fmtMskShort(h.startMs))}</span>
-      <span class="adm-mini">столбцы — обновления · верх — план: <span style="color:var(--green);">▮</span> выполнен <span style="color:#f5a623;">▮</span> ошибка <span style="color:#facc15;">▮</span> опаздывает <span style="color:#f6465d;">▮</span> пропуск</span>
-      <span class="adm-mini">сейчас</span>
+    <div style="display:flex;gap:5px;">
+      <div style="width:30px;height:${CH}px;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-end;padding:1px 0 ${padB}px;">
+        <span class="adm-mini">${maxN.toLocaleString()}</span>
+        <span class="adm-mini">${Math.round(maxN/2).toLocaleString()}</span>
+        <span class="adm-mini">0</span>
+      </div>
+      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="flex:1;height:${CH}px;display:block;background:var(--bg2);border:1px solid var(--border);border-radius:8px;">
+        ${grid}${seps}
+        <line x1="0" y1="${baseY}" x2="${W}" y2="${baseY}" stroke="var(--border)" stroke-width="0.45"/>
+        ${bars}${marks}
+      </svg>
     </div>
+    <div style="display:flex;margin:3px 0 0 35px;">${xLabels}</div>
+    <div class="adm-mini" style="margin-top:5px;">столбцы — обновлено стартапов · полоса снизу — план: <span style="color:var(--green);">▮</span> выполнен <span style="color:#f5a623;">▮</span> ошибка <span style="color:#facc15;">▮</span> опаздывает <span style="color:#f6465d;">▮</span> пропуск</span>
   </div>`;
 }
 async function renderParsers() {
@@ -401,7 +415,7 @@ async function renderParsers() {
           <div><div class="l2">Расписание</div><div class="v2" style="font-size:12px;line-height:1.4;">${esc(p.scheduleText)}</div></div>
         </div>
         ${p.note ? `<div class="adm-mini" style="margin-top:10px;">Детали последнего запуска: ${esc(p.note)}</div>` : ''}
-        ${parserChart(p.history, p.expected)}
+        ${parserChart(p.history, p.expected, p.attempted)}
       </div>`;
     }).join('')}
     </div>
