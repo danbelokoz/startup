@@ -485,8 +485,14 @@ async function loadLanding() {
   // Top growing on-sale startups → product cards.
   try {
     const r = await fetch(API+'/startups?onSale=true&page=1&limit=20&sort=growth-desc').then(r=>r.json()).catch(()=>null);
-    // Top growing showcase: never surface listings priced under $100.
-    const items = ((r&&r.data)||[]).filter(s=>s&&s.slug&&Number(s.askingPrice||0)>=100);
+    // Top growing showcase: only live, real businesses — require MRR > 0 and
+    // ≥ $300 trailing-30-day revenue (the base the growth % is computed from), so a
+    // near-zero base can't inflate the percentage and no "$0 / mo" cards show up.
+    const items = ((r&&r.data)||[]).filter(s=>{
+      if (!s || !s.slug) return false;
+      const rev = s.revenue || {};
+      return Number(rev.mrr||0) > 0 && Number(rev.last30Days||0) >= 300;
+    });
     renderCards(items.slice(0,4));
   } catch { renderCards([]); }
 }

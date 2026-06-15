@@ -145,8 +145,12 @@ async function loadLeaderboard() {
     const pool = [];
     for (const j of [byRev, byGrowth]) {
       for (const x of (j && j.data) || []) {
-        // Top growing board excludes listings priced under $100.
-        if (x && x.slug && !seen.has(x.slug) && Number(x.askingPrice || 0) >= 100) { seen.add(x.slug); pool.push(x); }
+        // Only live, real businesses: MRR > 0 and ≥ $300 trailing-30-day revenue
+        // (the base growth is measured on), so a near-zero base can't inflate the
+        // % growth ranking and no "$0" MRR rows appear.
+        const rev = (x && x.revenue) || {};
+        const ok = Number(rev.mrr || 0) > 0 && Number(rev.last30Days || 0) >= 300;
+        if (x && x.slug && !seen.has(x.slug) && ok) { seen.add(x.slug); pool.push(x); }
       }
     }
     leadItems = pool.map(s => ({
