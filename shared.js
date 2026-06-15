@@ -196,6 +196,15 @@ Object.assign(T.it.auth, { showPw:'Mostra password', hidePw:'Nascondi password' 
 Object.assign(T.zh.auth, { showPw:'显示密码', hidePw:'隐藏密码' });
 Object.assign(T.ar.auth, { showPw:'إظهار كلمة المرور', hidePw:'إخفاء كلمة المرور' });
 
+// Footer links + cookie/tracking consent banner (rendered by shared.js on every page).
+Object.assign(T.en, { legal: { footPrivacy:'Privacy Policy', footTerms:'Terms of Use', footCatalog:'Catalog', footHow:'How it works', footRights:'All rights reserved.', cookieText:'We use localStorage and similar technologies to run the site, plus an anonymous traffic count. No advertising or third-party tracking cookies.', cookieAccept:'Accept all', cookieReject:'Essentials only', cookieMore:'Details', privacyTitle:'Privacy Policy', termsTitle:'Terms of Use' } });
+Object.assign(T.ru, { legal: { footPrivacy:'Конфиденциальность', footTerms:'Условия использования', footCatalog:'Каталог', footHow:'Как это работает', footRights:'Все права защищены.', cookieText:'Мы используем localStorage и похожие технологии, чтобы сайт работал, и анонимный счётчик посещений. Без рекламных и сторонних трекинговых cookie.', cookieAccept:'Принять все', cookieReject:'Только необходимые', cookieMore:'Подробнее', privacyTitle:'Политика конфиденциальности', termsTitle:'Условия использования' } });
+Object.assign(T.de, { legal: { footPrivacy:'Datenschutz', footTerms:'Nutzungsbedingungen', footCatalog:'Katalog', footHow:'So funktioniert es', footRights:'Alle Rechte vorbehalten.', cookieText:'Wir verwenden localStorage und ähnliche Technologien für den Betrieb der Seite sowie eine anonyme Besucherzählung. Keine Werbe- oder Drittanbieter-Tracking-Cookies.', cookieAccept:'Alle akzeptieren', cookieReject:'Nur notwendige', cookieMore:'Details', privacyTitle:'Datenschutzerklärung', termsTitle:'Nutzungsbedingungen' } });
+Object.assign(T.fr, { legal: { footPrivacy:'Confidentialité', footTerms:'Conditions d’utilisation', footCatalog:'Catalogue', footHow:'Comment ça marche', footRights:'Tous droits réservés.', cookieText:'Nous utilisons le localStorage et des technologies similaires pour faire fonctionner le site, ainsi qu’un comptage anonyme de la fréquentation. Pas de cookies publicitaires ni de traceurs tiers.', cookieAccept:'Tout accepter', cookieReject:'Essentiels uniquement', cookieMore:'Détails', privacyTitle:'Politique de confidentialité', termsTitle:'Conditions d’utilisation' } });
+Object.assign(T.it, { legal: { footPrivacy:'Privacy', footTerms:'Termini d’uso', footCatalog:'Catalogo', footHow:'Come funziona', footRights:'Tutti i diritti riservati.', cookieText:'Usiamo localStorage e tecnologie simili per far funzionare il sito, oltre a un conteggio anonimo del traffico. Nessun cookie pubblicitario o di tracciamento di terze parti.', cookieAccept:'Accetta tutto', cookieReject:'Solo essenziali', cookieMore:'Dettagli', privacyTitle:'Informativa sulla privacy', termsTitle:'Termini d’uso' } });
+Object.assign(T.zh, { legal: { footPrivacy:'隐私政策', footTerms:'使用条款', footCatalog:'目录', footHow:'工作原理', footRights:'版权所有。', cookieText:'我们使用 localStorage 及类似技术以运行网站，并进行匿名访问统计。不使用广告或第三方跟踪 cookie。', cookieAccept:'全部接受', cookieReject:'仅必要', cookieMore:'详情', privacyTitle:'隐私政策', termsTitle:'使用条款' } });
+Object.assign(T.ar, { legal: { footPrivacy:'الخصوصية', footTerms:'شروط الاستخدام', footCatalog:'الكتالوج', footHow:'كيف يعمل', footRights:'جميع الحقوق محفوظة.', cookieText:'نستخدم localStorage وتقنيات مماثلة لتشغيل الموقع، إضافةً إلى عدّ زيارات مجهول. لا نستخدم كوكيز إعلانية أو تتبّعًا من جهات خارجية.', cookieAccept:'قبول الكل', cookieReject:'الضرورية فقط', cookieMore:'تفاصيل', privacyTitle:'سياسة الخصوصية', termsTitle:'شروط الاستخدام' } });
+
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 function getLang() { return localStorage.getItem('lang') || 'ru'; }
 function setLangCode(code) { localStorage.setItem('lang', code); location.reload(); }
@@ -412,6 +421,60 @@ function buildNavHTML(activePage) {
 }
 
 function buildModalHTML() { return ''; }
+
+// ── FOOTER ──────────────────────────────────────────────────────────────────
+// Single localized footer with legal links. Auto-mounted on every page (see the
+// DOMContentLoaded handler at the bottom): replaces an existing <footer> or, on
+// pages without one (startup detail, auth, dashboard), appends a fresh one.
+function buildFooterHTML() {
+  const l = (T[getLang()] || T.en).legal || T.en.legal;
+  const year = new Date().getFullYear();
+  return `<span class="foot-copy">© ${year} MRRket · ${l.footRights}</span>` +
+    `<span class="foot-links">` +
+      `<a href="/catalog">${l.footCatalog}</a>` +
+      `<a href="/acquire.html">${l.footHow}</a>` +
+      `<a href="/privacy">${l.footPrivacy}</a>` +
+      `<a href="/terms">${l.footTerms}</a>` +
+    `</span>`;
+}
+
+function mountFooter() {
+  const html = buildFooterHTML();
+  let f = document.querySelector('footer');
+  if (!f) { f = document.createElement('footer'); document.body.appendChild(f); }
+  f.classList.add('site-footer');
+  f.innerHTML = html;
+}
+
+// ── COOKIE / TRACKING CONSENT ─────────────────────────────────────────────────
+// Stored choice: 'all' (analytics ping allowed) | 'essential' (no analytics).
+// The traffic beacon (trackVisit) honours 'essential' by staying silent. We use
+// no advertising or third-party cookies, so this is a transparency + opt-out
+// notice rather than a hard gate.
+function getCookieConsent() { try { return localStorage.getItem('sm_cookie_consent'); } catch { return null; } }
+function setCookieConsent(v) {
+  try { localStorage.setItem('sm_cookie_consent', v); } catch {}
+  const b = document.getElementById('cookieBanner');
+  if (b) { b.classList.remove('show'); setTimeout(() => b.remove(), 250); }
+}
+
+function mountCookieConsent() {
+  if (getCookieConsent()) return;                       // already chose
+  if (location.pathname.startsWith('/admin')) return;   // internal page
+  if (document.getElementById('cookieBanner')) return;
+  const l = (T[getLang()] || T.en).legal || T.en.legal;
+  const el = document.createElement('div');
+  el.id = 'cookieBanner';
+  el.className = 'cookie-banner';
+  el.innerHTML =
+    `<div class="cookie-text">${escHtml(l.cookieText)} <a href="/privacy">${escHtml(l.cookieMore)}</a></div>` +
+    `<div class="cookie-actions">` +
+      `<button class="cookie-btn ghost" onclick="setCookieConsent('essential')">${escHtml(l.cookieReject)}</button>` +
+      `<button class="cookie-btn primary" onclick="setCookieConsent('all')">${escHtml(l.cookieAccept)}</button>` +
+    `</div>`;
+  document.body.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('show'));
+}
 
 // ── AUTH NAV ──────────────────────────────────────────────────────────────────
 // Requires window.SUPABASE_URL + window.SUPABASE_ANON (from auth-config.js)
@@ -801,6 +864,7 @@ async function submitSellForm(modal) {
   try {
     const path = location.pathname;
     if (path.startsWith('/admin')) return;
+    if (getCookieConsent() === 'essential') return;   // user opted out of analytics
     let p = 'other', s;
     if (path === '/' || path === '/index.html') p = 'home';
     else if (path.startsWith('/acquire'))   p = 'acquire';
@@ -819,3 +883,11 @@ async function submitSellForm(modal) {
     }).catch(() => {});
   } catch {}
 })();
+
+// ── AUTO-MOUNT: footer + cookie consent on every page that loads shared.js ──────
+function mountSharedChrome() { try { mountFooter(); } catch {} try { mountCookieConsent(); } catch {} }
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', mountSharedChrome);
+} else {
+  mountSharedChrome();
+}
