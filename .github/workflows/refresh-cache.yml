@@ -2,7 +2,8 @@ name: Refresh startup catalog
 
 on:
   schedule:
-    - cron: '0 3 * * *'  # every day at 3:00 UTC
+    # 03:17, not 03:00 — GitHub delays/drops scheduled runs most at the top of the hour.
+    - cron: '17 3 * * *'  # every day at 03:17 UTC
   workflow_dispatch:       # allow manual trigger
 
 jobs:

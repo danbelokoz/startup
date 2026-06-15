@@ -24,7 +24,8 @@ on:
     # so we over-schedule: with ~1782 on-sale / 500-per-run the persisted cursor needs
     # 4 runs for a full sweep, and 8 attempts/day means even a ~50% drop rate keeps
     # every on-sale startup refreshed well inside 2.5 days.
-    - cron: '0 0,3,6,9,12,15,18,21 * * *'
+    # Run at :17, not :00 — GitHub delays/drops crons most at the top of the hour.
+    - cron: '17 0,3,6,9,12,15,18,21 * * *'
 
 jobs:
   scrape:

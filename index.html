@@ -36,6 +36,7 @@
 .bigcap .upd{color:var(--text3)}
 
 .cta{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.btn-y{text-decoration:none}
 .cta .btn-y{display:inline-flex;align-items:center;justify-content:center;background:var(--accent);color:#181A20;font-weight:600;border:0;border-radius:10px;padding:15px 32px;font-size:15px;cursor:pointer;font-family:inherit}
 .cta .btn-y:hover{background:var(--accent2)}
 .selllink{display:inline-flex;align-items:center;gap:5px;color:var(--text3);font-weight:500;font-size:14px;background:none;border:0;cursor:pointer;font-family:inherit}
@@ -483,16 +484,19 @@ async function loadLanding() {
     renderWidget(items.slice(0,5));
   } catch { renderWidget([]); }
   // Top growing on-sale startups → product cards.
+  // Only real recurring businesses: MRR > $1000 and ≥ $300 trailing-30-day revenue,
+  // so a one-off payment on a near-zero base (tiny MRR, huge %) never headlines.
+  // High-growth skews to low MRR, so scan several growth pages to fill the row.
   try {
-    const r = await fetch(API+'/startups?onSale=true&page=1&limit=20&sort=growth-desc').then(r=>r.json()).catch(()=>null);
-    // Top growing showcase: only live, real businesses — require MRR > 0 and
-    // ≥ $300 trailing-30-day revenue (the base the growth % is computed from), so a
-    // near-zero base can't inflate the percentage and no "$0 / mo" cards show up.
-    const items = ((r&&r.data)||[]).filter(s=>{
-      if (!s || !s.slug) return false;
+    const pages = await Promise.all([1,2,3].map(pg =>
+      fetch(API+'/startups?onSale=true&page='+pg+'&limit=50&sort=growth-desc').then(r=>r.json()).catch(()=>null)));
+    const seen = new Set(); const items = [];
+    for (const r of pages) for (const s of ((r&&r.data)||[])) {
+      if (!s || !s.slug || seen.has(s.slug)) continue;
+      seen.add(s.slug);
       const rev = s.revenue || {};
-      return Number(rev.mrr||0) > 0 && Number(rev.last30Days||0) >= 300;
-    });
+      if (Number(rev.mrr||0) > 1000 && Number(rev.last30Days||0) >= 300) items.push(s);
+    }
     renderCards(items.slice(0,4));
   } catch { renderCards([]); }
 }

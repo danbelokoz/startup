@@ -145,11 +145,11 @@ async function loadLeaderboard() {
     const pool = [];
     for (const j of [byRev, byGrowth]) {
       for (const x of (j && j.data) || []) {
-        // Only live, real businesses: MRR > 0 and ≥ $300 trailing-30-day revenue
-        // (the base growth is measured on), so a near-zero base can't inflate the
-        // % growth ranking and no "$0" MRR rows appear.
+        // Only real recurring businesses: MRR > $1000 and ≥ $300 trailing-30-day
+        // revenue, so a one-off payment on a near-zero base can't inflate the % growth
+        // ranking (tiny MRR, huge %).
         const rev = (x && x.revenue) || {};
-        const ok = Number(rev.mrr || 0) > 0 && Number(rev.last30Days || 0) >= 300;
+        const ok = Number(rev.mrr || 0) > 1000 && Number(rev.last30Days || 0) >= 300;
         if (x && x.slug && !seen.has(x.slug) && ok) { seen.add(x.slug); pool.push(x); }
       }
     }
