@@ -62,7 +62,9 @@ async function dispatchWorkflow(req, res) {
   const minGapSec = wfName === 'catalog' ? 6 * 3600 : 2 * 3600;
   if (String(req.query.force || '') !== '1') {
     try {
-      const lock = await kv('POST', `/set/${encodeURIComponent('sm_dispatch_' + wfName)}/1?NX=true&EX=${minGapSec}`);
+      // Upstash REST takes command args as PATH segments (not query): SET key 1 NX EX n.
+      // result === null ⇒ NX hit an existing key ⇒ a dispatch happened within minGapSec.
+      const lock = await kv('POST', `/set/${encodeURIComponent('sm_dlock_' + wfName)}/1/NX/EX/${minGapSec}`);
       if (lock && lock.result === null) {
         return res.status(200).json({ ok: true, skipped: 'throttled', wf, minGapSec });
       }
