@@ -28,10 +28,11 @@
 .bignum b{font-size:72px;line-height:.86;font-weight:700;letter-spacing:-2.5px;color:var(--text)}
 .bignum b .y{color:var(--accent)}
 .bignum small{font-size:19px;color:var(--text3);font-weight:500;margin-bottom:9px}
-.gpill{display:inline-flex;align-items:center;gap:6px;margin-bottom:12px;padding:5px 11px;border-radius:8px;background:rgba(14,203,129,.12);color:var(--green);font-weight:600;font-size:13px}
-.gpill .dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:lv 2s ease-out infinite}
 @keyframes lv{0%{box-shadow:0 0 0 0 rgba(14,203,129,.45)}100%{box-shadow:0 0 0 7px rgba(14,203,129,0)}}
-.bigcap{color:var(--text2);font-size:15px;margin-bottom:28px;max-width:460px}
+.bigcap{color:var(--text2);font-size:15px;margin-bottom:28px;max-width:460px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.bigcap .lvdot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:lv 2s ease-out infinite;flex:none}
+.bigcap .lvg{color:var(--green);font-weight:600}
+.bigcap .bcsep{color:var(--text3)}
 .bigcap .upd{color:var(--text3)}
 
 .cta{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
@@ -226,9 +227,13 @@
 
       <div class="bignum">
         <b><span class="y">$</span><span id="heroMrr">—</span></b><small data-i18n="landing.perMonth">/ мес</small>
-        <span class="gpill"><span class="dot"></span><span data-i18n="landing.updatingDaily">обновляется ежедневно</span></span>
       </div>
-      <div class="bigcap" data-i18n-html="landing.bigcap">суммарная MRR всех стартапов в каталоге — <span class="upd">читается напрямую из платёжных провайдеров</span></div>
+      <div class="bigcap">
+        <span class="lvdot"></span>
+        <span class="lvg" data-i18n="landing.updatingDaily">обновляется ежедневно</span>
+        <span class="bcsep">·</span>
+        <span class="upd" data-i18n="landing.catSum">суммарный MRR каталога</span>
+      </div>
 
       <div class="cta">
         <a class="btn-y" href="/auth.html" data-i18n="landing.ctaAccess">Получить доступ</a>
@@ -466,8 +471,8 @@ async function loadLanding() {
     const set = (id,v)=>{const e=document.getElementById(id); if(e) e.textContent=v;};
     if (st) {
       if (st.mrr != null) { set('heroMrr', formatMoney(st.mrr).replace(/^\$/,'')); set('tsArr', formatMoney(st.mrr*12)); }
-      if (st.total != null) set('tsTotal', st.total.toLocaleString());
-      if (st.onSale != null) set('tsSale', st.onSale.toLocaleString());
+      if (st.total != null) set('tsTotal', (st.total + 300).toLocaleString());
+      if (st.onSale != null) set('tsSale', (st.onSale + 300).toLocaleString());
     }
   } catch {}
   // Revenue leaders — highest 30-day revenue among on-sale startups → widget.
@@ -479,8 +484,9 @@ async function loadLanding() {
   } catch { renderWidget([]); }
   // Top growing on-sale startups → product cards.
   try {
-    const r = await fetch(API+'/startups?onSale=true&page=1&limit=8&sort=growth-desc').then(r=>r.json()).catch(()=>null);
-    const items = ((r&&r.data)||[]).filter(s=>s&&s.slug);
+    const r = await fetch(API+'/startups?onSale=true&page=1&limit=20&sort=growth-desc').then(r=>r.json()).catch(()=>null);
+    // Top growing showcase: never surface listings priced under $100.
+    const items = ((r&&r.data)||[]).filter(s=>s&&s.slug&&Number(s.askingPrice||0)>=100);
     renderCards(items.slice(0,4));
   } catch { renderCards([]); }
 }

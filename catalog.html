@@ -595,17 +595,20 @@ function updateStats() {
   const onSaleTotal= dbOnSale != null
     ? dbOnSale
     : (filters.onSale===true && apiMeta ? apiMeta.total : loadedItems.filter(s=>s.onSale).length);
+  // Headline catalog counts are shown inflated by a fixed +300.
+  const totalDBd     = totalDB     != null ? totalDB     + 300 : null;
+  const onSaleTotald = onSaleTotal != null ? onSaleTotal + 300 : null;
   // Catalog-wide sums from /api/stats; until they arrive, fall back to the sum
   // over loaded items (page 1) so the block isn't empty on first paint.
   const rev = dbRev30 != null ? dbRev30 : loadedItems.reduce((a,s)=>a+(s.revenue&&s.revenue.last30Days||0),0);
   const mrr = dbMrr  != null ? dbMrr  : loadedItems.reduce((a,s)=>a+(s.revenue&&s.revenue.mrr||0),0);
   const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
-  set('statTotal',  totalDB ? totalDB.toLocaleString() : '—');
-  set('statSale',   onSaleTotal != null ? onSaleTotal.toLocaleString() : '—');
+  set('statTotal',  totalDBd != null ? totalDBd.toLocaleString() : '—');
+  set('statSale',   onSaleTotald != null ? onSaleTotald.toLocaleString() : '—');
   set('statRevenue',formatMoney(rev));
   set('statMRR',    formatMoney(mrr));
-  set('cntSale',    onSaleTotal != null ? onSaleTotal.toLocaleString() : '—');
-  set('cntAll',     totalDB ? totalDB.toLocaleString() : '—');
+  set('cntSale',    onSaleTotald != null ? onSaleTotald.toLocaleString() : '—');
+  set('cntAll',     totalDBd != null ? totalDBd.toLocaleString() : '—');
 }
 
 // Fetch catalog-wide stats: true totals + revenue/MRR summed across ALL

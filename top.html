@@ -145,7 +145,8 @@ async function loadLeaderboard() {
     const pool = [];
     for (const j of [byRev, byGrowth]) {
       for (const x of (j && j.data) || []) {
-        if (x && x.slug && !seen.has(x.slug)) { seen.add(x.slug); pool.push(x); }
+        // Top growing board excludes listings priced under $100.
+        if (x && x.slug && !seen.has(x.slug) && Number(x.askingPrice || 0) >= 100) { seen.add(x.slug); pool.push(x); }
       }
     }
     leadItems = pool.map(s => ({
