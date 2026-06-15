@@ -101,8 +101,8 @@ a.lead-row:hover { background: var(--bg3); }
       <div class="lead-controls">
         <div class="lead-select-wrap">
           <select class="lead-select" id="sortSelect" onchange="onSortChange(this.value)" aria-label="Sort">
-            <option value="mrr" data-i18n="lead.sortMrr" selected>MRR</option>
-            <option value="growth" data-i18n="lead.sortGrowth">Рост</option>
+            <option value="mrr" data-i18n="lead.sortMrr">MRR</option>
+            <option value="growth" data-i18n="lead.sortGrowth" selected>Рост</option>
             <option value="rev" data-i18n="lead.sortRev">Выручка</option>
           </select>
         </div>
@@ -119,7 +119,7 @@ a.lead-row:hover { background: var(--bg3); }
   </div>
 </div>
 
-<footer><a href="#">Условия</a> &nbsp;·&nbsp; <a href="#">Конфиденциальность</a></footer>
+<footer>© 2026 MRRket</footer>
 
 <script>
 applyLangToDoc();
@@ -128,7 +128,7 @@ initNavAuth();
 
 const API = '/api';
 let leadItems = [];
-let sortKey   = 'mrr';   // default: rank by MRR (metrics shown are for the last 30 days)
+let sortKey   = 'growth';   // default: rank by 30-day growth (matches the “top growing” heading)
 
 function onSortChange(v) { sortKey = v; renderTable(); }
 

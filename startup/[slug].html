@@ -258,7 +258,7 @@ async function loadStartup(slug) {
 }
 
 let _startup = null;
-let _revealed = false;
+let _revealed = true;   // paywall removed — seller site + owner are public to all visitors
 const LS_FAVS = 'sm_favs';
 function getFavs(){try{return JSON.parse(localStorage.getItem(LS_FAVS)||'[]');}catch{return[];}}
 function toggleDetailFav(){
@@ -678,7 +678,7 @@ function renderSimilarInto(el, s, items) {
       ${items.map(it => {
         const init = (it.name||'?').split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
         const isAnon2 = (it.name||'').toLowerCase().includes('anonymous');
-        const wantBlur2 = !isAnon2 && !isSubscriber && !isRevealed(it.slug);
+        const wantBlur2 = false;   // paywall removed — names/logos public
         const blurN = wantBlur2 ? ' name-blur' : '';
         const blurL = wantBlur2 ? ' logo-blur' : '';
         const logo = it.icon

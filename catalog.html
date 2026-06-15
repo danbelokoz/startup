@@ -169,9 +169,6 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
         <div class="sb-label" data-i18n="idx.fltCats">Категории</div>
         <select class="sb-select" id="catSelect" onchange="onCategoryChange(this.value)">
           <option value="" data-i18n="idx.fltCatsAll">Все категории...</option>
-          <option>AI</option><option>SaaS</option><option>Developer Tools</option>
-          <option>Fintech</option><option>Marketing</option><option>E-commerce</option>
-          <option>Productivity</option><option>No-code</option><option>Analytics</option>
         </select>
       </div>
       <div class="sb-section">
@@ -240,7 +237,7 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
   </main>
 </div>
 
-<footer><a href="#">Условия</a> &nbsp;·&nbsp; <a href="#">Конфиденциальность</a></footer>
+<footer>© 2026 MRRket</footer>
 
 <script>
 applyLangToDoc();
@@ -267,6 +264,9 @@ let dbOnSale     = null; // total onSale items (from a dedicated count fetch)
 let dbRev30      = null; // 30-day revenue summed across ALL startups (cents, /api/stats)
 let dbMrr        = null; // MRR summed across ALL startups (cents, /api/stats)
 let searchTimer;
+let renderLimit = 60;     // windowed render: how many filtered cards are in the DOM
+let allLoaded   = false;  // every page of the current status filter is in memory
+let loadToken   = 0;      // bumps on each fresh load so a stale load-all loop aborts
 
 let filters = {
   onSale:true, category:'', sort:'revenue-desc',
@@ -313,11 +313,13 @@ async function loadInitial() {
       displayItems = applyClientFilters(loadedItems);
       updateStats(); renderCards(); updateCount();
       if (Date.now()-c.ts > FRESH_TTL) fetchPage(1, true);
+      loadAllPages(loadToken);   // fill remaining pages so search/category cover all
       return;
     }
   }
   showLoading();
   await fetchPage(1, false);
+  loadAllPages(loadToken);   // fill remaining pages so search/category cover all
 }
 
 async function fetchPage(page, bg) {
@@ -369,6 +371,35 @@ async function fetchPage(page, bg) {
 // Stable client-side sort — anonymous to the bottom, then by data completeness
 // descending, then the API's chosen order for ties. Buyers see the richest
 // cards first without losing the global revenue/growth/price sort.
+// Pull every remaining page of the current status filter into memory so search,
+// category and range filters work over the whole catalog — not just page 1.
+async function loadAllPages(token) {
+  if (allLoaded) return;
+  let guard = 0;
+  while (hasMore && guard++ < 400) {
+    if (token !== loadToken) return;   // a newer load started — abort this one
+    await fetchPage(apiPage + 1, true);
+  }
+  if (token !== loadToken) return;
+  allLoaded = !hasMore;
+  buildCategoryOptions();
+}
+
+// Rebuild the category dropdown from categories actually present in the data.
+// (The upstream API ignores ?category=, so filtering is client-side and the
+// options must match the real category strings exactly.)
+function buildCategoryOptions() {
+  const sel = document.getElementById('catSelect');
+  if (!sel) return;
+  const counts = {};
+  loadedItems.forEach(s => { const c = (s.category||'').trim(); if (c) counts[c] = (counts[c]||0) + 1; });
+  const cats = Object.keys(counts).sort((a,b) => counts[b] - counts[a]);
+  const cur = filters.category;
+  sel.innerHTML = '<option value="">' + escHtml(t('idx','fltCatsAll')) + '</option>'
+    + cats.map(c => '<option value="' + escHtml(c) + '">' + escHtml(c) + ' (' + counts[c] + ')</option>').join('');
+  sel.value = cur || '';
+}
+
 function rankAnonLast(arr) {
   // When browsing by tag/category (saleFirst), for-sale startups float to the top.
   const saleFirst = !!filters.saleFirst;
@@ -380,18 +411,19 @@ function applyClientFilters(items) {
   const q = filters.search.toLowerCase();
   const filtered = items.filter(s => {
     if (q && !s.name.toLowerCase().includes(q) && !(s.description||'').toLowerCase().includes(q)) return false;
+    if (filters.category && (s.category||'') !== filters.category) return false;
     const mrr   = s.revenue&&s.revenue.mrr||0;
     const rev   = s.revenue&&s.revenue.last30Days||0;
     const price = s.askingPrice||0;
     const mult  = parseFloat(s.multiple)||0;
     const g     = s.growth30d;
     const margin= s.profitMarginLast30Days;
-    if (filters.mrrMin >0 && mrr  < filters.mrrMin *100) return false;
-    if (filters.mrrMax >0 && mrr  > filters.mrrMax *100) return false;
-    if (filters.rev30Min>0 && rev < filters.rev30Min*100) return false;
-    if (filters.rev30Max>0 && rev > filters.rev30Max*100) return false;
-    if (filters.priceMin>0 && price < filters.priceMin*100) return false;
-    if (filters.priceMax>0 && price > filters.priceMax*100) return false;
+    if (filters.mrrMin >0 && mrr  < filters.mrrMin) return false;
+    if (filters.mrrMax >0 && mrr  > filters.mrrMax) return false;
+    if (filters.rev30Min>0 && rev < filters.rev30Min) return false;
+    if (filters.rev30Max>0 && rev > filters.rev30Max) return false;
+    if (filters.priceMin>0 && price < filters.priceMin) return false;
+    if (filters.priceMax>0 && price > filters.priceMax) return false;
     if (filters.growthMin!=='' && (g==null||g<parseFloat(filters.growthMin))) return false;
     if (filters.growthMax!=='' && (g==null||g>parseFloat(filters.growthMax))) return false;
     if (filters.multipleMax>0 && mult>filters.multipleMax) return false;
@@ -413,7 +445,7 @@ function renderCards() {
     grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:60px 0;color:var(--text3)">'+t('idx','notFound')+'</div>';
     return;
   }
-  displayItems.forEach(s => grid.insertAdjacentHTML('beforeend', cardHTML(s)));
+  displayItems.slice(0, renderLimit).forEach(s => grid.insertAdjacentHTML('beforeend', cardHTML(s)));
   setupScroll();
 }
 
@@ -427,9 +459,10 @@ function setupScroll() {
   if (scrollObs) scrollObs.disconnect();
   const el = document.getElementById('scroll-sentinel');
   if (!el) return;
-  scrollObs = new IntersectionObserver(async ([e]) => {
-    if (!e.isIntersecting||isLoading||!hasMore) return;
-    await fetchPage(apiPage+1, false);
+  scrollObs = new IntersectionObserver(([e]) => {
+    if (!e.isIntersecting) return;
+    // All data is loaded in the background; scrolling just widens the render window.
+    if (renderLimit < displayItems.length) { renderLimit += 50; renderCards(); }
   }, {rootMargin:'400px'});
   scrollObs.observe(el);
 }
@@ -466,8 +499,8 @@ function cardHTML(s) {
   const init = s.name.split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase()||'?';
   const isAnon = (s.name||'').toLowerCase().includes('anonymous');
   const revealed = isRevealed(s.slug);          // already unblurred elsewhere → keep it unblurred here
-  const blurName = !isAnon && !revealed;        // blur non-anonymous names until revealed
-  const blurLogo = !isAnon && !revealed;
+  const blurName = false;   // paywall removed — names public to all visitors
+  const blurLogo = false;   // paywall removed — logos public to all visitors
   const iconInner = s.icon
     ? '<img src="'+escHtml(s.icon)+'" loading="lazy" onerror="this.parentElement.textContent=\''+init+'\'"/>'
     : init;
@@ -616,7 +649,7 @@ function showError() {
 }
 
 /* ── FILTER HANDLERS ──────────────────────────────────────────────────────── */
-function reloadFromAPI() { loadedItems=[];displayItems=[];apiPage=0;hasMore=false;showLoading();loadInitial(); }
+function reloadFromAPI() { loadedItems=[];displayItems=[];apiPage=0;hasMore=false;allLoaded=false;renderLimit=60;loadToken++;showLoading();loadInitial(); }
 
 function setStatus(el) {
   document.querySelectorAll('.status-opt').forEach(o=>o.classList.remove('sel'));
@@ -624,11 +657,11 @@ function setStatus(el) {
   filters.onSale=el.dataset.filter==='sale'?true:null;
   reloadFromAPI();
 }
-function onCategoryChange(v) { filters.category=v; reloadFromAPI(); }
+function onCategoryChange(v) { filters.category=v; renderLimit=60; displayItems=applyClientFilters(loadedItems); renderCards(); updateCount(); }
 function onSortChange(v) { filters.sort = v; reloadFromAPI(); }
 function onSearch(v) {
   filters.search=v.trim(); clearTimeout(searchTimer);
-  searchTimer=setTimeout(()=>{displayItems=applyClientFilters(loadedItems);renderCards();updateCount();},300);
+  searchTimer=setTimeout(()=>{renderLimit=60;displayItems=applyClientFilters(loadedItems);renderCards();updateCount();},300);
 }
 function applyFilters() {
   const n=id=>{const v=parseFloat(document.getElementById(id)&&document.getElementById(id).value);return isNaN(v)?0:v;};
@@ -642,6 +675,7 @@ function applyFilters() {
   filters.marginMin=n('marginMin');filters.marginMax=n('marginMax');
   filters.audience=sel('audienceSelect');
   filters.mobile=sel('mobileSelect');
+  renderLimit=60;
   displayItems=applyClientFilters(loadedItems);
   renderCards();updateCount();
 }

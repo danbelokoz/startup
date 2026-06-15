@@ -38,6 +38,11 @@
     .sent-box a  { color: var(--accent); text-decoration: none; font-size: 14px; }
 
     .reset-notice { font-size: 12px; color: var(--text3); text-align: center; margin-top: 12px; line-height: 1.5; }
+
+    .pw-wrap { position: relative; }
+    .pw-wrap .form-input { padding-right: 42px; }
+    .pw-toggle { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); background: none; border: none; padding: 6px; margin: 0; cursor: pointer; color: var(--text3); display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm); }
+    .pw-toggle:hover { color: var(--text); }
   </style>
 </head>
 <body>
@@ -52,8 +57,8 @@
 
       <!-- Tabs -->
       <div class="tab-group" id="tabs">
-        <button class="tab-btn active" id="tabLogin"  onclick="setMode('login')">Sign in</button>
-        <button class="tab-btn"        id="tabSignup" onclick="setMode('signup')">Create account</button>
+        <button class="tab-btn active" id="tabLogin"  onclick="setMode('login')" data-i18n="auth.signIn">Sign in</button>
+        <button class="tab-btn"        id="tabSignup" onclick="setMode('signup')" data-i18n="auth.createAccount">Create account</button>
       </div>
 
       <!-- Messages -->
@@ -63,14 +68,19 @@
       <!-- Auth form -->
       <form id="authForm" onsubmit="submitForm(event)">
         <div class="form-group">
-          <label class="form-label" for="email">Email</label>
+          <label class="form-label" for="email" data-i18n="auth.email">Email</label>
           <input class="form-input" type="email" id="email" required autocomplete="email" placeholder="you@example.com" />
         </div>
         <div class="form-group" id="passwordGroup">
-          <label class="form-label" for="password">Password</label>
-          <input class="form-input" type="password" id="password" required autocomplete="current-password" placeholder="••••••••" minlength="6" />
+          <label class="form-label" for="password" data-i18n="auth.password">Password</label>
+          <div class="pw-wrap">
+            <input class="form-input" type="password" id="password" required autocomplete="current-password" placeholder="••••••••" minlength="6" />
+            <button type="button" class="pw-toggle" id="pwToggle" onclick="togglePw()" aria-label="Show password" data-i18n-title="auth.showPw" title="Show password">
+              <svg id="pwIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
         </div>
-        <button class="btn-submit" id="submitBtn" type="submit">Sign in</button>
+        <button class="btn-submit" id="submitBtn" type="submit" data-i18n="auth.signIn">Sign in</button>
       </form>
 
       <!-- Email-confirmed state (shown after signup) -->
@@ -78,15 +88,15 @@
         <div class="sent-icon">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
         </div>
-        <h3>Check your inbox</h3>
-        <p>We sent a confirmation link to <strong id="sentEmail"></strong>. Click it to activate your account.</p>
-        <a href="/">Continue browsing →</a>
+        <h3 data-i18n="auth.checkInbox">Check your inbox</h3>
+        <p><span data-i18n="auth.sentPre">We sent a confirmation link to</span> <strong id="sentEmail"></strong>. <span data-i18n="auth.sentPost">Click it to activate your account.</span></p>
+        <a href="/" data-i18n="auth.continueBrowse">Continue browsing →</a>
       </div>
 
       <!-- Footer links -->
       <div class="auth-footer" id="authFooter">
-        <a href="/" class="auth-link">Continue as guest</a>
-        <a href="#" class="auth-link" id="forgotLink" onclick="handleForgot(event)">Forgot password?</a>
+        <a href="/" class="auth-link" data-i18n="auth.guest">Continue as guest</a>
+        <a href="#" class="auth-link" id="forgotLink" onclick="handleForgot(event)" data-i18n="auth.forgot">Forgot password?</a>
       </div>
 
     </div>
@@ -134,9 +144,22 @@ function setMode(m) {
   mode = m;
   document.getElementById('tabLogin').classList.toggle('active',  m === 'login');
   document.getElementById('tabSignup').classList.toggle('active', m === 'signup');
-  document.getElementById('submitBtn').textContent = m === 'login' ? 'Sign in' : 'Create account';
+  document.getElementById('submitBtn').textContent = m === 'login' ? t('auth','signIn') : t('auth','createAccount');
   document.getElementById('password').autocomplete = m === 'login' ? 'current-password' : 'new-password';
   clearMessages();
+}
+
+// Show/hide the password so the user can verify what they typed (single field, no confirm).
+function togglePw() {
+  const inp = document.getElementById('password');
+  const btn = document.getElementById('pwToggle');
+  const show = inp.type === 'password';
+  inp.type = show ? 'text' : 'password';
+  btn.title = show ? t('auth','hidePw') : t('auth','showPw');
+  btn.setAttribute('aria-label', btn.title);
+  document.getElementById('pwIcon').innerHTML = show
+    ? '<path d="M2 12s3.5-7 10-7c2.1 0 3.9.6 5.4 1.5M22 12s-3.5 7-10 7c-2.1 0-3.9-.6-5.4-1.5"/><path d="M9.5 9.5a3 3 0 0 0 4.2 4.2"/><path d="M3 3l18 18"/>'
+    : '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>';
 }
 
 // ── Form submit ───────────────────────────────────────────────────────────────
@@ -164,7 +187,7 @@ async function submitForm(e) {
     }
   } finally {
     setLoading(btn, false);
-    btn.textContent = mode === 'login' ? 'Sign in' : 'Create account';
+    btn.textContent = mode === 'login' ? t('auth','signIn') : t('auth','createAccount');
   }
 }
 
@@ -174,13 +197,13 @@ async function handleForgot(e) {
   if (!sb) return;
 
   const email = document.getElementById('email').value.trim();
-  if (!email) { showError('Enter your email address first.'); return; }
+  if (!email) { showError(t('auth','enterEmailFirst')); return; }
 
   const { error } = await sb.auth.resetPasswordForEmail(email, {
     redirectTo: `${location.origin}/auth.html`,
   });
   if (error) { showError(friendly(error.message)); return; }
-  showOk('Password reset link sent — check your inbox.');
+  showOk(t('auth','resetSent'));
 }
 
 // ── Password reset form (shown after clicking email link) ─────────────────────
@@ -189,11 +212,11 @@ function showResetForm() {
   document.getElementById('authFooter').style.display = 'none';
   document.getElementById('email').closest('.form-group').style.display = 'none';
   document.getElementById('email').removeAttribute('required');
-  document.getElementById('password').placeholder    = 'New password';
+  document.getElementById('password').placeholder    = t('auth','newPwPh');
   document.getElementById('password').autocomplete   = 'new-password';
-  document.getElementById('submitBtn').textContent   = 'Set new password';
+  document.getElementById('submitBtn').textContent   = t('auth','setNew');
   document.getElementById('authForm').onsubmit = resetPassword;
-  showOk('Enter your new password below.');
+  showOk(t('auth','enterNewPw'));
 }
 
 async function resetPassword(e) {
@@ -205,11 +228,11 @@ async function resetPassword(e) {
   try {
     const { error } = await sb.auth.updateUser({ password });
     if (error) { showError(friendly(error.message)); return; }
-    showOk('Password updated! Redirecting...');
+    showOk(t('auth','pwUpdated'));
     setTimeout(() => { location.href = '/'; }, 1500);
   } finally {
     setLoading(btn, false);
-    btn.textContent = 'Set new password';
+    btn.textContent = t('auth','setNew');
   }
 }
 
@@ -243,12 +266,12 @@ function showSentBox(email) {
 
 // Map Supabase error strings to readable messages
 function friendly(msg) {
-  if (msg.includes('Invalid login credentials')) return 'Incorrect email or password.';
-  if (msg.includes('Email not confirmed'))       return 'Please confirm your email first. Check your inbox.';
-  if (msg.includes('User already registered'))   return 'An account with this email already exists. Sign in instead.';
-  if (msg.includes('Password should be'))        return 'Password must be at least 6 characters.';
-  if (msg.includes('rate limit') || msg.includes('too many')) return 'Too many attempts. Please wait a moment.';
-  if (msg.includes('network'))                   return 'Network error. Check your connection.';
+  if (msg.includes('Invalid login credentials')) return t('auth','errCreds');
+  if (msg.includes('Email not confirmed'))       return t('auth','errConfirm');
+  if (msg.includes('User already registered'))   return t('auth','errExists');
+  if (msg.includes('Password should be'))        return t('auth','errShort');
+  if (msg.includes('rate limit') || msg.includes('too many')) return t('auth','errRate');
+  if (msg.includes('network'))                   return t('auth','errNetwork');
   return msg;
 }
 </script>

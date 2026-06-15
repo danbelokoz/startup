@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>My account — MRRket</title>
+  <title data-i18n="dash.title">My account — MRRket</title>
   <link rel="stylesheet" href="/shared.css" />
   <style>
     .acct-wrap { max-width: 940px; margin: 0 auto; padding: 30px 20px 80px; display: grid; grid-template-columns: 232px 1fr; gap: 24px; align-items: start; }
@@ -121,28 +121,27 @@
 <div id="navPlaceholder"></div>
 
 <div id="acctRoot">
-  <div class="loading-state">Loading your account…</div>
+  <div class="loading-state" data-i18n="dash.loading">Loading your account…</div>
 </div>
 
 <!-- Pro upgrade modal -->
 <div class="pro-modal-bg" id="proModal" onclick="if(event.target===this)closeProModal()">
   <div class="pro-modal">
     <button class="pro-close" onclick="closeProModal()">×</button>
-    <div class="pro-price">$9<small>/мес</small></div>
+    <div class="pro-price">$9<small data-i18n="dash.proPerMonth">/мес</small></div>
     <h2>MRRket Pro</h2>
-    <p>Подписка временно недоступна — мы готовим запуск платных тарифов. Оставь email и сообщим, как только продвинутый уровень станет доступен.</p>
+    <p data-i18n="dash.proUnavail">Подписка временно недоступна — мы готовим запуск платных тарифов. Оставь email и сообщим, как только продвинутый уровень станет доступен.</p>
     <ul>
-      <li>Безлимитное открытие контактов продавцов</li>
-      <li>AI-бриф по каждому стартапу (анализ рисков и потенциала)</li>
-      <li>Email-алерты о новых листингах по твоим фильтрам</li>
-      <li>Экспорт результатов поиска в CSV</li>
-      <li>Полная история изменения цен и сравнение с похожими сделками</li>
+      <li data-i18n="dash.proFeat2">AI-бриф по каждому стартапу (анализ рисков и потенциала)</li>
+      <li data-i18n="dash.proFeat3">Email-алерты о новых листингах по твоим фильтрам</li>
+      <li data-i18n="dash.proFeat4">Экспорт результатов поиска в CSV</li>
+      <li data-i18n="dash.proFeat5">Полная история изменения цен и сравнение с похожими сделками</li>
     </ul>
     <form class="pro-row" onsubmit="submitProWaitlist(event)">
       <input type="email" id="proEmail" placeholder="you@email.com" required>
-      <button type="submit" class="acct-btn">Уведомить</button>
+      <button type="submit" class="acct-btn" data-i18n="dash.proNotify">Уведомить</button>
     </form>
-    <div class="pro-success" id="proSuccess">Готово — мы напишем тебе на этот email.</div>
+    <div class="pro-success" id="proSuccess" data-i18n="dash.proSuccess">Готово — мы напишем тебе на этот email.</div>
   </div>
 </div>
 
@@ -166,7 +165,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  SB = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON);
+  SB = window._sb || window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON);
   const { data: { session } } = await SB.auth.getSession();
   if (!session) { location.href = '/auth.html?from=/dashboard.html'; return; }
 
