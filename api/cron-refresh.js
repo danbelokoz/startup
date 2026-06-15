@@ -41,10 +41,47 @@ async function recordParserRun(id, ok, count, note) {
   } catch {}
 }
 
+// Maps the public ?wf= name to its GitHub Actions workflow file.
+const DISPATCH_WORKFLOWS = { scrape: 'scrape-daily-revenue.yml', catalog: 'refresh-cache.yml' };
+
+// Fires a GitHub workflow_dispatch so a reliable external cron can drive the parsers
+// (GitHub silently drops *schedule* runs, but never workflow_dispatch). Needs a
+// fine-grained PAT in GH_DISPATCH_TOKEN (repo danbelokoz/startup, Actions: write).
+async function dispatchWorkflow(req, res) {
+  const token = process.env.GH_DISPATCH_TOKEN;
+  if (!token) return res.status(500).json({ error: 'GH_DISPATCH_TOKEN not set' });
+  const wf = DISPATCH_WORKFLOWS[String(req.query.wf || '').toLowerCase()];
+  if (!wf) return res.status(400).json({ error: 'unknown wf', allowed: Object.keys(DISPATCH_WORKFLOWS) });
+  try {
+    const r = await fetch(`https://api.github.com/repos/danbelokoz/startup/actions/workflows/${wf}/dispatches`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+        'Content-Type': 'application/json',
+        'User-Agent': 'startup-cron-dispatch',
+      },
+      body: JSON.stringify({ ref: 'main' }),
+    });
+    if (r.status === 204) return res.status(200).json({ ok: true, dispatched: wf });
+    const body = await r.text();
+    return res.status(502).json({ ok: false, status: r.status, body: body.slice(0, 300) });
+  } catch (e) {
+    return res.status(502).json({ ok: false, error: String((e && e.message) || e).slice(0, 200) });
+  }
+}
+
 export default async function handler(req, res) {
   if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
+
+  // Lightweight dispatch mode: instead of the full ~8-min sweep, fire a GitHub
+  // workflow_dispatch so a reliable external cron (cron-job.org) can drive the parsers
+  // via /api/cron-refresh?op=dispatch&wf=scrape|catalog. workflow_dispatch runs are
+  // NOT silently dropped the way GitHub's schedule trigger is.
+  if ((req.query.op || '') === 'dispatch') return dispatchWorkflow(req, res);
 
   const apiKey = process.env.TRUSTMRR_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'TRUSTMRR_API_KEY not set' });
