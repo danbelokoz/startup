@@ -50,8 +50,25 @@ const DISPATCH_WORKFLOWS = { scrape: 'scrape-daily-revenue.yml', catalog: 'refre
 async function dispatchWorkflow(req, res) {
   const token = process.env.GH_DISPATCH_TOKEN;
   if (!token) return res.status(500).json({ error: 'GH_DISPATCH_TOKEN not set' });
-  const wf = DISPATCH_WORKFLOWS[String(req.query.wf || '').toLowerCase()];
+  const wfName = String(req.query.wf || '').toLowerCase();
+  const wf = DISPATCH_WORKFLOWS[wfName];
   if (!wf) return res.status(400).json({ error: 'unknown wf', allowed: Object.keys(DISPATCH_WORKFLOWS) });
+
+  // These workflows run ~8-min TrustMRR sweeps; firing them too often makes parallel
+  // runs collide on the 20 req/min API limit and fail (exit 1 → GitHub failure email).
+  // A misconfigured external cron (e.g. every 15 min) must not pile them up, so refuse
+  // — with 200, so the caller doesn't see a failure — if one was dispatched within the
+  // min gap. Redis SET NX EX is the lock; ?force=1 bypasses it; fail-open if Redis down.
+  const minGapSec = wfName === 'catalog' ? 6 * 3600 : 2 * 3600;
+  if (String(req.query.force || '') !== '1') {
+    try {
+      const lock = await kv('POST', `/set/${encodeURIComponent('sm_dispatch_' + wfName)}/1?NX=true&EX=${minGapSec}`);
+      if (lock && lock.result === null) {
+        return res.status(200).json({ ok: true, skipped: 'throttled', wf, minGapSec });
+      }
+    } catch {}
+  }
+
   try {
     const r = await fetch(`https://api.github.com/repos/danbelokoz/startup/actions/workflows/${wf}/dispatches`, {
       method: 'POST',
