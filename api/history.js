@@ -71,7 +71,7 @@ async function priceHistory(slug, res) {
 
   try {
     const r = await fetch(`https://trustmrr.com/startup/${encodeURIComponent(slug)}`, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; MRRketBot/1.0)' },
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; StartupMarketBot/1.0)' },
     });
     if (!r.ok) return res.status(200).json({ data: [], note: 'fetch_failed_' + r.status });
     const html = await r.text();
