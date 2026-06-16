@@ -15,7 +15,7 @@ const SUPABASE_URL              = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const LIMIT = parseInt(process.env.LIMIT || '1500', 10);
 const MODEL = process.env.MODEL || 'claude-haiku-4-5-20251001';
-const API   = 'https://startup-silk-nu.vercel.app';
+const API   = 'https://startupmarket.tech';
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 

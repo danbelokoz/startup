@@ -368,7 +368,7 @@ async function getSlugs(need) {
 
   while (true) {
     const r = await fetch(
-      `https://startup-silk-nu.vercel.app/api/startups?page=${page}&limit=50&sort=revenue-desc${filter}`
+      `https://startupmarket.tech/api/startups?page=${page}&limit=50&sort=revenue-desc${filter}`
     );
     if (!r.ok) throw new Error(`Vercel API ${r.status} on page ${page}`);
     const data = await r.json();
