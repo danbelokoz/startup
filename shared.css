@@ -4,7 +4,7 @@
    built on. Tabular figures give prices/metrics the Binance trading look.
    Theme: Binance dark — #181A20 surface, #FCD535 yellow accent.
    ============================================= */
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -52,11 +52,12 @@ nav {
   display: flex; align-items: center; gap: 18px;
 }
 .nav-logo {
-  display: flex; align-items: center; text-decoration: none; justify-self: start; line-height: 1;
+  display: flex; align-items: center; gap: 7px; text-decoration: none; justify-self: start;
 }
-.nav-logo-inner { display: flex; flex-direction: column; gap: 1px; }
-.nav-logo-top { font-family: 'IBM Plex Sans', sans-serif; font-size: 10px; font-weight: 400; color: var(--text2); letter-spacing: 0.5px; }
-.nav-logo-bottom { font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: 3.5px; }
+.nav-logo-inner { display: flex; flex-direction: column; gap: 0; line-height: 1.1; }
+.nav-logo-top { font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; font-weight: 700; color: var(--text); letter-spacing: -0.5px; }
+.nav-logo-bottom { font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; font-weight: 300; color: var(--text); letter-spacing: 3px; }
+.nav-logo-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex-shrink: 0; align-self: center; }
 .nav-center { display: flex; gap: 2px; }
 .nav-link {
   padding: 5px 12px; border-radius: 6px; font-size: 13px;
