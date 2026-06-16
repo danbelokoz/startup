@@ -46,6 +46,22 @@ input.search-input:focus { border-color: var(--accent); background: var(--bg2); 
 input.search-input::placeholder { color: var(--text3); }
 select.sb-select { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: 7px; padding: 6px 26px 6px 9px; font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif; font-size: 12px; color: var(--text2); outline: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238888a0' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; cursor: pointer; }
 select.sb-select:focus { border-color: var(--accent); outline: none; }
+/* Custom category dropdown — on-brand replacement for the native <select> popup
+   (the OS popup ignored our dark theme and looked out of place). */
+.cat-dd { position: relative; }
+.cat-dd-btn { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 6px; background: var(--bg3); border: 1px solid var(--border); border-radius: 7px; padding: 6px 9px; font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif; font-size: 12px; color: var(--text2); cursor: pointer; transition: border-color 0.12s, background 0.12s; text-align: left; }
+.cat-dd-btn:hover { border-color: var(--border2); }
+.cat-dd-btn.open { border-color: var(--accent); background: var(--bg2); }
+.cat-dd-btn > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cat-dd-caret { color: var(--text3); flex-shrink: 0; transition: transform 0.15s; }
+.cat-dd-btn.open .cat-dd-caret { transform: rotate(180deg); }
+.cat-dd-panel { display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 4px; max-height: 260px; overflow-y: auto; z-index: 60; box-shadow: 0 8px 24px rgba(0,0,0,0.45); }
+.cat-dd-panel.open { display: block; }
+.cat-dd-opt { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 9px; border-radius: 6px; font-size: 12px; color: var(--text2); cursor: pointer; transition: background 0.1s, color 0.1s; }
+.cat-dd-opt:hover { background: var(--bg3); color: var(--text); }
+.cat-dd-opt.active { color: var(--accent); font-weight: 600; background: rgba(252,213,53,0.08); }
+.cat-dd-cnt { font-size: 10px; color: var(--text3); font-weight: 500; flex-shrink: 0; }
+.cat-dd-opt.active .cat-dd-cnt { color: var(--accent2); }
 .range-row { display: grid; grid-template-columns: 1fr 10px 1fr; align-items: center; gap: 3px; }
 .range-sep { text-align: center; font-size: 11px; color: var(--text3); }
 input.sb-input { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: 7px; padding: 6px 8px; font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif; font-size: 12px; color: var(--text); outline: none; }
@@ -167,9 +183,13 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
       </div>
       <div class="sb-section">
         <div class="sb-label" data-i18n="idx.fltCats">Категории</div>
-        <select class="sb-select" id="catSelect" onchange="onCategoryChange(this.value)">
-          <option value="" data-i18n="idx.fltCatsAll">Все категории...</option>
-        </select>
+        <div class="cat-dd" id="catDD">
+          <button type="button" class="cat-dd-btn" id="catDDBtn">
+            <span id="catDDLabel" data-i18n="idx.fltCatsAll">Все категории...</span>
+            <svg class="cat-dd-caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="cat-dd-panel" id="catDDPanel"></div>
+        </div>
       </div>
       <div class="sb-section">
         <div class="sb-label"><span data-i18n="idx.fltRev30">Выручка 30 дней</span> <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box" data-i18n="idx.tipRev30">Суммарная выручка за последние 30 дней</span></span></div>
@@ -247,6 +267,9 @@ initNavAuth();
 /* ── CONSTANTS ─────────────────────────────────────────────────────────────── */
 const API   = '/api';
 const LIMIT = 50;
+const API_SORT = 'revenue-desc';  // catalog always pulls the full set in one stable
+                                  // order; revenue/growth/price sorting is done
+                                  // client-side so it's instant and never reloads.
 const LS_KEY  = 'sm_v5_p1';   // bump version to clear old caches
 const LS_FAVS = 'sm_favs';
 const CACHE_TTL  = 7 * 24 * 3600 * 1000; // serve stale cache up to 7 days
@@ -284,7 +307,10 @@ function cacheRead() {
 function cacheWrite(data,hasMore,total) {
   try { localStorage.setItem(LS_KEY,JSON.stringify({data,hasMore,total,ts:Date.now()})); } catch{}
 }
-function isDefault() { return filters.onSale===true&&!filters.category&&filters.sort==='revenue-desc'; }
+// The page-1 cache only depends on the status (onSale vs all) now that sorting and
+// category filtering happen client-side — so the cached onSale page-1 is valid for
+// any sort/category the user picks.
+function isDefault() { return filters.onSale===true; }
 
 /* ── FAVOURITES ────────────────────────────────────────────────────────────── */
 function getFavs() { try{return JSON.parse(localStorage.getItem(LS_FAVS)||'[]');}catch{return[];} }
@@ -326,9 +352,8 @@ async function fetchPage(page, bg) {
   if (isLoading && !bg) return;
   isLoading = true;
   try {
-    const p = new URLSearchParams({page, limit:LIMIT, sort:filters.sort});
+    const p = new URLSearchParams({page, limit:LIMIT, sort:API_SORT});
     if (filters.onSale===true) p.set('onSale','true');
-    if (filters.category) p.set('category', filters.category);
 
     const res = await fetch(API+'/startups?'+p);
     if (!res.ok) throw new Error('api');
@@ -343,7 +368,7 @@ async function fetchPage(page, bg) {
       apiMeta      = meta||null;
       if (isDefault()) cacheWrite(items, hasMore, meta&&meta.total);
       displayItems = applyClientFilters(loadedItems);
-      updateStats(); renderCards(); updateCount();
+      updateStats(); renderCards(); updateCount(); buildCategoryOptions();
     } else {
       const fresh = items.filter(s=>!loadedItems.find(x=>x.slug===s.slug));
       loadedItems  = loadedItems.concat(fresh);
@@ -354,6 +379,7 @@ async function fetchPage(page, bg) {
       displayItems = applyClientFilters(loadedItems);
       renderCards();
       updateCount();
+      buildCategoryOptions();
     }
   } catch {
     if (!bg && page===1) {
@@ -387,25 +413,57 @@ async function loadAllPages(token) {
 
 // Rebuild the category dropdown from categories actually present in the data.
 // (The upstream API ignores ?category=, so filtering is client-side and the
-// options must match the real category strings exactly.)
+// options must match the real category strings exactly.) Built incrementally as
+// pages stream in — the top categories appear right after page 1, so the list no
+// longer waits ~5s for the whole catalog to load. _catSig skips no-op rebuilds.
+let _catSig = '';
 function buildCategoryOptions() {
-  const sel = document.getElementById('catSelect');
-  if (!sel) return;
+  const panel = document.getElementById('catDDPanel');
+  if (!panel) return;
   const counts = {};
   loadedItems.forEach(s => { const c = (s.category||'').trim(); if (c) counts[c] = (counts[c]||0) + 1; });
   const cats = Object.keys(counts).sort((a,b) => counts[b] - counts[a]);
   const cur = filters.category;
-  sel.innerHTML = '<option value="">' + escHtml(t('idx','fltCatsAll')) + '</option>'
-    + cats.map(c => '<option value="' + escHtml(c) + '">' + escHtml(c) + ' (' + counts[c] + ')</option>').join('');
-  sel.value = cur || '';
+  const sig = cats.length + '|' + cats.join(',') + '||' + (cur||'');
+  if (sig === _catSig) return;   // nothing changed — don't churn the DOM
+  _catSig = sig;
+  const allLbl = escHtml(t('idx','fltCatsAll'));
+  panel.innerHTML =
+    '<div class="cat-dd-opt' + (cur ? '' : ' active') + '" data-value="">' + allLbl + '</div>' +
+    cats.map(c => '<div class="cat-dd-opt' + (c===cur ? ' active' : '') + '" data-value="' + escHtml(c) + '">'
+      + '<span>' + escHtml(c) + '</span><span class="cat-dd-cnt">' + counts[c] + '</span></div>').join('');
+  const lbl = document.getElementById('catDDLabel');
+  if (lbl) lbl.textContent = cur || t('idx','fltCatsAll');
 }
 
-function rankAnonLast(arr) {
-  // When browsing by tag/category (saleFirst), for-sale startups float to the top.
+// Client-side ranking. The sort the user picks (revenue / growth / price) is the
+// PRIMARY key — previously data-completeness (dataScore) was primary, which made
+// the sort dropdown look broken. saleFirst (tag/category deep-links float for-sale
+// up), anonymous-last and dataScore are now only tie-breakers, so equal-metric
+// cards still order sensibly. Items missing the sort metric sink to the bottom.
+function sortItems(arr) {
   const saleFirst = !!filters.saleFirst;
-  const indexed = arr.map((s, i) => ({ s, i, sale: (saleFirst && s.onSale) ? 0 : 1, anon: (s.name||'').toLowerCase().includes('anonymous') ? 1 : 0, score: dataScore(s) }));
-  indexed.sort((a, b) => (a.sale - b.sale) || (a.anon - b.anon) || (b.score - a.score) || (a.i - b.i));
-  return indexed.map(x => x.s);
+  const sort = filters.sort;
+  const asc = sort === 'price-asc';
+  const metricVal = s => {
+    if (sort === 'growth-desc') return s.growth30d != null ? s.growth30d : -Infinity;
+    if (sort === 'price-asc')   return (s.onSale && s.askingPrice) ? s.askingPrice : Infinity;  // no price → last
+    if (sort === 'price-desc')  return (s.onSale && s.askingPrice) || 0;
+    return (s.revenue && s.revenue.last30Days) || 0;  // revenue-desc (default)
+  };
+  return arr
+    .map((s, i) => ({ s, i,
+      sale: (saleFirst && s.onSale) ? 0 : 1,
+      anon: (s.name||'').toLowerCase().includes('anonymous') ? 1 : 0,
+      v: metricVal(s),
+      score: dataScore(s) }))
+    .sort((a, b) =>
+      (a.sale - b.sale) ||
+      (asc ? a.v - b.v : b.v - a.v) ||
+      (a.anon - b.anon) ||
+      (b.score - a.score) ||
+      (a.i - b.i))
+    .map(o => o.s);
 }
 function applyClientFilters(items) {
   const q = filters.search.toLowerCase();
@@ -434,7 +492,7 @@ function applyClientFilters(items) {
     if (filters.mobile==='no' && s.hasMobileApp) return false;
     return true;
   });
-  return rankAnonLast(filtered);
+  return sortItems(filtered);
 }
 
 /* ── RENDER ────────────────────────────────────────────────────────────────── */
@@ -577,7 +635,7 @@ function saveStartup(slug) {
 }
 
 // Clicking a category badge on a card opens the catalog filtered by that tag,
-// with for-sale startups floated to the top (see applyUrlParams + rankAnonLast).
+// with for-sale startups floated to the top (see applyUrlParams + sortItems).
 // catEnc is already URL-encoded; stop the parent card link from navigating.
 function goCategory(e, catEnc) {
   if (e) { e.preventDefault(); e.stopPropagation(); }
@@ -660,8 +718,19 @@ function setStatus(el) {
   filters.onSale=el.dataset.filter==='sale'?true:null;
   reloadFromAPI();
 }
-function onCategoryChange(v) { filters.category=v; renderLimit=60; displayItems=applyClientFilters(loadedItems); renderCards(); updateCount(); }
-function onSortChange(v) { filters.sort = v; reloadFromAPI(); }
+function onCategoryChange(v) {
+  filters.category = v; renderLimit = 60;
+  const lbl = document.getElementById('catDDLabel');
+  if (lbl) lbl.textContent = v || t('idx','fltCatsAll');
+  document.querySelectorAll('.cat-dd-opt').forEach(o => o.classList.toggle('active', (o.dataset.value||'') === v));
+  displayItems = applyClientFilters(loadedItems); renderCards(); updateCount();
+}
+// Sorting is client-side over the already-loaded set — instant, and it never wipes
+// the catalog (the old reloadFromAPI caused the "nothing found" flash on sort).
+function onSortChange(v) {
+  filters.sort = v; renderLimit = 60;
+  displayItems = applyClientFilters(loadedItems); renderCards(); updateCount();
+}
 function onSearch(v) {
   filters.search=v.trim(); clearTimeout(searchTimer);
   searchTimer=setTimeout(()=>{renderLimit=60;displayItems=applyClientFilters(loadedItems);renderCards();updateCount();},300);
@@ -689,6 +758,8 @@ function resetFilters() {
   document.querySelector('.status-opt[data-filter="sale"]').classList.add('sel');
   const si=document.getElementById('searchInput'); if(si) si.value='';
   const ss=document.getElementById('sortSelect'); if(ss) ss.value='revenue-desc';
+  const cdl=document.getElementById('catDDLabel'); if(cdl) cdl.textContent=t('idx','fltCatsAll');
+  closeCatDD(); _catSig='';
   filters={onSale:true,category:'',sort:'revenue-desc',search:'',mrrMin:0,mrrMax:0,rev30Min:0,rev30Max:0,priceMin:0,priceMax:0,growthMin:'',growthMax:'',multipleMax:0,marginMin:0,marginMax:0,audience:'',mobile:'',saleFirst:false};
   reloadFromAPI();
 }
@@ -701,26 +772,50 @@ function applyUrlParams() {
   const search   = (p.get('search')   || '').trim();
   const category = (p.get('category') || '').trim();
   const sort     = (p.get('sort')     || '').trim();
+  const status   = (p.get('status')   || '').trim();
   if (search) {
     filters.search = search;
     const si = document.getElementById('searchInput'); if (si) si.value = search;
   }
   if (category) {
     filters.category = category;
-    const cs = document.getElementById('catSelect');
-    if (cs) { cs.value = category; if (cs.value !== category) { const o = document.createElement('option'); o.value = category; o.textContent = category; cs.appendChild(o); cs.value = category; } }
+    const lbl = document.getElementById('catDDLabel'); if (lbl) lbl.textContent = category;
   }
   if (['revenue-desc','growth-desc','price-asc','price-desc'].includes(sort)) {
     filters.sort = sort;
     const ss = document.getElementById('sortSelect'); if (ss) ss.value = sort;
   }
+  // Explicit status deep-link from landing CTAs: ?status=sale (default) / ?status=all.
+  const selectStatus = which => {
+    document.querySelectorAll('.status-opt').forEach(o => o.classList.remove('sel'));
+    const o = document.querySelector('.status-opt[data-filter="' + which + '"]'); if (o) o.classList.add('sel');
+  };
+  if (status === 'all')  { filters.onSale = null; selectStatus('all'); }
+  else if (status === 'sale') { filters.onSale = true; selectStatus('sale'); }
   if (search || category) {
     filters.onSale = true;      // tag/category deep-link → on-sale startups only (req)
     filters.saleFirst = true;
-    document.querySelectorAll('.status-opt').forEach(o => o.classList.remove('sel'));
-    const saleOpt = document.querySelector('.status-opt[data-filter="sale"]'); if (saleOpt) saleOpt.classList.add('sel');
+    selectStatus('sale');
   }
 }
+
+/* ── CATEGORY DROPDOWN (custom, on-brand) ──────────────────────────────────── */
+function closeCatDD() {
+  const b=document.getElementById('catDDBtn'), p=document.getElementById('catDDPanel');
+  if(b) b.classList.remove('open'); if(p) p.classList.remove('open');
+}
+(function setupCatDropdown(){
+  const btn=document.getElementById('catDDBtn'), panel=document.getElementById('catDDPanel');
+  if(!btn||!panel) return;
+  btn.addEventListener('click', e=>{ e.stopPropagation(); btn.classList.toggle('open'); panel.classList.toggle('open'); });
+  panel.addEventListener('click', e=>{
+    e.stopPropagation();
+    const opt=e.target.closest('.cat-dd-opt'); if(!opt) return;
+    closeCatDD();
+    onCategoryChange(opt.dataset.value || '');
+  });
+  document.addEventListener('click', closeCatDD);   // click outside closes it
+})();
 
 applyUrlParams();
 loadInitial();
