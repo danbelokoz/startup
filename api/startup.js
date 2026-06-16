@@ -71,11 +71,11 @@ export default async function handler(req, res) {
     return res.status(200).json(cached);
   }
 
-  // Stale cache — return immediately, revalidate in the background.
+  // Stale cache — revalidate synchronously (serverless won't reliably run code after
+  // the response is sent, so a background refresh could never re-arm freshness) and
+  // fall back to the stale copy if upstream is down or returns a broken payload.
   if (cached && !isFresh) {
-    res.setHeader('X-Cache', 'STALE');
     res.setHeader('Cache-Control', swr);
-    res.status(200).json(cached);
     try {
       const fresh = await fetchStartup(slug, apiKey);
       if (fresh.ok && isValidStartup(fresh.data)) {
@@ -83,9 +83,12 @@ export default async function handler(req, res) {
           redisSet(cacheKey, fresh.data),
           redisSet(freshKey, 1, FRESH_TTL),
         ]);
+        res.setHeader('X-Cache', 'REVALIDATED');
+        return res.status(200).json(fresh.data);
       }
     } catch {}
-    return;
+    res.setHeader('X-Cache', 'STALE');
+    return res.status(200).json(cached);
   }
 
   // No cache — fetch and wait.
