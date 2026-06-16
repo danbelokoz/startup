@@ -31,7 +31,7 @@
 @keyframes lv{0%{box-shadow:0 0 0 0 rgba(14,203,129,.45)}100%{box-shadow:0 0 0 7px rgba(14,203,129,0)}}
 .bigcap{color:var(--text2);font-size:15px;margin-bottom:28px;max-width:460px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .bigcap .lvdot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:lv 2s ease-out infinite;flex:none}
-.bigcap .lvg{color:var(--green);font-weight:600}
+.bigcap .lvg{color:var(--green);font-weight:400}
 .bigcap .bcsep{color:var(--text3)}
 .bigcap .upd{color:var(--text3)}
 
@@ -259,7 +259,6 @@
     <span class="trustlbl" data-i18n="landing.trustData">Данные каталога:</span>
     <div class="tstats">
       <div class="tstat"><b id="tsTotal">—</b><span data-i18n="landing.tsTotalLbl">стартапов в базе</span></div>
-      <div class="tstat"><b id="tsArr">—</b><span data-i18n="landing.tsArrLbl">выручки в каталоге / год</span></div>
       <div class="tstat"><b id="tsSale">—</b><span data-i18n="landing.tsSaleLbl">на продаже сейчас</span></div>
       <div class="tstat"><b>8</b><span data-i18n="landing.tsProvLbl">платёжных провайдеров</span></div>
     </div>
@@ -471,7 +470,7 @@ async function loadLanding() {
     const st = await fetch(API+'/stats').then(r=>r.json()).catch(()=>null);
     const set = (id,v)=>{const e=document.getElementById(id); if(e) e.textContent=v;};
     if (st) {
-      if (st.mrr != null) { set('heroMrr', formatMoney(st.mrr).replace(/^\$/,'')); set('tsArr', formatMoney(st.mrr*12)); }
+      if (st.mrr != null) { set('heroMrr', formatMoney(st.mrr).replace(/^\$/,'')); }
       if (st.total != null) set('tsTotal', (st.total + 300).toLocaleString());
       if (st.onSale != null) set('tsSale', (st.onSale + 300).toLocaleString());
     }

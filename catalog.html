@@ -693,13 +693,37 @@ async function fetchTotalsMeta() {
   } catch {}
 }
 
+// True when the user has narrowed the catalog with anything beyond the on-sale/all
+// status toggle (search, category, or any range). Sorting doesn't count — same set.
+function hasActiveFilter() {
+  return !!(filters.search || filters.category ||
+    filters.mrrMin || filters.mrrMax || filters.rev30Min || filters.rev30Max ||
+    filters.priceMin || filters.priceMax || filters.growthMin!=='' || filters.growthMax!=='' ||
+    filters.multipleMax || filters.marginMin || filters.marginMax ||
+    filters.audience || filters.mobile);
+}
+
 function updateCount() {
-  const n=displayItems.length; const gc=document.getElementById('gridCount'); if(!gc)return;
+  const gc=document.getElementById('gridCount'); if(!gc)return;
   const lang=getLang();
+  let n, plus='';
+  if (hasActiveFilter()) {
+    // A filter is active → show the real result count, no +300 inflation, so the
+    // number matches the cards actually shown.
+    n = displayItems.length;
+    plus = hasMore ? '+' : '';
+  } else {
+    // Unfiltered status view → mirror the inflated headline (+300) so the grid count
+    // matches the stats bar / status chip exactly instead of showing the raw loaded count.
+    const base = filters.onSale===true
+      ? (dbOnSale!=null ? dbOnSale : (apiMeta&&apiMeta.total!=null ? apiMeta.total : displayItems.length))
+      : (dbTotal!=null  ? dbTotal  : (apiMeta&&apiMeta.total!=null ? apiMeta.total : displayItems.length));
+    n = base + 300;
+  }
   let word=t('idx','countStartups');
   if(lang==='ru'){ const s=n%100>10&&n%100<20?'ов':n%10===1?'':(n%10>=2&&n%10<=4)?'а':'ов'; word='стартап'+s; }
   const suffix=filters.onSale===true?' '+t('idx','countOnSale'):'';
-  gc.textContent=n.toLocaleString()+(hasMore?'+':'')+' '+word+suffix;
+  gc.textContent=n.toLocaleString()+plus+' '+word+suffix;
 }
 
 function showLoading() {
