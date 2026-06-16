@@ -51,13 +51,7 @@ nav {
   padding: 0 28px; height: 54px;
   display: flex; align-items: center; gap: 18px;
 }
-.nav-logo {
-  display: flex; align-items: center; gap: 7px; text-decoration: none; justify-self: start;
-}
-.nav-logo-inner { display: flex; flex-direction: column; gap: 0; line-height: 1.1; }
-.nav-logo-top { font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; font-weight: 700; color: var(--text); letter-spacing: -0.5px; }
-.nav-logo-bottom { font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; font-weight: 300; color: var(--text); letter-spacing: 3px; }
-.nav-logo-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex-shrink: 0; align-self: center; }
+.nav-logo { display: flex; align-items: center; text-decoration: none; color: var(--text); }
 .nav-center { display: flex; gap: 2px; }
 .nav-link {
   padding: 5px 12px; border-radius: 6px; font-size: 13px;
