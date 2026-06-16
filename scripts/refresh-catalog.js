@@ -132,6 +132,16 @@ async function writeSnapshots(allStartups) {
   return { written, pruned };
 }
 
+// Guards the cache/snapshots from a broken/changed upstream payload: a page is valid
+// if it's an array and (when non-empty) at least half its items still carry a slug.
+// An empty page is the legit end of the catalog; a page that fails this means the
+// schema likely changed — we abort rather than overwrite good data with garbage.
+function pageLooksValid(data) {
+  if (!data || !Array.isArray(data.data)) return false;
+  if (data.data.length === 0) return true;
+  return data.data.filter(s => s && s.slug).length >= data.data.length * 0.5;
+}
+
 async function main() {
   if (!KV_REST_API_URL || !KV_REST_API_TOKEN) { console.error('KV_REST_API_* not set'); process.exit(1); }
   if (!TRUSTMRR_API_KEY) { console.error('TRUSTMRR_API_KEY not set'); await recordParserRun('catalog', false, 0, 'Нет ключа TrustMRR API'); process.exit(1); }
@@ -156,6 +166,12 @@ async function main() {
       data = await r.json();
     } catch (err) {
       await recordParserRun('catalog', false, totalStartups, `Ошибка на стр. ${page}: ${err.message}`, totalStartups);
+      process.exit(1);
+    }
+
+    // Bad/changed schema → stop before overwriting good cache, totals and snapshots.
+    if (!pageLooksValid(data)) {
+      await recordParserRun('catalog', false, totalStartups, `Подозрительный ответ на стр. ${page} (нет slug) — свод прерван`, totalStartups);
       process.exit(1);
     }
 

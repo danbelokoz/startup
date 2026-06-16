@@ -39,6 +39,15 @@ async function fetchTrustMRR(params, apiKey) {
   return r.json();
 }
 
+// Guards against a broken/changed upstream payload silently overwriting good cache:
+// require a non-empty data array whose items still carry a slug. An empty/error body
+// returned with HTTP 200, or a schema change that drops slug, fails this — and we keep
+// the existing cache instead of replacing it with garbage.
+function isValidList(data) {
+  if (!data || !Array.isArray(data.data) || data.data.length === 0) return false;
+  return data.data.filter(s => s && s.slug).length >= data.data.length * 0.5;
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -69,10 +78,14 @@ export default async function handler(req, res) {
     // Vercel keeps function alive briefly after res.end() for cleanup
     try {
       const fresh = await fetchTrustMRR(params, apiKey);
-      await Promise.all([
-        redisSet(cacheKey, fresh),
-        redisSet(freshKey, 1, FRESH_TTL)
-      ]);
+      // Only overwrite the cache if the response looks valid; otherwise keep serving
+      // the existing (stale) data and retry on the next request.
+      if (isValidList(fresh)) {
+        await Promise.all([
+          redisSet(cacheKey, fresh),
+          redisSet(freshKey, 1, FRESH_TTL)
+        ]);
+      }
     } catch {}
     return;
   }
@@ -80,11 +93,16 @@ export default async function handler(req, res) {
   // Case 3: no cache — must fetch and wait
   try {
     const data = await fetchTrustMRR(params, apiKey);
-    await Promise.all([
-      redisSet(cacheKey, data),
-      redisSet(freshKey, 1, FRESH_TTL)
-    ]);
-    res.setHeader('X-Cache', 'MISS');
+    const valid = isValidList(data);
+    // No prior cache here, so still return whatever upstream gave — but don't cache a
+    // broken/empty body (it would become poisoned "stale" data on later requests).
+    if (valid) {
+      await Promise.all([
+        redisSet(cacheKey, data),
+        redisSet(freshKey, 1, FRESH_TTL)
+      ]);
+    }
+    res.setHeader('X-Cache', valid ? 'MISS' : 'MISS-RAW');
     return res.status(200).json({ ...data, fromCache: false });
   } catch (err) {
     // Fallback: upstream dead. If onSale=true was requested, scan ALL cached

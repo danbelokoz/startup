@@ -1,6 +1,10 @@
-// Single startup detail proxy with Redis cache (24-hour TTL).
+// Single startup detail proxy — stale-while-revalidate (mirrors api/startups.js).
+// Detail is stored in Redis WITHOUT a TTL (so it survives an upstream outage); a
+// separate freshness flag expires after 24h. When stale we return the cached copy
+// instantly and revalidate in the background — and never overwrite good cache with a
+// broken/changed upstream payload.
 
-const CACHE_TTL = 24 * 3600;
+const FRESH_TTL = 24 * 3600; // 24h freshness window
 
 async function kv(method, path, body) {
   const url  = `${process.env.KV_REST_API_URL}${path}`;
@@ -28,6 +32,20 @@ async function redisSet(key, value, ttl) {
   } catch {}
 }
 
+// TrustMRR returns the startup as { data: { slug, ... } }. A valid payload still
+// carries that slug; an empty/error body or a schema change fails this, and we keep
+// the existing cache instead of poisoning it.
+function isValidStartup(d) {
+  return !!(d && d.data && d.data.slug);
+}
+
+async function fetchStartup(slug, apiKey) {
+  const r = await fetch(`https://trustmrr.com/api/v1/startups/${encodeURIComponent(slug)}`, {
+    headers: { Authorization: `Bearer ${apiKey}` },
+  });
+  return { status: r.status, ok: r.ok, data: await r.json().catch(() => null) };
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -41,25 +59,47 @@ export default async function handler(req, res) {
   if (!slug) return res.status(400).json({ error: 'Missing slug' });
 
   const cacheKey = `sm_startup_${slug}`;
+  const freshKey = `${cacheKey}_f`;
+  const swr = 's-maxage=3600, stale-while-revalidate=86400';
 
-  const cached = await redisGet(cacheKey);
-  if (cached) {
+  const [cached, isFresh] = await Promise.all([redisGet(cacheKey), redisGet(freshKey)]);
+
+  // Fresh cache — instant return.
+  if (cached && isFresh) {
     res.setHeader('X-Cache', 'HIT');
-    res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=86400');
+    res.setHeader('Cache-Control', swr);
     return res.status(200).json(cached);
   }
 
+  // Stale cache — return immediately, revalidate in the background.
+  if (cached && !isFresh) {
+    res.setHeader('X-Cache', 'STALE');
+    res.setHeader('Cache-Control', swr);
+    res.status(200).json(cached);
+    try {
+      const fresh = await fetchStartup(slug, apiKey);
+      if (fresh.ok && isValidStartup(fresh.data)) {
+        await Promise.all([
+          redisSet(cacheKey, fresh.data),
+          redisSet(freshKey, 1, FRESH_TTL),
+        ]);
+      }
+    } catch {}
+    return;
+  }
+
+  // No cache — fetch and wait.
   try {
-    const response = await fetch(`https://trustmrr.com/api/v1/startups/${encodeURIComponent(slug)}`, {
-      headers: { Authorization: `Bearer ${apiKey}` },
-    });
-    const data = await response.json();
-
-    if (response.ok) await redisSet(cacheKey, data, CACHE_TTL);
-
+    const fresh = await fetchStartup(slug, apiKey);
+    if (fresh.ok && isValidStartup(fresh.data)) {
+      await Promise.all([
+        redisSet(cacheKey, fresh.data),
+        redisSet(freshKey, 1, FRESH_TTL),
+      ]);
+    }
     res.setHeader('X-Cache', 'MISS');
-    res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=86400');
-    return res.status(response.status).json(data);
+    res.setHeader('Cache-Control', swr);
+    return res.status(fresh.status).json(fresh.data);
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
