@@ -115,6 +115,7 @@ const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 const redirectTo = new URLSearchParams(location.search).get('from') || '/';
+const initialMode = new URLSearchParams(location.search).get('mode') || 'login';
 let mode = 'login';
 let sb = null;
 
@@ -132,6 +133,8 @@ window.addEventListener('DOMContentLoaded', async () => {
   // If already logged in — go back to the page they came from
   const { data: { session } } = await sb.auth.getSession();
   if (session) { location.href = redirectTo; return; }
+
+  setMode(initialMode);
 
   // Handle password-reset redirect: Supabase puts tokens in the hash
   if (location.hash.includes('type=recovery')) {
@@ -181,8 +184,9 @@ async function submitForm(e) {
       location.href = redirectTo;
 
     } else {
-      const { error } = await sb.auth.signUp({ email, password });
+      const { data: signUpData, error } = await sb.auth.signUp({ email, password });
       if (error) { showError(friendly(error.message)); return; }
+      if (signUpData?.session) { location.href = redirectTo; return; }
       showSentBox(email);
     }
   } finally {

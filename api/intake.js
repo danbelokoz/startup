@@ -94,13 +94,17 @@ async function handleListing(req, res) {
     return res.status(400).json({ error: 'Invalid payload' });
   }
 
-  // Submitter is optional — guests can file a request too.
+  // Contact email: prefer explicitly provided, fall back to session email.
+  const contactEmail = typeof body.contactEmail === 'string' && body.contactEmail.includes('@')
+    ? body.contactEmail.trim().toLowerCase() : null;
+
   let userId = null, email = null;
   const token = req.headers.authorization?.replace(/^Bearer\s+/i, '') || null;
   if (token) {
     const u = await getUser(token);
     if (u) { userId = u.id; email = u.email || null; }
   }
+  if (contactEmail) email = contactEmail;
 
   const hint = apiKey.length > 14
     ? `${apiKey.slice(0, 7)}…${apiKey.slice(-4)} (${apiKey.length})`
