@@ -500,12 +500,12 @@ async function updateNavAuth(session) {
   if (el) {
     if (!session?.user) {
       const from = encodeURIComponent(location.pathname + location.search);
-      el.innerHTML = `<a class="btn btn-ghost btn-sm" href="/auth.html?from=${from}">Sign in</a>`;
+      el.innerHTML = `<a class="btn btn-ghost btn-sm" href="/auth.html?from=${from}">${t('auth','signIn')}</a>`;
     } else {
       const name = escHtml(session.user.email?.split('@')[0] || 'Account');
       el.innerHTML =
         `<a class="btn btn-ghost btn-sm" href="/dashboard.html" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</a>` +
-        `<button class="btn btn-ghost btn-sm" onclick="navSignOut()">Sign out</button>`;
+        `<button class="btn btn-ghost btn-sm" onclick="navSignOut()">${t('acct','signout')}</button>`;
     }
   }
   // Fetch access level and notify pages that need limit enforcement
