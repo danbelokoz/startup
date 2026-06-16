@@ -36,6 +36,7 @@
 
 <div id="navPlaceholder"></div>
 
+<div id="langNotice" style="display:none;margin:16px 20px 0;max-width:820px;margin-left:auto;margin-right:auto;background:rgba(252,213,53,0.07);border:1px solid rgba(252,213,53,0.2);border-radius:10px;padding:11px 16px;font-size:13px;color:var(--text2)">This document is currently available in Russian only. <a href="#" onclick="(function(){localStorage.setItem('lang','ru');location.reload();})()" style="color:var(--accent);font-weight:600">Switch to Russian →</a></div>
 <div class="legal-wrap">
   <div class="legal-head">
     <h1>Условия использования</h1>
@@ -133,8 +134,8 @@
   <p>Мы можем обновлять настоящие Условия. О существенных изменениях мы сообщаем, обновляя дату «Последнее обновление» вверху страницы. Продолжение использования Сервиса после изменений означает согласие с новой редакцией.</p>
 
   <h2 id="contact">15. Контакты</h2>
-  <p>Общие вопросы и вопросы по листингам: <a href="mailto:sell@mrrket.com">sell@mrrket.com</a>. Вопросы по персональным данным: <a href="mailto:privacy@mrrket.com">privacy@mrrket.com</a>.</p>
-  <div class="legal-note">Оператор Сервиса: <span class="fill">[укажите юр. наименование оператора и реквизиты]</span>.</div>
+  <p>Общие вопросы и вопросы по листингам: <a href="mailto:startupmarket.tech@gmail.com">startupmarket.tech@gmail.com</a>. Вопросы по персональным данным: <a href="mailto:startupmarket.tech@gmail.com">startupmarket.tech@gmail.com</a>.</p>
+  <div class="legal-note">Оператор Сервиса: <strong>Startup Market</strong>.</div>
 </div>
 
 <footer></footer>
@@ -143,6 +144,7 @@
 applyLangToDoc();
 document.getElementById('navPlaceholder').innerHTML = buildNavHTML('');
 initNavAuth();
+if ((localStorage.getItem('lang') || 'en') !== 'ru') document.getElementById('langNotice').style.display = 'block';
 </script>
 </body>
 </html>
