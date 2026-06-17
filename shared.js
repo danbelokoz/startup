@@ -400,7 +400,7 @@ function buildNavHTML(activePage) {
   const langNames = { en:'English', de:'Deutsch', fr:'Français', it:'Italiano', ru:'Русский', zh:'中文', ar:'العربية' };
   return `
   <nav>
-    <a class="nav-logo" href="/"><svg width="82" height="30" viewBox="0 0 82 30" style="display:block"><text x="0" y="13" font-family="IBM Plex Sans,sans-serif" font-weight="700" font-size="13" fill="currentColor" textLength="82" lengthAdjust="spacingAndGlyphs">STARTUP</text><text x="0" y="27" font-family="IBM Plex Sans,sans-serif" font-weight="300" font-size="13" fill="currentColor" textLength="82" lengthAdjust="spacingAndGlyphs">MARKET</text></svg></a>
+    <a class="nav-logo" href="/"><svg height="30" viewBox="0 0 120 30" style="display:block;width:auto;overflow:visible"><text x="0" y="20" font-family="IBM Plex Sans,sans-serif" font-size="13" fill="currentColor"><tspan font-weight="700">STARTUP</tspan><tspan font-weight="300" fill-opacity="0.6"> MARKET</tspan></text></svg></a>
     <div class="nav-center">
       <a href="/" class="nav-link ${activePage==='home'?'active':''}">${l.nav.home}</a>
       <a href="/catalog" class="nav-link ${activePage==='catalog'?'active':''}">${l.nav.catalog || (T.en.nav.catalog) || 'Catalog'}</a>
