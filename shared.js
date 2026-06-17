@@ -400,7 +400,7 @@ function buildNavHTML(activePage) {
   const langNames = { en:'English', de:'Deutsch', fr:'Français', it:'Italiano', ru:'Русский', zh:'中文', ar:'العربية' };
   return `
   <nav>
-    <a class="nav-logo" href="/"><svg width="88" height="28" viewBox="0 0 88 28" style="display:block"><text x="0" y="14" font-family="IBM Plex Sans,sans-serif" font-weight="700" font-size="14" fill="currentColor" textLength="88" lengthAdjust="spacing">STARTUP</text><text x="0" y="28" font-family="IBM Plex Sans,sans-serif" font-weight="300" font-size="14" fill="currentColor" textLength="88" lengthAdjust="spacing">MARKET</text></svg></a>
+    <a class="nav-logo" href="/"><svg width="82" height="30" viewBox="0 0 82 30" style="display:block"><text x="0" y="13" font-family="IBM Plex Sans,sans-serif" font-weight="700" font-size="13" fill="currentColor" textLength="82" lengthAdjust="spacingAndGlyphs">STARTUP</text><text x="0" y="27" font-family="IBM Plex Sans,sans-serif" font-weight="300" font-size="13" fill="currentColor" textLength="82" lengthAdjust="spacingAndGlyphs">MARKET</text></svg></a>
     <div class="nav-center">
       <a href="/" class="nav-link ${activePage==='home'?'active':''}">${l.nav.home}</a>
       <a href="/catalog" class="nav-link ${activePage==='catalog'?'active':''}">${l.nav.catalog || (T.en.nav.catalog) || 'Catalog'}</a>
