@@ -338,6 +338,7 @@ async function loadInitial() {
       apiMeta     = { total: c.total };
       displayItems = applyClientFilters(loadedItems);
       updateStats(); renderCards(); updateCount();
+      restoreScroll();
       if (Date.now()-c.ts > FRESH_TTL) fetchPage(1, true);
       loadAllPages(loadToken);   // fill remaining pages so search/category cover all
       return;
@@ -345,6 +346,7 @@ async function loadInitial() {
   }
   showLoading();
   await fetchPage(1, false);
+  restoreScroll();
   loadAllPages(loadToken);   // fill remaining pages so search/category cover all
 }
 
@@ -455,14 +457,22 @@ function sortItems(arr) {
     if (sort === 'price-desc')  return (s.onSale && s.askingPrice) || 0;
     return (s.revenue && s.revenue.last30Days) || 0;  // revenue-desc (default)
   };
+  // No revenue and no MRR → there's nothing to build daily metrics from, so these
+  // cards sink below every startup that has live numbers, whatever the chosen sort.
+  const noMetrics = s => {
+    const rev = s.revenue && s.revenue.last30Days, mrr = s.revenue && s.revenue.mrr;
+    return ((rev == null || rev <= 0) && (mrr == null || mrr <= 0)) ? 1 : 0;
+  };
   return arr
     .map((s, i) => ({ s, i,
       sale: (saleFirst && s.onSale) ? 0 : 1,
+      nodata: noMetrics(s),
       anon: (s.name||'').toLowerCase().includes('anonymous') ? 1 : 0,
       v: metricVal(s),
       score: dataScore(s) }))
     .sort((a, b) =>
       (a.sale - b.sale) ||
+      (a.nodata - b.nodata) ||
       (asc ? a.v - b.v : b.v - a.v) ||
       (a.anon - b.anon) ||
       (b.score - a.score) ||
@@ -636,6 +646,9 @@ function cardHTML(s) {
 function saveStartup(slug) {
   const s=loadedItems.find(x=>x.slug===slug);
   if(s){try{sessionStorage.setItem('startup_detail',JSON.stringify(s));}catch{}}
+  // Remember where we were so a "Back" from the detail page lands on the same scroll
+  // position and the same number of rendered cards (the URL already carries filters).
+  try{ sessionStorage.setItem('sm_cat_scroll', JSON.stringify({ url: location.href, y: window.scrollY||window.pageYOffset||0, n: renderLimit })); }catch{}
 }
 
 // Clicking a category badge on a card opens the catalog filtered by that tag,
@@ -740,6 +753,33 @@ function showError() {
   document.getElementById('cards').innerHTML='<div style="grid-column:1/-1;text-align:center;padding:60px 0;color:var(--text3);"><div style="font-size:24px;margin-bottom:8px;">⚠️</div><div>'+t('idx','error')+'</div></div>';
 }
 
+/* ── URL SYNC + SCROLL RESTORE (so "Back" returns to the same view) ─────────── */
+// Reflect the active status/search/category/sort in the URL via replaceState (no new
+// history entry). A browser "Back" from a startup page then reloads the catalog with
+// these params and applyUrlParams() restores them — instead of resetting to the
+// default "For sale" view. (Ranges aren't mirrored; status is the reported pain point.)
+function syncUrl() {
+  const p = new URLSearchParams();
+  if (filters.onSale !== true) p.set('status', 'all');          // 'sale' is default → omit
+  if (filters.search)   p.set('search', filters.search);
+  if (filters.category) p.set('category', filters.category);
+  if (filters.sort && filters.sort !== 'revenue-desc') p.set('sort', filters.sort);
+  const qs = p.toString();
+  try { history.replaceState(history.state, '', location.pathname + (qs ? '?' + qs : '')); } catch {}
+}
+
+let _scrollRestored = false;
+function restoreScroll() {
+  if (_scrollRestored) return;
+  let st; try { st = JSON.parse(sessionStorage.getItem('sm_cat_scroll') || 'null'); } catch {}
+  if (!st || st.url !== location.href) return;   // only when returning to the exact view
+  _scrollRestored = true;
+  try { sessionStorage.removeItem('sm_cat_scroll'); } catch {}
+  if (st.n && st.n > renderLimit) { renderLimit = st.n; renderCards(); }
+  // Two rAFs: let the restored cards lay out before we jump.
+  requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo(0, st.y || 0)));
+}
+
 /* ── FILTER HANDLERS ──────────────────────────────────────────────────────── */
 function reloadFromAPI() { loadedItems=[];displayItems=[];apiPage=0;hasMore=false;allLoaded=false;renderLimit=60;loadToken++;isLoading=false;showLoading();loadInitial(); }
 
@@ -747,6 +787,7 @@ function setStatus(el) {
   document.querySelectorAll('.status-opt').forEach(o=>o.classList.remove('sel'));
   el.classList.add('sel');
   filters.onSale=el.dataset.filter==='sale'?true:null;
+  syncUrl();
   reloadFromAPI();
 }
 function onCategoryChange(v) {
@@ -754,17 +795,17 @@ function onCategoryChange(v) {
   const lbl = document.getElementById('catDDLabel');
   if (lbl) lbl.textContent = v || t('idx','fltCatsAll');
   document.querySelectorAll('.cat-dd-opt').forEach(o => o.classList.toggle('active', (o.dataset.value||'') === v));
-  displayItems = applyClientFilters(loadedItems); renderCards(); updateCount();
+  displayItems = applyClientFilters(loadedItems); renderCards(); updateCount(); syncUrl();
 }
 // Sorting is client-side over the already-loaded set — instant, and it never wipes
 // the catalog (the old reloadFromAPI caused the "nothing found" flash on sort).
 function onSortChange(v) {
   filters.sort = v; renderLimit = 60;
-  displayItems = applyClientFilters(loadedItems); renderCards(); updateCount();
+  displayItems = applyClientFilters(loadedItems); renderCards(); updateCount(); syncUrl();
 }
 function onSearch(v) {
   filters.search=v.trim(); clearTimeout(searchTimer);
-  searchTimer=setTimeout(()=>{renderLimit=60;displayItems=applyClientFilters(loadedItems);renderCards();updateCount();},300);
+  searchTimer=setTimeout(()=>{renderLimit=60;displayItems=applyClientFilters(loadedItems);renderCards();updateCount();syncUrl();},300);
 }
 function applyFilters() {
   const n=id=>{const v=parseFloat(document.getElementById(id)&&document.getElementById(id).value);return isNaN(v)?0:v;};
@@ -792,6 +833,7 @@ function resetFilters() {
   const cdl=document.getElementById('catDDLabel'); if(cdl) cdl.textContent=t('idx','fltCatsAll');
   closeCatDD(); _catSig='';
   filters={onSale:true,category:'',sort:'revenue-desc',search:'',mrrMin:0,mrrMax:0,rev30Min:0,rev30Max:0,priceMin:0,priceMax:0,growthMin:'',growthMax:'',multipleMax:0,marginMin:0,marginMax:0,audience:'',mobile:'',saleFirst:false};
+  syncUrl();
   reloadFromAPI();
 }
 
@@ -823,8 +865,11 @@ function applyUrlParams() {
   };
   if (status === 'all')  { filters.onSale = null; selectStatus('all'); }
   else if (status === 'sale') { filters.onSale = true; selectStatus('sale'); }
-  if (search || category) {
-    filters.onSale = true;      // tag/category deep-link → on-sale startups only (req)
+  // Tag/category deep-link → on-sale first — but only when status wasn't given
+  // explicitly, so a restored "All + search" view (?status=all&search=) isn't forced
+  // back to "For sale" when returning from a startup page.
+  if ((search || category) && !status) {
+    filters.onSale = true;
     filters.saleFirst = true;
     selectStatus('sale');
   }

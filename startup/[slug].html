@@ -969,14 +969,30 @@ function computePoints(metric, period) {
     if (proj.length) { points = proj; projected = true; }
   }
 
-  // Trim to the selected period (skip for stepped price — changes are rare)
+  // Trim to the selected period (skip for stepped price — changes are rare).
+  // If the requested window holds no data — e.g. a delisted startup whose snapshots
+  // stopped weeks ago — widen through the standard windows, up to the full history,
+  // so we show the real (earlier) data instead of an empty/zero chart. widenedFrom
+  // records the originally requested period so the UI can say "no data in the last N days".
+  let widenedFrom = null;
   if (period && period !== 'all' && !stepped && points.length) {
-    const cutoff = new Date(Date.now() - period * 86400_000).toISOString().slice(0, 10);
-    const filtered = points.filter(p => p.date >= cutoff);
-    points = filtered.length >= 2 ? filtered : points.slice(-Math.max(2, Math.min(points.length, period)));
+    const dayMs = 86400_000;
+    const within = days => {
+      const cutoff = new Date(Date.now() - days * dayMs).toISOString().slice(0, 10);
+      return points.filter(p => p.date >= cutoff);
+    };
+    let win = within(period);
+    if (win.length < 2) {
+      for (const d of [60, 90, 180, 365]) {
+        const wider = within(d);
+        if (wider.length >= 2) { win = wider; widenedFrom = period; break; }
+      }
+      if (win.length < 2) { win = points.slice(); widenedFrom = period; }   // fall back to full history
+    }
+    points = win;
   }
 
-  return { points, projected, stepped };
+  return { points, projected, stepped, widenedFrom };
 }
 
 // Header summary: SUM over the period for flow metrics (daily revenue), or the
@@ -998,12 +1014,15 @@ function computeSummary(metric, period) {
     // (e.g. a delisted startup whose data stops weeks ago). Recomputing the window
     // by calendar date here instead made the header total disagree with the curve —
     // that's what produced "$0 / ↓100%" under a clearly non-zero line.
-    curArr = computePoints(metric, period).points;
+    const cp = computePoints(metric, period);
+    curArr = cp.points;
     const n = curArr.length;
     const firstDrawn = n ? curArr[0].date : null;
     const idx = firstDrawn ? all.findIndex(p => p.date >= firstDrawn) : all.length;
     prevArr = idx > 0 ? all.slice(Math.max(0, idx - n), idx) : [];
-    basis = `пред. ${period} дн.`;
+    // When the window was widened past the requested period, "пред. N дн." would be
+    // misleading — the drawn window isn't N days. Label it generically instead.
+    basis = cp.widenedFrom ? 'пред. период' : `пред. ${period} дн.`;
   }
 
   let value, prev;
@@ -1103,7 +1122,7 @@ function renderChart() {
   const metric = _chartMetrics.find(m => m.key === _chartMetric) || _chartMetrics[0];
   if (!metric) return;
 
-  const { points, projected, stepped } = computePoints(metric, _chartPeriod);
+  const { points, projected, stepped, widenedFrom } = computePoints(metric, _chartPeriod);
 
   const fmt = (v) => {
     if (metric.kind === 'money') return formatMoney(v);   // money series are in whole USD
@@ -1202,8 +1221,13 @@ function renderChart() {
   hideChartHover();
 
   if (rangeLabel) {
+    const range = points.length ? `${points[0].date} — ${points[points.length-1].date}` : '';
     if (projected) rangeLabel.innerHTML = `<span style="color:var(--text2);font-weight:500;">${t('startupPage','chartEstimated')||'Расчётно'}</span> · прогноз по росту 30 дн.`;
-    else rangeLabel.textContent = `${points[0].date} — ${points[points.length-1].date}`;
+    else if (widenedFrom) {
+      const note = (t('startupPage','chartStaleNote') || 'Нет данных за последние {n} дн.').replace('{n}', widenedFrom);
+      rangeLabel.innerHTML = `<span style="color:var(--text2);font-weight:500;">${note}</span> · ${range}`;
+    }
+    else rangeLabel.textContent = range;
   }
 
   if (legendEl) {
@@ -1212,8 +1236,8 @@ function renderChart() {
     legendEl.innerHTML =
       `<span class="chart-legend-item"><span class="chart-legend-swatch${projected?' muted':''}"></span>${metric.label}${projected?' <span style="color:var(--text3)">· расчётно</span>':''}</span>`
     + `<span class="chart-legend-item">Сейчас: <b>${fmt(last)}</b></span>`
-    + `<span class="chart-legend-item">Макс: <b>${fmt(yMax)}</b></span>`
-    + `<span class="chart-legend-item">Мин: <b>${fmt(yMin)}</b></span>`
+    + `<span class="chart-legend-item">Макс: <b>${fmt(yMaxRaw)}</b></span>`
+    + `<span class="chart-legend-item">Мин: <b>${fmt(yMinRaw)}</b></span>`
     + `<span class="chart-legend-item" style="color:var(--text3)">${points.length} ${ptWord}</span>`;
   }
 }
