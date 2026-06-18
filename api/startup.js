@@ -4,6 +4,8 @@
 // instantly and revalidate in the background — and never overwrite good cache with a
 // broken/changed upstream payload.
 
+import { sb, supaConfigured } from './_lib.js';
+
 const FRESH_TTL = 24 * 3600; // 24h freshness window
 
 async function kv(method, path, body) {
@@ -46,6 +48,24 @@ async function fetchStartup(slug, apiKey) {
   return { status: r.status, ok: r.ok, data: await r.json().catch(() => null) };
 }
 
+// Persisted full snapshot kept by cron-refresh.js. Returns { data, last_seen } or
+// null. Lets a delisted startup's page stay populated after TrustMRR drops it.
+async function getArchived(slug) {
+  if (!supaConfigured()) return null;
+  const { ok, data } = await sb(
+    `/rest/v1/startup_archive?slug=eq.${encodeURIComponent(slug)}&select=data,last_seen&limit=1`
+  );
+  return (ok && Array.isArray(data) && data.length) ? data[0] : null;
+}
+
+// Respond with an archived snapshot: same { data } shape live responses use, plus
+// archived/lastSeen so the client can show the "no longer updated" banner.
+function archivedResponse(res, snapshot, lastSeen) {
+  res.setHeader('X-Cache', 'ARCHIVED');
+  res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+  return res.status(200).json({ data: snapshot, archived: true, lastSeen: lastSeen || null });
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -86,6 +106,12 @@ export default async function handler(req, res) {
         res.setHeader('X-Cache', 'REVALIDATED');
         return res.status(200).json(fresh.data);
       }
+      // Gone from upstream (404) — serve the archived snapshot (or the stale copy),
+      // flagged archived so the page shows the "no longer updated" banner.
+      if (fresh.status === 404) {
+        const arch = await getArchived(slug);
+        return archivedResponse(res, arch ? arch.data : (cached.data || cached), arch ? arch.last_seen : null);
+      }
     } catch {}
     res.setHeader('X-Cache', 'STALE');
     return res.status(200).json(cached);
@@ -99,6 +125,14 @@ export default async function handler(req, res) {
         redisSet(cacheKey, fresh.data),
         redisSet(freshKey, 1, FRESH_TTL),
       ]);
+      res.setHeader('X-Cache', 'MISS');
+      res.setHeader('Cache-Control', swr);
+      return res.status(200).json(fresh.data);
+    }
+    // Delisted and nothing cached — fall back to the archived snapshot if we kept one.
+    if (fresh.status === 404) {
+      const arch = await getArchived(slug);
+      if (arch) return archivedResponse(res, arch.data, arch.last_seen);
     }
     res.setHeader('X-Cache', 'MISS');
     res.setHeader('Cache-Control', swr);

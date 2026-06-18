@@ -267,8 +267,10 @@ async function loadStartup(slug) {
   if (res.status === 404) return renderArchived(slug);
   if (!res.ok) return showLoadError();
   try {
-    const { data } = await res.json();
-    renderStartup(data);
+    const body = await res.json();
+    renderStartup(body.data);
+    // Server flags a delisted startup served from our archive snapshot.
+    if (body.archived) markArchived(body.lastSeen);
   } catch(e) { showLoadError(); }
 }
 
@@ -289,12 +291,20 @@ let _lastDataDate = null;   // YYYY-MM-DD of the freshest data we hold (for the 
 async function checkListingStatus(slug) {
   try {
     const res = await fetch(`/api/startup?slug=${encodeURIComponent(slug)}`);
-    if (res.status === 404) markArchived();
+    if (res.status === 404) { markArchived(); return; }
+    const body = await res.json().catch(() => null);
+    if (body && body.archived) markArchived(body.lastSeen);
     else if (res.ok) { _isArchived = false; renderArchiveBanner(); }
   } catch(e) {}
 }
 
-function markArchived() { _isArchived = true; renderArchiveBanner(); }
+// dateStr (from the server's lastSeen) pins the banner date precisely; without it
+// we fall back to the freshest loaded data point.
+function markArchived(dateStr) {
+  _isArchived = true;
+  if (dateStr) _lastDataDate = dateStr;
+  renderArchiveBanner();
+}
 
 // Freshest date across the series we loaded (daily revenue, then MRR snapshots).
 function lastKnownDataDate() {

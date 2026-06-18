@@ -150,6 +150,7 @@ export default async function handler(req, res) {
   // Write today's snapshots to Supabase for historical chart on detail page.
   let snapshotsWritten = 0;
   let snapshotsPruned = 0;
+  let archivedRows = 0;
   if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY && allStartups.length) {
     const today = new Date().toISOString().slice(0, 10);
     const rows = allStartups
@@ -197,8 +198,27 @@ export default async function handler(req, res) {
         if (range) snapshotsPruned = parseInt(range.split('/')[1], 10) || 0;
       }
     } catch {}
+
+    // Persistent full snapshot per startup so detail pages survive deletion from
+    // TrustMRR (served by api/startup.js when upstream 404s). Upsert on slug: a
+    // delisted startup's row simply stops updating, freezing last_seen at the last
+    // day we saw it upstream. See supabase-archive-migration.sql.
+    const archiveRows = allStartups
+      .filter(s => s && s.slug)
+      .map(s => ({ slug: s.slug, data: s, last_seen: today, updated_at: new Date().toISOString() }));
+    for (let i = 0; i < archiveRows.length; i += batchSize) {
+      const batch = archiveRows.slice(i, i + batchSize);
+      try {
+        const r = await fetch(`${process.env.SUPABASE_URL}/rest/v1/startup_archive?on_conflict=slug`, {
+          method: 'POST',
+          headers: { ...supaHeaders, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+          body: JSON.stringify(batch),
+        });
+        if (r.ok) archivedRows += batch.length;
+      } catch {}
+    }
   }
 
-  await recordParserRun('catalog', true, totalStartups, `${page - 1} стр. · снимков в Supabase: ${snapshotsWritten}`);
-  return res.status(200).json({ ok: true, pages: page - 1, startups: totalStartups, snapshots: snapshotsWritten, pruned: snapshotsPruned });
+  await recordParserRun('catalog', true, totalStartups, `${page - 1} стр. · снимков: ${snapshotsWritten} · архив: ${archivedRows}`);
+  return res.status(200).json({ ok: true, pages: page - 1, startups: totalStartups, snapshots: snapshotsWritten, pruned: snapshotsPruned, archived: archivedRows });
 }
