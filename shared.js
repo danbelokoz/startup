@@ -226,6 +226,36 @@ function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// Count-up animation for headline numbers. Tweens from the element's last animated
+// value (or 0) up to `target`, formatting each frame with `fmt`. Re-callable: when
+// the target is unchanged it just sets the text (no re-run), so a stats refresh that
+// arrives in two waves (loaded-page fallback → real /api/stats total) keeps ticking
+// up smoothly instead of restarting from zero. Honours prefers-reduced-motion.
+function animateCount(el, target, fmt, dur) {
+  if (!el || typeof target !== 'number' || !isFinite(target)) return;
+  fmt = fmt || (v => Math.round(v).toLocaleString());
+  dur = dur || 1000;
+  const from = (typeof el._cv === 'number') ? el._cv : 0;
+  el._cv = target;
+  const token = (el._ctok = (el._ctok || 0) + 1);  // newest call wins if two overlap
+  // No tween when there's nothing to animate, motion is reduced, or the tab is
+  // hidden (rAF is paused there — animating would leave the number stuck mid-count).
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (from === target || reduce || document.hidden) { el.textContent = fmt(target); return; }
+  const t0 = performance.now();
+  const tick = (now) => {
+    if (el._ctok !== token) return;                // superseded
+    const p = Math.min(1, (now - t0) / dur);
+    const e = 1 - Math.pow(1 - p, 3);              // easeOutCubic — fast then settles
+    el.textContent = fmt(from + (target - from) * e);
+    if (p < 1) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+  // Safety net: if rAF gets throttled/paused (tab backgrounded mid-animation), make
+  // sure the final value still lands instead of freezing partway through the count.
+  setTimeout(() => { if (el._ctok === token) el.textContent = fmt(target); }, dur + 250);
+}
+
 // ── Revealed startups (persisted, shared across pages) ──────────────────────────
 // When a user reveals a startup's name/contacts on its detail page it is recorded
 // here so it stays un-blurred everywhere (home catalog + leaderboard) and across
@@ -508,6 +538,12 @@ async function updateNavAuth(session) {
         `<button class="btn btn-ghost btn-sm" onclick="navSignOut()">${t('acct','signout')}</button>`;
     }
   }
+  // Logged-in visitors already have catalog access — repoint any "get access" CTA
+  // (e.g. the landing hero button, marked data-access-cta) straight to the catalog
+  // instead of the auth page. Re-runs on auth-state changes (sign in/out in any tab).
+  document.querySelectorAll('[data-access-cta]').forEach(a => {
+    a.setAttribute('href', session?.user ? '/catalog' : '/auth.html');
+  });
   // Fetch access level and notify pages that need limit enforcement
   try {
     const headers = session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};

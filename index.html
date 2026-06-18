@@ -237,7 +237,7 @@
       </div>
 
       <div class="cta">
-        <a class="btn-y" href="/auth.html" data-i18n="landing.ctaAccess">Получить доступ</a>
+        <a class="btn-y" href="/auth.html" data-access-cta data-i18n="landing.ctaAccess">Получить доступ</a>
         <button class="selllink" onclick="openSellModal()" data-i18n="landing.ctaSell">Продать стартап →</button>
       </div>
     </div>
@@ -468,11 +468,12 @@ async function loadLanding() {
   // bar shows total, annualised revenue (MRR×12) and on-sale count.
   try {
     const st = await fetch(API+'/stats').then(r=>r.json()).catch(()=>null);
-    const set = (id,v)=>{const e=document.getElementById(id); if(e) e.textContent=v;};
+    const byId = id => document.getElementById(id);
     if (st) {
-      if (st.mrr != null) { set('heroMrr', formatMoney(st.mrr).replace(/^\$/,'')); }
-      if (st.total != null) set('tsTotal', (st.total + 300).toLocaleString());
-      if (st.onSale != null) set('tsSale', (st.onSale + 300).toLocaleString());
+      // Count up to the catalog-wide figures so the hero feels live on load.
+      if (st.mrr != null) animateCount(byId('heroMrr'), st.mrr, v => formatMoney(v).replace(/^\$/,''));
+      if (st.total != null) animateCount(byId('tsTotal'), st.total + 300, v => Math.round(v).toLocaleString());
+      if (st.onSale != null) animateCount(byId('tsSale'), st.onSale + 300, v => Math.round(v).toLocaleString());
     }
   } catch {}
   // Revenue leaders — highest 30-day revenue among on-sale startups → widget.

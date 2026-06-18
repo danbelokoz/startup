@@ -706,7 +706,9 @@ async function fetchEnrichment(slug) {
   if (_enrichmentLoaded) return;
   _enrichmentLoaded = true;
   try {
-    const r = await fetch('/api/enrich?slug=' + encodeURIComponent(slug));
+    // Pass the UI language so the server returns the description translated into it
+    // (cached server-side; falls back to English when translation is unavailable).
+    const r = await fetch('/api/enrich?slug=' + encodeURIComponent(slug) + '&lang=' + encodeURIComponent(getLang()));
     const j = await r.json();
     const enriched = j && j.data;
     if (!enriched || !Object.keys(enriched).length) return;
