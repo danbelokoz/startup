@@ -43,6 +43,13 @@
     .not-sale-box { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 32px; text-align: center; color: var(--text2); }
     .loading-state { text-align: center; padding: 80px 24px; color: var(--text3); }
     .loading-state h3 { font-size: 18px; color: var(--text2); margin-bottom: 8px; }
+    /* Archived / delisted notice — shown when the startup is gone from the source */
+    #archiveBanner:empty { display: none; }
+    .archive-banner { display: flex; gap: 12px; align-items: flex-start; background: rgba(252,213,53,0.07); border: 1px solid rgba(252,213,53,0.32); border-radius: var(--radius); padding: 14px 16px; margin: 8px 0 4px; }
+    .archive-banner svg { flex-shrink: 0; color: var(--accent2, var(--accent)); margin-top: 1px; }
+    .archive-banner .ab-body { flex: 1; min-width: 0; }
+    .archive-banner .ab-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+    .archive-banner .ab-note { font-size: 13px; color: var(--text2); line-height: 1.5; }
     @media (max-width: 640px) { .page-wrap { padding: 16px 16px 60px; } .startup-header { flex-direction: column; } .startup-header-meta h1 { font-size: 24px; } .metrics-grid { grid-template-columns: 1fr 1fr; } .price-chip b { font-size: 17px; } }
   .contact-locked { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; }
   .contact-locked svg { flex-shrink: 0; color: var(--text3); }
@@ -209,6 +216,7 @@
     <a href="/catalog" class="back-link" id="backLink">← Back</a>
     <button class="fav-detail" id="favBtn" onclick="toggleDetailFav()" title="Добавить в избранное"></button>
   </div>
+  <div id="archiveBanner"></div>
   <div id="content"><div class="loading-state"><h3>Loading...</h3></div></div>
 </div>
 <footer><a href="#">Условия</a> &nbsp;·&nbsp; <a href="#">Конфиденциальность</a></footer>
@@ -233,13 +241,13 @@ window.addEventListener('DOMContentLoaded', async () => {
     const cached = sessionStorage.getItem('startup_detail');
     if (cached) {
       const s = JSON.parse(cached);
-      if (s.slug === slug) { renderStartup(s); return; }
+      if (s.slug === slug) { renderStartup(s); checkListingStatus(slug); return; }
     }
   } catch(e) {}
 
   // 2. Try IndexedDB (works even if API is dead)
   const fromIdb = await idbGetOne(slug);
-  if (fromIdb) { renderStartup(fromIdb); return; }
+  if (fromIdb) { renderStartup(fromIdb); checkListingStatus(slug); return; }
 
   // 3. Fall back to API
   loadStartup(slug);
@@ -247,13 +255,100 @@ window.addEventListener('DOMContentLoaded', async () => {
 
 async function loadStartup(slug) {
   if (!slug) slug = location.pathname.replace('/startup/','').replace('.html','');
+  let res;
   try {
-    const res = await fetch(`/api/startup?slug=${encodeURIComponent(slug)}`);
-    if (!res.ok) throw new Error('Not found');
+    res = await fetch(`/api/startup?slug=${encodeURIComponent(slug)}`);
+  } catch(e) {
+    return showLoadError();
+  }
+  // 404 = the startup is gone from the source (delisted/removed). With no cached
+  // snapshot to fall back on, show an archived view built from whatever history
+  // we still hold, rather than a bare "not found".
+  if (res.status === 404) return renderArchived(slug);
+  if (!res.ok) return showLoadError();
+  try {
     const { data } = await res.json();
     renderStartup(data);
-  } catch(e) {
-    document.getElementById('content').innerHTML = `<div class="loading-state"><h3>⚠️ Not found</h3><p>${t('errors','load')}</p><a href="/catalog" class="btn btn-primary" style="margin-top:16px;display:inline-flex;">${t('startupPage','back')}</a></div>`;
+  } catch(e) { showLoadError(); }
+}
+
+function showLoadError() {
+  document.getElementById('content').innerHTML = `<div class="loading-state"><h3>⚠️ Not found</h3><p>${t('errors','load')}</p><a href="/catalog" class="btn btn-primary" style="margin-top:16px;display:inline-flex;">${t('startupPage','back')}</a></div>`;
+}
+
+// ── Archived / delisted startups ──────────────────────────────────────────────
+// A startup can vanish from the upstream source (sold, withdrawn, deleted). The
+// page then keeps showing the last cached snapshot + stored chart history, which
+// looks like the data silently froze. We probe the source and, when it's gone,
+// surface a banner that says so and dates the last figures we have.
+let _isArchived   = false;
+let _lastDataDate = null;   // YYYY-MM-DD of the freshest data we hold (for the note)
+
+// Only an explicit 404 marks a listing archived — network/other errors are
+// ignored so a transient hiccup can't mislabel a live startup.
+async function checkListingStatus(slug) {
+  try {
+    const res = await fetch(`/api/startup?slug=${encodeURIComponent(slug)}`);
+    if (res.status === 404) markArchived();
+    else if (res.ok) { _isArchived = false; renderArchiveBanner(); }
+  } catch(e) {}
+}
+
+function markArchived() { _isArchived = true; renderArchiveBanner(); }
+
+// Freshest date across the series we loaded (daily revenue, then MRR snapshots).
+function lastKnownDataDate() {
+  if (_lastDataDate) return _lastDataDate;
+  const rev = (_revenueHistory && _revenueHistory[_revenueHistory.length - 1]) || null;
+  if (rev && rev.rev_date) return rev.rev_date;
+  const snap = (_chartData && _chartData[_chartData.length - 1]) || null;
+  if (snap && snap.snap_date) return snap.snap_date;
+  return null;
+}
+
+function renderArchiveBanner() {
+  const el = document.getElementById('archiveBanner');
+  if (!el) return;
+  if (!_isArchived) { el.innerHTML = ''; return; }
+  const dateStr = lastKnownDataDate();
+  let note;
+  if (dateStr) {
+    const human = new Date(dateStr).toLocaleDateString(getLang(), { year:'numeric', month:'long', day:'numeric' });
+    note = (t('startupPage','archivedNote') || '').replace('{date}', human)
+      .replace(/\.{2,}$/, '.');   // ru long date ends in "г." → avoid a doubled period
+
+  } else {
+    note = t('startupPage','archivedNoteNoDate') || '';
+  }
+  el.innerHTML = `
+    <div class="archive-banner">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V8"/><path d="M10 12h4"/></svg>
+      <div class="ab-body">
+        <div class="ab-title">${escHtml(t('startupPage','archivedTitle') || '')}</div>
+        <div class="ab-note">${escHtml(note)}</div>
+      </div>
+    </div>`;
+}
+
+function titleFromSlug(slug) {
+  return String(slug || '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()).trim() || 'Startup';
+}
+
+// No cached snapshot AND the source 404'd. If we still hold chart history, render
+// a minimal stub so the chart + metric shell draw; otherwise a plain notice.
+async function renderArchived(slug) {
+  let rev = [];
+  try {
+    const r = await fetch(`/api/revenue-history?slug=${encodeURIComponent(slug)}&days=365`);
+    rev = (await r.json()).data || [];
+  } catch(e) {}
+  if (rev.length) {
+    renderStartup({ slug, name: titleFromSlug(slug), revenue: {}, onSale: false });
+    markArchived();
+  } else {
+    _isArchived = true;
+    document.getElementById('content').innerHTML =
+      `<div class="loading-state"><h3>${escHtml(t('startupPage','archivedTitle') || 'Not found')}</h3><p>${escHtml(t('startupPage','archivedNoteNoDate') || t('errors','load'))}</p><a href="/catalog" class="btn btn-primary" style="margin-top:16px;display:inline-flex;">${t('startupPage','back')}</a></div>`;
   }
 }
 
@@ -770,6 +865,11 @@ async function initChart(s) {
     );
   }
   await Promise.all(tasks);
+  // Remember the freshest data point so the archived-listing banner can date it.
+  const _rd = (_revenueHistory[_revenueHistory.length - 1] || {}).rev_date;
+  const _sd = (_chartData[_chartData.length - 1] || {}).snap_date;
+  _lastDataDate = _rd || _sd || _lastDataDate;
+  if (_isArchived) renderArchiveBanner();
   buildChartControls();
   renderChart();
 }
