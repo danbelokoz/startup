@@ -33,97 +33,43 @@ async function redisSet(key, value, ttl) {
   } catch {}
 }
 
-// ── Description translation ───────────────────────────────────────────────────
-// The detail page is the only place that shows the full description; everywhere
-// else (landing, catalog) shows name + metrics. So we translate on demand here,
-// keyed by the UI language passed as ?lang=, and cache the result in Redis. The
-// base English text is our rewrite (preferred) or TrustMRR's original; if neither
-// the key nor a translation is available we fall back to English — no regression.
-const LANG_NAMES = { de: 'German', fr: 'French', it: 'Italian', ru: 'Russian', zh: 'Chinese (Simplified)', ar: 'Arabic' };
-const TR_TTL = 30 * 86400;  // 30 days — descriptions change rarely; enrich refreshes daily anyway
-const TR_MODEL = process.env.TRANSLATE_MODEL || 'claude-haiku-4-5-20251001';
+// ── Stored description (rephrase + per-language translations) ──────────────────
+// Each startup's description is rephrased in our own words (so the page isn't a 1:1
+// copy of trustmrr.com) and translated into the UI languages. Everything is produced
+// OFFLINE (by Claude Code) and stored in startup_descriptions — there are NO runtime
+// translation calls and no API cost:
+//   description  — our English rephrase
+//   translations — { ru, de, fr, it, zh, ar } : translated rephrases
+// Read with the service-role key (the table is RLS-locked). select=* so it keeps
+// working before the translations/status columns are migrated in.
+const TR_LANGS = new Set(['de', 'fr', 'it', 'ru', 'zh', 'ar']);
 
-// TrustMRR's original description, read from the single-startup cache the detail
-// page populates just before it calls enrich (sm_startup_<slug>). Used only as the
-// translation base when we have no rewrite of our own.
-async function getOriginalDescription(slug) {
-  try {
-    const s = await redisGet(`sm_startup_${slug}`);
-    const d = s && s.data && s.data.description;
-    return (typeof d === 'string' && d.trim()) ? d.trim() : null;
-  } catch { return null; }
-}
-
-// Small stable hash so the cache key changes if the source text is later edited
-// (e.g. a rewrite is added) and the stale translation is naturally superseded.
-function hashStr(s) {
-  let h = 5381;
-  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
-  return (h >>> 0).toString(36);
-}
-
-async function translateText(text, lang) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  const name = LANG_NAMES[lang];
-  if (!apiKey || !name) return null;
-  try {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({
-        model: TR_MODEL,
-        max_tokens: 1024,
-        messages: [{
-          role: 'user',
-          content: `Translate the text below into ${name}. Preserve the meaning and every fact exactly, keep a neutral and informational tone, and do not add notes, quotes, or commentary. Output only the translation.\n\n${text}`,
-        }],
-      }),
-    });
-    if (!r.ok) return null;
-    const j = await r.json();
-    const out = j && Array.isArray(j.content) && j.content[0] && j.content[0].text;
-    return (typeof out === 'string' && out.trim()) ? out.trim() : null;
-  } catch { return null; }
-}
-
-async function getOrTranslate(slug, lang, text) {
-  if (!text || text.length > 4000) return null;
-  const key = `sm_desc_${lang}_${slug}_${hashStr(text)}`;
-  const hit = await redisGet(key);
-  if (hit && typeof hit.t === 'string') return hit.t;
-  const out = await translateText(text, lang);
-  if (out) await redisSet(key, { t: out }, TR_TTL);
-  return out;
-}
-
-// Resolve the description we send to the client. English: keep current behaviour
-// (rewrite if any, else the page falls back to the original from /api/startup).
-// Other languages: translate the rewrite, or the original, into that language.
-async function resolveDescription(result, rewritten, slug, lang) {
-  if (!lang || lang === 'en' || !LANG_NAMES[lang]) {
-    if (rewritten) result.description = rewritten;
-    return;
-  }
-  const base = rewritten || (await getOriginalDescription(slug));
-  if (!base) { if (rewritten) result.description = rewritten; return; }
-  const tr = await getOrTranslate(slug, lang, base);
-  result.description = tr || base;
-}
-
-// Our own rewritten description (so the page isn't a 1:1 copy of trustmrr.com),
-// populated by scripts/rewrite-descriptions.js. Read with the service-role key; the
-// table is RLS-locked. Returns null when not configured / not yet rewritten.
-async function getRewrittenDescription(slug) {
+async function getStoredDescription(slug) {
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return null;
   try {
     const r = await fetch(
-      `${process.env.SUPABASE_URL}/rest/v1/startup_descriptions?slug=eq.${encodeURIComponent(slug)}&select=description&limit=1`,
+      `${process.env.SUPABASE_URL}/rest/v1/startup_descriptions?slug=eq.${encodeURIComponent(slug)}&select=*&limit=1`,
       { headers: { apikey: process.env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}` } }
     );
     if (!r.ok) return null;
     const rows = await r.json();
-    return Array.isArray(rows) && rows[0] && rows[0].description ? rows[0].description : null;
+    return Array.isArray(rows) && rows[0] ? rows[0] : null;
   } catch { return null; }
+}
+
+// Pick the description to send for this language: the stored translation if we have
+// one, else our English rephrase. Nothing is generated at request time. When nothing
+// is stored we leave result.description unset and the page falls back to TrustMRR's
+// original (English) from /api/startup.
+function resolveDescription(result, stored, lang) {
+  if (!stored) return;
+  if (TR_LANGS.has(lang)) {
+    const tr = stored.translations && stored.translations[lang];
+    if (typeof tr === 'string' && tr.trim()) { result.description = tr.trim(); return; }
+  }
+  if (typeof stored.description === 'string' && stored.description.trim()) {
+    result.description = stored.description.trim();
+  }
 }
 
 // Records this run for the admin "Парсеры" tab. On-demand parser → also bumps a
@@ -228,11 +174,12 @@ export default async function handler(req, res) {
   const lang = (req.query.lang || 'en').toLowerCase();  // varies the CDN cache per language
 
   const cacheKey = `sm_enrich_${slug}`;
-  // Read our rewritten description alongside the (separately cached) scrape and merge
-  // it into the response without polluting the enrich cache, so it shows immediately.
-  const [cached, rewritten] = await Promise.all([redisGet(cacheKey), getRewrittenDescription(slug)]);
+  // Read our stored description (rephrase + translations) alongside the separately
+  // cached scrape and merge the right language into the response — without polluting
+  // the enrich cache, so it shows immediately and the cache stays language-agnostic.
+  const [cached, stored] = await Promise.all([redisGet(cacheKey), getStoredDescription(slug)]);
   if (cached) {
-    await resolveDescription(cached, rewritten, slug, lang);
+    resolveDescription(cached, stored, lang);
     res.setHeader('X-Cache', 'HIT');
     res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=86400');
     return res.status(200).json({ data: cached });
@@ -245,7 +192,7 @@ export default async function handler(req, res) {
     if (!r.ok) {
       await recordRun('enrich', false, `${slug}: HTTP ${r.status}`);
       const out = {};
-      await resolveDescription(out, rewritten, slug, lang);  // still translate even if the scrape fails
+      resolveDescription(out, stored, lang);  // still serve our description even if the scrape fails
       return res.status(200).json({ data: out, note: 'fetch_failed_' + r.status });
     }
     const html = await r.text();
@@ -265,14 +212,14 @@ export default async function handler(req, res) {
     if (Object.keys(result).length) await redisSet(cacheKey, result, CACHE_TTL);
     await recordRun('enrich', Object.keys(result).length > 0, slug);
 
-    await resolveDescription(result, rewritten, slug, lang); // merge after caching — cache stays description-agnostic
+    resolveDescription(result, stored, lang); // merge after caching — cache stays description-agnostic
     res.setHeader('X-Cache', 'MISS');
     res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=86400');
     return res.status(200).json({ data: result });
   } catch (e) {
     await recordRun('enrich', false, `${slug}: parse_error`);
     const out = {};
-    await resolveDescription(out, rewritten, slug, lang);
+    resolveDescription(out, stored, lang);
     return res.status(200).json({ data: out, note: 'parse_error' });
   }
 }
