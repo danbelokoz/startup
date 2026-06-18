@@ -132,6 +132,39 @@ async function writeSnapshots(allStartups) {
   return { written, pruned };
 }
 
+// Persistent full snapshot per startup so detail pages survive deletion from
+// TrustMRR. Upsert on slug → ONE row per startup (not per day), so this never
+// grows with time; a delisted startup's row just stops updating, freezing
+// last_seen at the last day we saw it. Served by api/startup.js on upstream 404.
+// ~1 KB/startup → ~8 MB for the whole catalog.
+async function writeArchive(allStartups) {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !allStartups.length) return 0;
+  const today  = new Date().toISOString().slice(0, 10);
+  const nowIso = new Date().toISOString();
+  const rows = allStartups.filter(s => s && s.slug).map(s => ({
+    slug: s.slug, data: s, last_seen: today, updated_at: nowIso,
+  }));
+  const headers = {
+    'Content-Type': 'application/json',
+    'apikey':        SUPABASE_SERVICE_ROLE_KEY,
+    'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+  };
+  let written = 0;
+  for (let i = 0; i < rows.length; i += 500) {
+    const batch = rows.slice(i, i + 500);
+    try {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/startup_archive?on_conflict=slug`, {
+        method: 'POST',
+        headers: { ...headers, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+        body: JSON.stringify(batch),
+      });
+      if (r.ok) written += batch.length;
+      else console.log(`  ⚠ archive batch ${i} → ${r.status}`);
+    } catch (e) { console.log(`  ⚠ archive batch ${i} error: ${e.message}`); }
+  }
+  return written;
+}
+
 // Guards the cache/snapshots from a broken/changed upstream payload: a page is valid
 // if it's an array and (when non-empty) at least half its items still carry a slug.
 // An empty page is the legit end of the catalog; a page that fails this means the
@@ -197,11 +230,12 @@ async function main() {
   }
 
   const { written, pruned } = await writeSnapshots(allStartups);
+  const archived = await writeArchive(allStartups);
 
   console.log(`\n─────────────────────────────────────`);
-  console.log(`Pages: ${page - 1} · startups: ${totalStartups} · snapshots: ${written} · pruned: ${pruned}`);
+  console.log(`Pages: ${page - 1} · startups: ${totalStartups} · snapshots: ${written} · archive: ${archived} · pruned: ${pruned}`);
 
-  await recordParserRun('catalog', true, written, `${page - 1} стр. · снимков в Supabase: ${written}`, totalStartups);
+  await recordParserRun('catalog', true, written, `${page - 1} стр. · снимков: ${written} · архив: ${archived}`, totalStartups);
 }
 
 main().catch(async (e) => {
