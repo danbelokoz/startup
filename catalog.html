@@ -351,6 +351,7 @@ async function loadInitial() {
 async function fetchPage(page, bg) {
   if (isLoading && !bg) return;
   isLoading = true;
+  const tk = loadToken;                 // a status switch bumps loadToken mid-flight
   try {
     const p = new URLSearchParams({page, limit:LIMIT, sort:API_SORT});
     if (filters.onSale===true) p.set('onSale','true');
@@ -358,6 +359,9 @@ async function fetchPage(page, bg) {
     const res = await fetch(API+'/startups?'+p);
     if (!res.ok) throw new Error('api');
     const {data, meta} = await res.json();
+    // Filter switched while we were awaiting — drop this stale result instead of
+    // writing the old status's items into the freshly-cleared list.
+    if (tk !== loadToken) return;
     const items = (data||[]).filter(s=>s&&s.slug);
 
     if (page===1) {
@@ -737,7 +741,7 @@ function showError() {
 }
 
 /* ── FILTER HANDLERS ──────────────────────────────────────────────────────── */
-function reloadFromAPI() { loadedItems=[];displayItems=[];apiPage=0;hasMore=false;allLoaded=false;renderLimit=60;loadToken++;showLoading();loadInitial(); }
+function reloadFromAPI() { loadedItems=[];displayItems=[];apiPage=0;hasMore=false;allLoaded=false;renderLimit=60;loadToken++;isLoading=false;showLoading();loadInitial(); }
 
 function setStatus(el) {
   document.querySelectorAll('.status-opt').forEach(o=>o.classList.remove('sel'));
