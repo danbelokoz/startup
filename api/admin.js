@@ -286,6 +286,21 @@ export default async function handler(req, res) {
         const { ok, data } = await sb('/rest/v1/waitlist?select=email,source,created_at&order=created_at.desc&limit=500');
         return res.status(200).json({ waitlist: ok && Array.isArray(data) ? data : [] });
       }
+      case 'descriptions': {
+        // Coverage of our rephrased + translated descriptions. Exact counts via
+        // Prefer: count=exact (same trick as the overview/waitlist counters). Resilient
+        // to a not-yet-migrated `status` column: those counts come back null.
+        const cnt = (filter) => sb(
+          `/rest/v1/startup_descriptions?select=slug&limit=1${filter ? '&' + filter : ''}`,
+          { headers: { Prefer: 'count=exact' } }
+        );
+        const [all, done, pending] = await Promise.all([cnt(''), cnt('status=eq.done'), cnt('status=eq.pending')]);
+        return res.status(200).json({
+          inTable: rangeTotal(all.headers),
+          done:    rangeTotal(done.headers),
+          pending: rangeTotal(pending.headers),
+        });
+      }
       default:
         return res.status(400).json({ error: 'Unknown section' });
     }
