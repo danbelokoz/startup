@@ -993,11 +993,16 @@ function computeSummary(metric, period) {
     curArr = all.slice(mid); prevArr = all.slice(0, mid);
     basis = 'пред. период';
   } else {
-    const now = Date.now();
-    const curCut  = new Date(now - period * 86400_000).toISOString().slice(0, 10);
-    const prevCut = new Date(now - 2 * period * 86400_000).toISOString().slice(0, 10);
-    curArr  = all.filter(p => p.date >= curCut);
-    prevArr = all.filter(p => p.date >= prevCut && p.date < curCut);
+    // Mirror the points the chart actually draws. computePoints applies the same
+    // period window but falls back to the last N snapshots when the series is stale
+    // (e.g. a delisted startup whose data stops weeks ago). Recomputing the window
+    // by calendar date here instead made the header total disagree with the curve —
+    // that's what produced "$0 / ↓100%" under a clearly non-zero line.
+    curArr = computePoints(metric, period).points;
+    const n = curArr.length;
+    const firstDrawn = n ? curArr[0].date : null;
+    const idx = firstDrawn ? all.findIndex(p => p.date >= firstDrawn) : all.length;
+    prevArr = idx > 0 ? all.slice(Math.max(0, idx - n), idx) : [];
     basis = `пред. ${period} дн.`;
   }
 
