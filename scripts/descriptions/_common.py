@@ -29,10 +29,15 @@ def load_env():
             os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
 
 
-def supa_cfg():
+def supa_cfg_optional():
+    """(url, key_or_None) — for steps that can run before the key is set (fetch)."""
     load_env()
     url = os.environ.get("SUPABASE_URL", "https://gebmvkghoshihlebgvxm.supabase.co").rstrip("/")
-    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    return url, os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+
+
+def supa_cfg():
+    url, key = supa_cfg_optional()
     if not key:
         raise SystemExit(
             "SUPABASE_SERVICE_ROLE_KEY is not set.\n"

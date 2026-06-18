@@ -14,7 +14,7 @@ Usage:
 """
 import argparse, json, os, sys
 sys.path.insert(0, os.path.dirname(__file__))
-from _common import LANGS, PUBLIC_API, WORK, get_json, supa_cfg, http, supa_headers
+from _common import LANGS, PUBLIC_API, WORK, get_json, supa_cfg_optional, http, supa_headers
 
 
 def fetch_done_slugs(url, key):
@@ -45,9 +45,14 @@ def main():
     ap.add_argument("--min-len", type=int, default=40)
     args = ap.parse_args()
 
-    url, key = supa_cfg()
-    done = fetch_done_slugs(url, key)
-    print(f"Already done: {len(done)}")
+    url, key = supa_cfg_optional()
+    if key:
+        done = fetch_done_slugs(url, key)
+        print(f"Already done: {len(done)}")
+    else:
+        print("No SUPABASE_SERVICE_ROLE_KEY yet — not deduping against done "
+              "(set .env.local before the real run).")
+        done = set()
 
     on_sale = "" if args.all else "&onSale=true"
     pending, page, scanned = [], 1, 0
