@@ -845,11 +845,13 @@ function openSellModal() {
   }
 
   const userEmail = escHtml(window._session.user.email || '');
-  const planOptions = [
-    { id:'starter', price:'$19',  features:[S('fStarter')], popular:false },
-    { id:'pro',     price:'$100', features:[S('fListed'),S('fBrand'),S('fNewsletter'),S('f3x')], popular:true },
-    { id:'premium', price:'$399', features:[S('fEverything'),S('f20x'),S('fPinned'),S('fMatching'),S('fManager')], popular:false },
-  ];
+  // Тарифы размещения временно скрыты — размещение бесплатное.
+  // Чтобы вернуть платность: раскомментировать planOptions + блок выбора тарифа в форме ниже.
+  // const planOptions = [
+  //   { id:'starter', price:'$19',  features:[S('fStarter')], popular:false },
+  //   { id:'pro',     price:'$100', features:[S('fListed'),S('fBrand'),S('fNewsletter'),S('f3x')], popular:true },
+  //   { id:'premium', price:'$399', features:[S('fEverything'),S('f20x'),S('fPinned'),S('fMatching'),S('fManager')], popular:false },
+  // ];
   modal.innerHTML = `
     <button class="sm-modal-close" data-close>×</button>
     <h2>${S('title')}</h2>
@@ -900,18 +902,7 @@ function openSellModal() {
       <label class="sm-toggle"><input type="checkbox" id="smAnon"/> ${S('anon')}</label>
     </div>
 
-    <div class="sm-step">
-      <div class="sm-label">${S('planLabel')}</div>
-      <div class="sm-plans">
-        ${planOptions.map((p,i) => `
-          <button class="sm-plan${i===1?' selected':''}" data-plan="${p.id}" type="button">
-            ${p.popular ? `<span class="sm-plan-popular">${S('popular')}</span>` : ''}
-            <div class="sm-plan-price">${p.price}</div>
-            <div class="sm-plan-tag">${S('oneTime')}</div>
-            ${p.features.map(f => `<div class="sm-plan-feat">${icon('check',{size:10})}${f}</div>`).join('')}
-          </button>`).join('')}
-      </div>
-    </div>
+    <!-- Блок выбора тарифа ($19/$100/$399) временно скрыт — размещение бесплатное -->
 
     <button class="sm-submit" id="smSubmit">${S('submit')} →</button>
 
@@ -938,7 +929,7 @@ async function submitSellForm(modal) {
   const price    = parseFloat(modal.querySelector('#smPrice').value);
   const margin   = parseFloat(modal.querySelector('#smMargin').value);
   const anon     = modal.querySelector('#smAnon').checked;
-  const plan     = modal.querySelector('.sm-plan.selected')?.dataset.plan || 'pro';
+  const plan     = modal.querySelector('.sm-plan.selected')?.dataset.plan || 'free'; // тарифы скрыты — размещение бесплатное
 
   if (!apiKey || !price || isNaN(margin)) {
     alert(t('sell','fillError'));
