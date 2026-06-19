@@ -372,9 +372,19 @@ async function getSlugs(need) {
     );
     if (!r.ok) throw new Error(`Vercel API ${r.status} on page ${page}`);
     const data = await r.json();
+    let hitZero = false;
     if (Array.isArray(data.data)) {
-      slugs.push(...data.data.map(s => s.slug).filter(Boolean));
+      for (const s of data.data) {
+        if (!s || !s.slug) continue;
+        // sort=revenue-desc → once 30-day revenue hits $0, every later startup is $0
+        // too, and those have no daily revenue chart to scrape. Stop here. This caps
+        // the list at the ~3.8k startups that actually have revenue (≈8 windows)
+        // instead of the full ~7.4k catalog, whether or not ON_SALE_ONLY is set.
+        if (((s.revenue && s.revenue.last30Days) || 0) <= 0) { hitZero = true; break; }
+        slugs.push(s.slug);
+      }
     }
+    if (hitZero) break;
     if (!data.meta?.hasMore) break;
     if (slugs.length >= need) break;   // have enough for this batch window
     page++;

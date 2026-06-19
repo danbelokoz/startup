@@ -21,9 +21,9 @@ on:
         default: '0'
   schedule:
     # Every 3h. GitHub's scheduler is best-effort and silently drops scheduled runs,
-    # so we over-schedule: with ~1782 on-sale / 500-per-run the persisted cursor needs
-    # 4 runs for a full sweep, and 8 attempts/day means even a ~50% drop rate keeps
-    # every on-sale startup refreshed well inside 2.5 days.
+    # so we over-schedule: with ~3.8k revenue startups / 500-per-run the persisted
+    # cursor needs ~8 runs for a full sweep, and 8 attempts/day means even a ~50% drop
+    # rate refreshes every startup that has revenue inside ~2 days.
     # Run at :17, not :00 — GitHub delays/drops crons most at the top of the hour.
     - cron: '17 0,3,6,9,12,15,18,21 * * *'
 
@@ -53,9 +53,12 @@ jobs:
           # Optional: lets the scraper report run status to the admin "Парсеры" tab
           KV_REST_API_URL:           ${{ secrets.KV_REST_API_URL }}
           KV_REST_API_TOKEN:         ${{ secrets.KV_REST_API_TOKEN }}
-          # Scheduled runs cover for-sale startups only and auto-rotate the batch window
-          # (window order comes from a persisted Redis cursor — see scrape-daily-revenue.js)
-          ON_SALE_ONLY: ${{ github.event_name == 'schedule' && '1' || inputs.on_sale_only || '0' }}
+          # Scheduled runs now cover ALL startups that have revenue (not just on-sale)
+          # and auto-rotate the batch window (order from a persisted Redis cursor — see
+          # scrape-daily-revenue.js). getSlugs stops at the first $0-revenue startup, so
+          # the list is the ~3.8k with revenue (≈8 windows), not the full ~7.4k catalog.
+          # Pass on_sale_only=1 on a manual dispatch to limit a run to for-sale startups.
+          ON_SALE_ONLY: ${{ inputs.on_sale_only || '0' }}
           LIMIT:        ${{ inputs.limit || '500' }}
           OFFSET:       ${{ inputs.offset || '0' }}
           ROTATE:       ${{ github.event_name == 'schedule' && '1' || '0' }}
