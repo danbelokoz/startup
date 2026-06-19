@@ -383,7 +383,7 @@ async function fetchPage(page, bg) {
       // Re-filter the whole set so anonymous items keep sinking to the bottom
       // even as new pages stream in via infinite scroll.
       displayItems = applyClientFilters(loadedItems);
-      renderCards();
+      renderThrottled();   // throttled — see note above; loadAllPages does the final render
       updateCount();
       buildCategoryOptions();
     }
@@ -407,6 +407,8 @@ async function fetchPage(page, bg) {
 // category and range filters work over the whole catalog — not just page 1.
 async function loadAllPages(token) {
   if (allLoaded) return;
+  _bgRenderLast = Date.now();          // hold off the first throttled rebuild so the
+                                       // page-1 logos get a calm window to load first
   let guard = 0;
   while (hasMore && guard++ < 400) {
     if (token !== loadToken) return;   // a newer load started — abort this one
@@ -414,6 +416,8 @@ async function loadAllPages(token) {
   }
   if (token !== loadToken) return;
   allLoaded = !hasMore;
+  renderCards();                       // one final render with the fully sorted set
+  updateCount();
   buildCategoryOptions();
 }
 
@@ -513,6 +517,7 @@ function applyClientFilters(items) {
 
 /* ── RENDER ────────────────────────────────────────────────────────────────── */
 function renderCards() {
+  clearTimeout(_bgRenderTimer);          // cancel any pending throttled rebuild
   const grid = document.getElementById('cards');
   grid.innerHTML = '';
   if (!displayItems.length) {
@@ -523,9 +528,30 @@ function renderCards() {
   setupScroll();
 }
 
+// Background page-fill must NOT rebuild the whole grid on every page. Each full
+// renderCards() does grid.innerHTML='' which re-creates every <img>, aborting the
+// in-flight logo loads (so logos never finish on the big "all" catalog) and
+// reordering the visible cards (the "jumping"). So during background fill we
+// re-render at most ~once/1.5s — giving logos time to load and land in the HTTP
+// cache between rebuilds — then loadAllPages() does one final render at the end.
+let _bgRenderTimer = null;
+let _bgRenderLast  = 0;
+function renderThrottled() {
+  const now = Date.now();
+  const wait = Math.max(0, 1500 - (now - _bgRenderLast));
+  clearTimeout(_bgRenderTimer);
+  if (wait === 0) { _bgRenderLast = now; renderCards(); }
+  else _bgRenderTimer = setTimeout(() => { _bgRenderLast = Date.now(); renderCards(); }, wait);
+}
+
+// Append only the cards not already in the grid (dedup by slug) — used by the
+// infinite scroll so widening the window never re-creates already-loaded logos.
 function appendCards(items) {
   const grid = document.getElementById('cards');
-  items.forEach(s => grid.insertAdjacentHTML('beforeend', cardHTML(s)));
+  const have = new Set(Array.from(grid.querySelectorAll('.card[data-slug]')).map(n => n.getAttribute('data-slug')));
+  let html = '';
+  items.forEach(s => { if (!have.has(s.slug)) html += cardHTML(s); });
+  if (html) grid.insertAdjacentHTML('beforeend', html);
 }
 
 let scrollObs = null;
@@ -535,8 +561,14 @@ function setupScroll() {
   if (!el) return;
   scrollObs = new IntersectionObserver(([e]) => {
     if (!e.isIntersecting) return;
-    // All data is loaded in the background; scrolling just widens the render window.
-    if (renderLimit < displayItems.length) { renderLimit += 50; renderCards(); }
+    // Widen the render window by appending the next slice — never a full rebuild,
+    // so logos already painted above stay loaded instead of being re-fetched.
+    if (renderLimit < displayItems.length) {
+      const from = renderLimit;
+      renderLimit = Math.min(renderLimit + 50, displayItems.length);
+      appendCards(displayItems.slice(from, renderLimit));
+      setupScroll();   // re-arm: a still-visible sentinel keeps filling
+    }
   }, {rootMargin:'400px'});
   scrollObs.observe(el);
 }
@@ -620,7 +652,7 @@ function cardHTML(s) {
   if (s.profitMarginLast30Days != null) extraBits.push('<span class="card-extra-item">'+icon('trending',{size:11})+' '+Math.round(s.profitMarginLast30Days)+'% margin</span>');
   if (daysListed != null && daysListed >= 0 && !isNew) extraBits.push('<span class="card-extra-item">'+icon('clock',{size:11})+' '+daysListed+'d listed</span>');
   const extraHtml = extraBits.length ? '<div class="card-extra">'+extraBits.join('')+'</div>' : '';
-  return '<a class="card" href="/startup/'+escHtml(s.slug)+'.html" onclick="saveStartup(\''+escHtml(s.slug)+'\')">'+
+  return '<a class="card" data-slug="'+escHtml(s.slug)+'" href="/startup/'+escHtml(s.slug)+'.html" onclick="saveStartup(\''+escHtml(s.slug)+'\')">'+
     '<div class="card-head">'+
       '<div class="card-logo">'+logoMarkup+'</div>'+
       '<div class="card-head-info">'+
