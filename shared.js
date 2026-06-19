@@ -428,14 +428,21 @@ function buildNavHTML(activePage) {
   const lang = getLang();
   const l = T[lang] || T.en;
   const langNames = { en:'English', de:'Deutsch', fr:'Français', it:'Italiano', ru:'Русский', zh:'中文', ar:'العربية' };
+  // One source of truth for the nav links — rendered both in the desktop bar
+  // (.nav-center) and inside the mobile drawer (.mm-link).
+  const links = [
+    { href:'/',            key:'home',    active: activePage==='home' },
+    { href:'/catalog',     key:'catalog', active: activePage==='catalog' },
+    { href:'/acquire.html',key:'acquire', active: activePage==='acquire' },
+    { href:'/top.html',    key:'top',     active: activePage==='top' },
+  ];
+  const label = (k) => l.nav[k] || T.en.nav[k] || k;
+  const logoSvg = `<svg height="30" viewBox="0 0 120 30" style="display:block;width:auto;overflow:visible"><text x="0" y="20" font-family="IBM Plex Sans,sans-serif" font-size="13" fill="currentColor"><tspan font-weight="700">STARTUP</tspan><tspan font-weight="300" fill-opacity="0.6"> MARKET</tspan></text></svg>`;
   return `
   <nav>
-    <a class="nav-logo" href="/"><svg height="30" viewBox="0 0 120 30" style="display:block;width:auto;overflow:visible"><text x="0" y="20" font-family="IBM Plex Sans,sans-serif" font-size="13" fill="currentColor"><tspan font-weight="700">STARTUP</tspan><tspan font-weight="300" fill-opacity="0.6"> MARKET</tspan></text></svg></a>
+    <a class="nav-logo" href="/">${logoSvg}</a>
     <div class="nav-center">
-      <a href="/" class="nav-link ${activePage==='home'?'active':''}">${l.nav.home}</a>
-      <a href="/catalog" class="nav-link ${activePage==='catalog'?'active':''}">${l.nav.catalog || (T.en.nav.catalog) || 'Catalog'}</a>
-      <a href="/acquire.html" class="nav-link ${activePage==='acquire'?'active':''}">${l.nav.acquire}</a>
-      <a href="/top.html" class="nav-link ${activePage==='top'?'active':''}">${l.nav.top || 'Top growing'}</a>
+      ${links.map(n => `<a href="${n.href}" class="nav-link ${n.active?'active':''}">${label(n.key)}</a>`).join('')}
     </div>
     <div class="nav-right">
       <div class="lang-switcher" id="langSwitcher">
@@ -447,7 +454,41 @@ function buildNavHTML(activePage) {
       <div id="navAuth"></div>
       <button class="btn btn-primary btn-sm" onclick="openSellModal()">${l.nav.sell}</button>
     </div>
-  </nav>`;
+    <button class="nav-burger" id="navBurger" aria-label="Menu" aria-expanded="false" onclick="toggleMobileMenu()">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+  <div class="mobile-menu" id="mobileMenu" aria-hidden="true">
+    <div class="mm-backdrop" onclick="toggleMobileMenu(false)"></div>
+    <aside class="mm-panel" role="dialog" aria-modal="true">
+      <div class="mm-head">
+        <a class="nav-logo" href="/">${logoSvg}</a>
+        <button class="mm-close" aria-label="Close" onclick="toggleMobileMenu(false)">${icon('x',{size:20})}</button>
+      </div>
+      <div class="mm-links">
+        ${links.map(n => `<a href="${n.href}" class="mm-link ${n.active?'active':''}">${label(n.key)}</a>`).join('')}
+      </div>
+      <div class="mm-divider"></div>
+      <div id="navAuthMobile" class="mm-auth"></div>
+      <button class="btn btn-primary mm-sell" onclick="toggleMobileMenu(false);openSellModal()">${l.nav.sell}</button>
+      <div class="mm-divider"></div>
+      <div class="mm-langs">
+        ${Object.entries(T).map(([code, v]) => `<button class="mm-lang ${code===lang?'active':''}" onclick="setLangCode('${code}')">${langNames[code]||code}</button>`).join('')}
+      </div>
+    </aside>
+  </div>`;
+}
+
+// Mobile drawer open/close. `force` (bool) sets an explicit state; omit to toggle.
+function toggleMobileMenu(force) {
+  const menu = document.getElementById('mobileMenu');
+  if (!menu) return;
+  const open = typeof force === 'boolean' ? force : !menu.classList.contains('open');
+  menu.classList.toggle('open', open);
+  menu.setAttribute('aria-hidden', open ? 'false' : 'true');
+  const burger = document.getElementById('navBurger');
+  if (burger) burger.setAttribute('aria-expanded', open ? 'true' : 'false');
+  document.body.classList.toggle('mm-lock', open);
 }
 
 function buildModalHTML() { return ''; }
@@ -526,18 +567,21 @@ async function initNavAuth() {
 
 async function updateNavAuth(session) {
   window._session = session; // expose token for page-level API calls
-  const el = document.getElementById('navAuth');
-  if (el) {
-    if (!session?.user) {
-      const from = encodeURIComponent(location.pathname + location.search);
-      el.innerHTML = `<a class="btn btn-ghost btn-sm" href="/auth.html?from=${from}">${t('auth','signIn')}</a>`;
-    } else {
-      const name = escHtml(session.user.email?.split('@')[0] || 'Account');
-      el.innerHTML =
-        `<a class="btn btn-ghost btn-sm" href="/dashboard.html" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${name}</a>` +
-        `<button class="btn btn-ghost btn-sm" onclick="navSignOut()">${t('acct','signout')}</button>`;
-    }
+  let html;
+  if (!session?.user) {
+    const from = encodeURIComponent(location.pathname + location.search);
+    html = `<a class="btn btn-ghost btn-sm" href="/auth.html?from=${from}">${t('auth','signIn')}</a>`;
+  } else {
+    const name = escHtml(session.user.email?.split('@')[0] || 'Account');
+    html =
+      `<a class="btn btn-ghost btn-sm nav-acct" href="/dashboard.html">${name}</a>` +
+      `<button class="btn btn-ghost btn-sm" onclick="navSignOut()">${t('acct','signout')}</button>`;
   }
+  // Same markup feeds the desktop bar and the mobile drawer (CSS sizes each).
+  const desktop = document.getElementById('navAuth');
+  const mobile  = document.getElementById('navAuthMobile');
+  if (desktop) desktop.innerHTML = html;
+  if (mobile)  mobile.innerHTML  = html;
   // Logged-in visitors already have catalog access — repoint any "get access" CTA
   // (e.g. the landing hero button, marked data-access-cta) straight to the catalog
   // instead of the auth page. Re-runs on auth-state changes (sign in/out in any tab).
@@ -559,11 +603,13 @@ async function updateNavAuth(session) {
 // Admins (profiles.role = 'admin') get an extra nav button to /admin.html.
 // Everyone else never sees it — the page itself is guarded server-side anyway.
 function maybeShowAdminLink() {
-  const el = document.getElementById('navAuth');
-  if (!el || document.getElementById('navAdminLink')) return;
-  if (window._access && window._access.role === 'admin') {
-    el.insertAdjacentHTML('afterbegin', '<a class="btn btn-ghost btn-sm" id="navAdminLink" href="/admin.html">Admin</a>');
-  }
+  if (!(window._access && window._access.role === 'admin')) return;
+  ['navAuth', 'navAuthMobile'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && !el.querySelector('.nav-admin-link')) {
+      el.insertAdjacentHTML('afterbegin', '<a class="btn btn-ghost btn-sm nav-admin-link" href="/admin.html">Admin</a>');
+    }
+  });
 }
 
 async function navSignOut() {
@@ -574,6 +620,11 @@ async function navSignOut() {
 document.addEventListener('click', (e) => {
   const sw = document.getElementById('langSwitcher');
   if (sw && !sw.contains(e.target)) document.getElementById('langDropdown')?.classList.remove('open');
+});
+
+// Close the mobile drawer on Escape.
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') toggleMobileMenu(false);
 });
 
 // ── PAYWALL TOOLTIP ─────────────────────────────────────────────────────────

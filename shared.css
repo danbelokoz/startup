@@ -60,6 +60,57 @@ nav {
 .nav-link:hover { background: var(--bg3); color: var(--text); }
 .nav-link.active { background: var(--bg3); color: var(--accent); }
 .nav-right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.nav-acct { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Hamburger — hidden on desktop, shown on mobile (see media query at the bottom) */
+.nav-burger {
+  display: none; margin-left: auto; align-items: center; justify-content: center;
+  flex-direction: column; gap: 4px; width: 38px; height: 38px; padding: 0;
+  background: var(--bg2); border: 1px solid var(--border2); border-radius: 8px; cursor: pointer;
+}
+.nav-burger span { display: block; width: 18px; height: 2px; border-radius: 2px; background: var(--text); }
+.nav-burger:hover { border-color: var(--text2); }
+
+/* Mobile drawer — slides in from the right, full-height overlay */
+.mobile-menu { position: fixed; inset: 0; z-index: 250; visibility: hidden; }
+.mobile-menu.open { visibility: visible; }
+.mm-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.55); opacity: 0; transition: opacity 0.25s; }
+.mobile-menu.open .mm-backdrop { opacity: 1; }
+.mm-panel {
+  position: absolute; top: 0; right: 0; height: 100%; width: min(86vw, 340px);
+  background: var(--bg2); border-left: 1px solid var(--border);
+  box-shadow: -8px 0 32px rgba(0,0,0,0.45);
+  display: flex; flex-direction: column; padding: 14px 16px 24px; overflow-y: auto;
+  transform: translateX(100%); transition: transform 0.28s ease;
+}
+.mobile-menu.open .mm-panel { transform: translateX(0); }
+.mm-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.mm-close {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border-radius: 8px; cursor: pointer;
+  background: var(--bg3); border: none; color: var(--text2);
+}
+.mm-close:hover { background: var(--border2); color: var(--text); }
+.mm-links { display: flex; flex-direction: column; gap: 2px; }
+.mm-link {
+  padding: 13px 12px; border-radius: 10px; font-size: 15px; font-weight: 500;
+  color: var(--text); text-decoration: none; transition: background 0.12s;
+}
+.mm-link:hover, .mm-link:active { background: var(--bg3); }
+.mm-link.active { color: var(--accent); background: var(--bg3); }
+.mm-divider { height: 1px; background: var(--border); margin: 14px 0; }
+.mm-auth { display: flex; flex-direction: column; gap: 8px; }
+.mm-auth .btn, .mm-sell { width: 100%; justify-content: center; padding: 12px 14px; font-size: 14px; }
+.mm-auth .nav-acct { max-width: none; }
+.mm-sell { margin-top: 10px; }
+.mm-langs { display: flex; flex-wrap: wrap; gap: 6px; }
+.mm-lang {
+  padding: 8px 12px; border-radius: 8px; font-size: 13px; font-family: inherit; cursor: pointer;
+  background: var(--bg3); border: 1px solid var(--border); color: var(--text2);
+}
+.mm-lang:hover { border-color: var(--text2); color: var(--text); }
+.mm-lang.active { border-color: var(--accent); color: var(--accent); }
+body.mm-lock { overflow: hidden; }
 
 /* BUTTONS */
 .btn {
@@ -290,7 +341,8 @@ select option { background: var(--bg3); color: var(--text); }
 .lang-option:hover { background: var(--bg3); }
 .lang-option.active { color: var(--accent); font-weight: 600; }
 
-@media (max-width: 640px) {
-  nav { padding: 0 16px; }
-  .nav-center { display: none; }
+@media (max-width: 760px) {
+  nav { padding: 0 16px; gap: 12px; }
+  .nav-center, .nav-right { display: none; }
+  .nav-burger { display: inline-flex; }
 }
