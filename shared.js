@@ -235,6 +235,27 @@ function isAnonStartup(s) {
   const n = (s && s.name || '').trim().toLowerCase();
   return !n || n.includes('anonymous');
 }
+// Eligible to be *recommended* in a rail (landing leaders/cards + the startup-page
+// "More … for sale" rail): a real, live deal only — on sale, not anonymous/stealth,
+// with non-zero headline revenue and a real asking price. Keeps empty "$0 / —"
+// listings out of the recommendations. We have hundreds of eligible listings, so the
+// rails can afford to be picky.
+function isRecommendable(s) {
+  if (!s || !s.slug || !s.onSale || isAnonStartup(s)) return false;
+  const rev = s.revenue || {};
+  if (!(Number(rev.last30Days) > 0) && !(Number(rev.mrr) > 0)) return false;
+  return Number(s.askingPrice) > 0;
+}
+// Fisher–Yates shuffle → new array. The rails sample from the (large) eligible pool
+// so they rotate through many startups each load instead of always showing the same few.
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
 // Count-up animation for headline numbers. Tweens from the element's last animated
 // value (or 0) up to `target`, formatting each frame with `fmt`. Re-callable: when

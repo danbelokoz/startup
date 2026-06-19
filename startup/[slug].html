@@ -780,12 +780,14 @@ async function loadSimilar(s) {
   const cat = s.category || '';
   if (!cat) { el.style.display = 'none'; return; }
   try {
-    const p = new URLSearchParams({ page: '1', limit: '12', sort: 'revenue-desc', onSale: 'true', category: cat });
+    const p = new URLSearchParams({ page: '1', limit: '50', sort: 'revenue-desc', onSale: 'true', category: cat });
     const r = await fetch('/api/startups?' + p);
     const j = await r.json();
-    // Drop the current startup and any anonymous/stealth listings — the "More … for
-    // sale" rail recommends real, named businesses only (matches the landing rails).
-    const items = (j.data || []).filter(x => x && x.slug && x.slug !== s.slug && !isAnonStartup(x)).slice(0, 8);
+    // Real, on-sale, non-anonymous, non-zero listings only (drop the current startup),
+    // then shuffle so each visit surfaces a different set from the category instead of
+    // always the same top earners — categories hold dozens of eligible startups.
+    const pool = (j.data || []).filter(x => x.slug !== s.slug && isRecommendable(x));
+    const items = shuffle(pool).slice(0, 8);
     if (!items.length) { el.style.display = 'none'; return; }
     _similarItems = items;
     renderSimilarInto(el, s, items);
