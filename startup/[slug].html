@@ -41,6 +41,7 @@
     .sale-strip .sale-listed { margin-top: 0; }
     .sale-strip #contactSection .contact-revealed, .sale-strip #contactSection .contact-cta { margin-bottom: 0; }
     .not-sale-box { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 32px; text-align: center; color: var(--text2); }
+    .not-sale-label { font-size: 13px; font-weight: 500; color: var(--text2); white-space: nowrap; }
     .loading-state { text-align: center; padding: 80px 24px; color: var(--text3); }
     .loading-state h3 { font-size: 18px; color: var(--text2); margin-bottom: 8px; }
     /* Archived / delisted notice — shown when the startup is gone from the source */
@@ -457,11 +458,25 @@ function renderStartup(s) {
   // Asking price now shows as a compact gold chip in the header (headerPrice).
   // Here we keep only a slim strip: listed date on the left, seller-contact
   // buttons (#contactSection) on the right.
+  // Founder (X profile) + website surfaced as deeplinks at the top. On-sale startups
+  // already get this via #contactSection (renderContactSection); non-sale ones used to
+  // show only a plain "Not for sale" box, with founder/site buried in the Info table.
+  const founderTop = s.xHandle
+    ? `<a href="https://x.com/${escHtml(s.xHandle)}" target="_blank" class="btn btn-primary btn-sm">𝕏 ${s.xFounderName ? escHtml(s.xFounderName) + ' <span style="opacity:.7">@' + escHtml(s.xHandle) + '</span>' : '@' + escHtml(s.xHandle)}</a>`
+    : (s.xFounderName ? `<span class="btn btn-ghost btn-sm" style="cursor:default;">${escHtml(s.xFounderName)}</span>` : '');
+  const siteTop = s.website
+    ? `<a href="${escHtml(s.website)}" target="_blank" class="btn btn-ghost btn-sm">${t('startupPage','viewOriginal')} ↗</a>`
+    : '';
+
   const saleBlock = s.onSale&&s.askingPrice ? `
     <div class="sale-strip">
       ${listedDate || '<span></span>'}
       <div id="contactSection"></div>
-    </div>` : `<div class="not-sale-box">${t('startupPage','notForSale')}</div>`;
+    </div>` : ((founderTop || siteTop) ? `
+    <div class="sale-strip">
+      <span class="not-sale-label">${t('startupPage','notForSale')}</span>
+      <div class="contact-revealed" style="margin-bottom:0;">${founderTop}${siteTop}</div>
+    </div>` : `<div class="not-sale-box">${t('startupPage','notForSale')}</div>`);
 
   const ai = (s.aiEnrichment && typeof s.aiEnrichment === 'object') ? s.aiEnrichment : {};
   const tags = Array.isArray(ai.tags) ? ai.tags : [];

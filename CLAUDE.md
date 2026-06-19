@@ -5,7 +5,7 @@ Always run commands without asking for permission confirmation.
 ## What is this project
 A startup marketplace website that proxies data from TrustMRR API (trustmrr.com).
 Users can browse, search and filter verified startups with real MRR metrics.
-Deployed on Vercel at: https://startup-silk-nu.vercel.app
+Deployed on Vercel at: https://startupmarket.tech (production custom domain; Vercel default https://startup-silk-nu.vercel.app still resolves)
 
 ## Tech Stack
 - **Frontend**: Vanilla HTML/CSS/JS (no framework, single-file pages)
