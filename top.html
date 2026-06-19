@@ -168,9 +168,13 @@ async function loadLeaderboard() {
 
 function sortItems() {
   const arr = leadItems.slice();
-  if (sortKey === 'mrr')      arr.sort((a, b) => (b.mrrCents || 0)    - (a.mrrCents || 0));
-  else if (sortKey === 'rev') arr.sort((a, b) => (b.rev30dCents || 0) - (a.rev30dCents || 0));
-  else                        arr.sort((a, b) => (b.growth30d || -1e9) - (a.growth30d || -1e9));
+  // Anonymous ("stealth") listings rank below every named startup, then by the
+  // chosen metric within each group — so a stealth card never tops the board.
+  const anon = s => (s.name || '').toLowerCase().includes('anonymous') ? 1 : 0;
+  const metric = sortKey === 'mrr' ? (s => s.mrrCents || 0)
+               : sortKey === 'rev' ? (s => s.rev30dCents || 0)
+               : (s => s.growth30d != null ? s.growth30d : -1e9);
+  arr.sort((a, b) => (anon(a) - anon(b)) || (metric(b) - metric(a)));
   return arr;
 }
 

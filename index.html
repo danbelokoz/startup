@@ -493,6 +493,9 @@ async function loadLanding() {
     const seen = new Set(); const items = [];
     for (const r of pages) for (const s of ((r&&r.data)||[])) {
       if (!s || !s.slug || seen.has(s.slug)) continue;
+      // Skip anonymous/stealth listings — they don't headline the landing page
+      // (matches the revenue-leaders widget above).
+      if ((s.name||'').toLowerCase().includes('anonymous')) continue;
       seen.add(s.slug);
       const rev = s.revenue || {};
       if (Number(rev.mrr||0) > 1000 && Number(rev.last30Days||0) >= 300) items.push(s);

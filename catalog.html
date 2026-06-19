@@ -442,11 +442,13 @@ function buildCategoryOptions() {
   if (lbl) lbl.textContent = cur || t('idx','fltCatsAll');
 }
 
-// Client-side ranking. The sort the user picks (revenue / growth / price) is the
-// PRIMARY key — previously data-completeness (dataScore) was primary, which made
-// the sort dropdown look broken. saleFirst (tag/category deep-links float for-sale
-// up), anonymous-last and dataScore are now only tie-breakers, so equal-metric
-// cards still order sensibly. Items missing the sort metric sink to the bottom.
+// Client-side ranking. Anonymous ("stealth") listings are pushed below every named
+// startup (owner-requested): anonymity is a top-level group key, above the chosen
+// metric — so an anonymous card never outranks a named one whatever its numbers.
+// Within each group the sort the user picks (revenue / growth / price) is the key,
+// then data-completeness, then the API order for ties. saleFirst (tag/category
+// deep-links) still floats for-sale up first. Items missing the sort metric sink
+// under the ones with live numbers inside their group.
 function sortItems(arr) {
   const saleFirst = !!filters.saleFirst;
   const sort = filters.sort;
@@ -472,9 +474,9 @@ function sortItems(arr) {
       score: dataScore(s) }))
     .sort((a, b) =>
       (a.sale - b.sale) ||
+      (a.anon - b.anon) ||
       (a.nodata - b.nodata) ||
       (asc ? a.v - b.v : b.v - a.v) ||
-      (a.anon - b.anon) ||
       (b.score - a.score) ||
       (a.i - b.i))
     .map(o => o.s);
