@@ -118,12 +118,22 @@ function lineChart(traffic) {
   const y = v => H - P - v * (H - 2 * P) / maxY;
   const path = key => traffic.map((t, i) => (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(t[key]).toFixed(1)).join(' ');
   const labels = traffic.filter((_, i) => i % Math.ceil(traffic.length / 8) === 0);
+  const step = (W - 2 * P) / Math.max(1, traffic.length - 1);
+  // Tooltip title: "DD.MM.YYYY, пн" (noon-anchored so the weekday doesn't roll over by TZ).
+  const fullDay = t => fmtDay(t.date) + '.' + t.date.slice(0, 4) + ', ' + new Date(t.date + 'T12:00:00').toLocaleDateString('ru-RU', { weekday: 'short' });
   return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;">
     ${[0.25,0.5,0.75,1].map(f => `<line x1="${P}" x2="${W-P}" y1="${y(maxY*f)}" y2="${y(maxY*f)}" stroke="var(--border)" stroke-width="1"/>
       <text x="${P-6}" y="${y(maxY*f)+3}" font-size="9" fill="var(--text3)" text-anchor="end">${Math.round(maxY*f)}</text>`).join('')}
     <path d="${path('pageviews')}" fill="none" stroke="var(--accent)" stroke-width="2"/>
     <path d="${path('visitors')}" fill="none" stroke="#7c6cf0" stroke-width="2" stroke-dasharray="4 3"/>
+    ${traffic.map((t, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(t.pageviews).toFixed(1)}" r="2.1" fill="var(--accent)"/>`).join('')}
     ${labels.map(t => `<text x="${x(traffic.indexOf(t))}" y="${H-8}" font-size="9" fill="var(--text3)" text-anchor="middle">${fmtDay(t.date)}</text>`).join('')}
+    ${traffic.map((t, i) => {
+      const left = Math.max(0, x(i) - step / 2);
+      const w = Math.min(W, x(i) + step / 2) - left;
+      const tip = fullDay(t) + '|Визиты: ' + t.pageviews.toLocaleString() + '|Уникальные: ' + t.visitors.toLocaleString();
+      return `<rect x="${left.toFixed(1)}" y="0" width="${w.toFixed(1)}" height="${H}" fill="transparent" data-tip="${esc(tip)}"/>`;
+    }).join('')}
   </svg>`;
 }
 
@@ -180,7 +190,7 @@ async function renderOverview() {
       <h3>Трафик за 30 дней
         <span class="adm-legend"><span><i style="background:var(--accent)"></i>Визиты</span><span><i style="background:#7c6cf0"></i>Уникальные</span></span>
       </h3>
-      ${t.some(d => d.pageviews) ? lineChart(t) : '<div class="adm-mini">Счётчики пустые — данные начнут копиться сразу после деплоя beacon\'а.</div>'}
+      ${t.some(d => d.pageviews) ? lineChart(t) + '<div class="adm-mini" style="margin-top:6px;">Наведи на график — визиты и уникальные за конкретный день.</div>' : '<div class="adm-mini">Счётчики пустые — данные начнут копиться сразу после деплоя beacon\'а.</div>'}
     </div>
     <div class="adm-card">
       <h3>Регистрации по дням (30 дней)</h3>
@@ -189,6 +199,7 @@ async function renderOverview() {
             `<tr><td>${fmtDay(String(s.day))}</td><td class="num">${s.signups}</td></tr>`).join('')}</table>`
         : '<div class="adm-mini">Пока нет регистраций за период.</div>'}
     </div>`;
+  attachChartTips();
 }
 
 /* ── Заявки ────────────────────────────────────────────────────────────────── */
@@ -283,17 +294,18 @@ function relTime(iso) {
   const unit = s < 3600 ? [Math.round(s/60),'мин'] : s < 86400 ? [Math.round(s/3600),'ч'] : [Math.round(s/86400),'дн'];
   return future ? `через ${unit[0]} ${unit[1]}` : `${unit[0]} ${unit[1]} назад`;
 }
-// Custom hover tooltip for the parser charts (native <title> is slow & sparse).
-// Delegated on #admContent so it survives re-renders; bound once.
-let _parserTipsBound = false;
-function attachParserTips() {
-  if (_parserTipsBound) return;
+// Custom hover tooltip for the admin charts (traffic line + parser activity).
+// Generic: shows any [data-tip] element's "title|line|line…" content. Delegated on
+// #admContent so it survives re-renders; bound once.
+let _chartTipsBound = false;
+function attachChartTips() {
+  if (_chartTipsBound) return;
   const content = $('admContent');
   if (!content) return;
-  let tip = document.getElementById('parserTip');
+  let tip = document.getElementById('chartTip');
   if (!tip) {
     tip = document.createElement('div');
-    tip.id = 'parserTip';
+    tip.id = 'chartTip';
     tip.style.cssText = 'position:fixed;z-index:9999;pointer-events:none;display:none;max-width:270px;background:var(--bg,#0e1116);border:1px solid var(--border,#2a2f3a);border-radius:8px;padding:7px 10px;font-size:12px;line-height:1.5;color:var(--text,#e8e8ea);box-shadow:0 8px 28px rgba(0,0,0,.45);';
     document.body.appendChild(tip);
   }
@@ -316,7 +328,7 @@ function attachParserTips() {
     place(e.clientX, e.clientY);
   });
   content.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
-  _parserTipsBound = true;
+  _chartTipsBound = true;
 }
 
 // Activity chart for the last 3 days (МСК). Bars = startups updated per hour, read
@@ -447,7 +459,7 @@ async function renderParsers() {
     }).join('')}
     </div>
   </div>`;
-  attachParserTips();
+  attachChartTips();
 }
 
 /* ── Вход ──────────────────────────────────────────────────────────────────── */
