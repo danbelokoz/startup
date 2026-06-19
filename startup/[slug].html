@@ -783,7 +783,9 @@ async function loadSimilar(s) {
     const p = new URLSearchParams({ page: '1', limit: '12', sort: 'revenue-desc', onSale: 'true', category: cat });
     const r = await fetch('/api/startups?' + p);
     const j = await r.json();
-    const items = (j.data || []).filter(x => x && x.slug && x.slug !== s.slug).slice(0, 8);
+    // Drop the current startup and any anonymous/stealth listings — the "More … for
+    // sale" rail recommends real, named businesses only (matches the landing rails).
+    const items = (j.data || []).filter(x => x && x.slug && x.slug !== s.slug && !isAnonStartup(x)).slice(0, 8);
     if (!items.length) { el.style.display = 'none'; return; }
     _similarItems = items;
     renderSimilarInto(el, s, items);
@@ -801,7 +803,6 @@ function renderSimilarInto(el, s, items) {
     <div class="similar-grid">
       ${items.map(it => {
         const init = (it.name||'?').split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
-        const isAnon2 = (it.name||'').toLowerCase().includes('anonymous');
         const wantBlur2 = false;   // paywall removed — names/logos public
         const blurN = wantBlur2 ? ' name-blur' : '';
         const blurL = wantBlur2 ? ' logo-blur' : '';

@@ -433,16 +433,6 @@ function growthPill(g) {
   return '<span class="g '+(up?'up':'down')+'">'+(up?'↑':'↓')+Math.abs(parseFloat(g)).toFixed(1)+'%</span>';
 }
 
-// A listing is "anonymous/stealth" when the seller hides the brand. TrustMRR names
-// every such listing "Anonymous startup" (slugs vary: anonymous-startup-N,
-// confidential-startup-N, hidden-business-N, …) and strips the logo/site. These never
-// headline the landing recommendation rails — only real, named businesses do. A blank
-// name is treated the same (a nameless card looks broken in a "recommended" row).
-function isAnonStartup(s) {
-  const n = (s && s.name || '').trim().toLowerCase();
-  return !n || n.includes('anonymous');
-}
-
 function renderWidget(items) {
   const el = document.getElementById('list');
   if (!el) return;

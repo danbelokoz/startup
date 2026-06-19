@@ -225,6 +225,16 @@ function escHtml(str) {
   if (!str) return '';
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+// A TrustMRR listing is "anonymous/stealth" when the seller hides the brand: the API
+// names every such listing "Anonymous startup" (slugs vary and are misleading —
+// anonymous-startup-N, confidential-startup-N, hidden-business-N, even innocent-looking
+// ones like photo-sharing — so we match on the NAME, never the slug). A blank name
+// counts too. Single source of truth for keeping these out of recommendation rails
+// (landing leaders/cards + the "More … startups for sale" rail on a startup page).
+function isAnonStartup(s) {
+  const n = (s && s.name || '').trim().toLowerCase();
+  return !n || n.includes('anonymous');
+}
 
 // Count-up animation for headline numbers. Tweens from the element's last animated
 // value (or 0) up to `target`, formatting each frame with `fmt`. Re-callable: when
