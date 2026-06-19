@@ -398,6 +398,27 @@
 <footer><a href="/acquire.html" data-i18n="landing.footHow">Как это работает</a> &nbsp;·&nbsp; <a href="/catalog" data-i18n="landing.footCatalog">Каталог</a></footer>
 
 <script>
+// Resilience guard: the recommendation rails below call isRecommendable()/shuffle()
+// from shared.js. If a browser serves a STALE cached shared.js right after a deploy
+// (fresh HTML + old JS that predates these helpers), they'd be undefined and the rails
+// would throw → silently empty out. Define fallbacks when missing so recommendations
+// never disappear. Canonical copies live in shared.js — keep these in sync.
+window.isAnonStartup = window.isAnonStartup || function (s) {
+  const n = (s && s.name || '').trim().toLowerCase();
+  return !n || n.includes('anonymous');
+};
+window.isRecommendable = window.isRecommendable || function (s) {
+  if (!s || !s.slug || !s.onSale || isAnonStartup(s)) return false;
+  const rev = s.revenue || {};
+  if (!(Number(rev.last30Days) > 0) && !(Number(rev.mrr) > 0)) return false;
+  return Number(s.askingPrice) > 0;
+};
+window.shuffle = window.shuffle || function (arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+};
+
 applyLangToDoc();
 document.getElementById('navPlaceholder').innerHTML = buildNavHTML('home');
 initNavAuth();
