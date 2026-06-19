@@ -380,10 +380,12 @@ async function fetchPage(page, bg) {
       loadedItems  = loadedItems.concat(fresh);
       hasMore      = !!(meta&&meta.hasMore);
       apiPage      = page;
-      // Re-filter the whole set so anonymous items keep sinking to the bottom
-      // even as new pages stream in via infinite scroll.
+      // Keep the in-memory set sorted so search/filters/scroll see the right order,
+      // but DON'T rebuild the grid — only top it up if the window isn't full yet
+      // (e.g. page 1 returned fewer than renderLimit). fillGrid() is a no-op once the
+      // visible window is full, so streaming pages never disturb the painted cards.
       displayItems = applyClientFilters(loadedItems);
-      renderThrottled();   // throttled — see note above; loadAllPages does the final render
+      fillGrid();
       updateCount();
       buildCategoryOptions();
     }
@@ -407,8 +409,6 @@ async function fetchPage(page, bg) {
 // category and range filters work over the whole catalog — not just page 1.
 async function loadAllPages(token) {
   if (allLoaded) return;
-  _bgRenderLast = Date.now();          // hold off the first throttled rebuild so the
-                                       // page-1 logos get a calm window to load first
   let guard = 0;
   while (hasMore && guard++ < 400) {
     if (token !== loadToken) return;   // a newer load started — abort this one
@@ -416,7 +416,7 @@ async function loadAllPages(token) {
   }
   if (token !== loadToken) return;
   allLoaded = !hasMore;
-  renderCards();                       // one final render with the fully sorted set
+  renderIfWindowChanged();             // re-sort the painted window only if it changed
   updateCount();
   buildCategoryOptions();
 }
@@ -516,8 +516,12 @@ function applyClientFilters(items) {
 }
 
 /* ── RENDER ────────────────────────────────────────────────────────────────── */
+// Full rebuild — ONLY on explicit user actions (sort / filter / category / search /
+// status switch) and the first paint. Background page-fill must never call this:
+// grid.innerHTML='' re-creates every <img>, which both aborts in-flight logo loads
+// (so logos never finish) and flashes/reorders the whole list — the "cards refresh
+// every second" the big catalog showed while its ~140 pages streamed in.
 function renderCards() {
-  clearTimeout(_bgRenderTimer);          // cancel any pending throttled rebuild
   const grid = document.getElementById('cards');
   grid.innerHTML = '';
   if (!displayItems.length) {
@@ -528,30 +532,33 @@ function renderCards() {
   setupScroll();
 }
 
-// Background page-fill must NOT rebuild the whole grid on every page. Each full
-// renderCards() does grid.innerHTML='' which re-creates every <img>, aborting the
-// in-flight logo loads (so logos never finish on the big "all" catalog) and
-// reordering the visible cards (the "jumping"). So during background fill we
-// re-render at most ~once/1.5s — giving logos time to load and land in the HTTP
-// cache between rebuilds — then loadAllPages() does one final render at the end.
-let _bgRenderTimer = null;
-let _bgRenderLast  = 0;
-function renderThrottled() {
-  const now = Date.now();
-  const wait = Math.max(0, 1500 - (now - _bgRenderLast));
-  clearTimeout(_bgRenderTimer);
-  if (wait === 0) { _bgRenderLast = now; renderCards(); }
-  else _bgRenderTimer = setTimeout(() => { _bgRenderLast = Date.now(); renderCards(); }, wait);
-}
-
-// Append only the cards not already in the grid (dedup by slug) — used by the
-// infinite scroll so widening the window never re-creates already-loaded logos.
-function appendCards(items) {
+// Append-only top-up: bring the grid up to renderLimit cards from the current
+// displayItems, adding only slugs not already painted. Idempotent — once the window
+// is full it's a no-op, so the dozens of background pages never touch the DOM and the
+// logos already painted keep loading undisturbed. Used by background fill + scroll.
+function fillGrid() {
   const grid = document.getElementById('cards');
+  if (!displayItems.length) return;
   const have = new Set(Array.from(grid.querySelectorAll('.card[data-slug]')).map(n => n.getAttribute('data-slug')));
   let html = '';
-  items.forEach(s => { if (!have.has(s.slug)) html += cardHTML(s); });
+  for (let i = 0; i < displayItems.length && have.size < renderLimit; i++) {
+    const s = displayItems[i];
+    if (!have.has(s.slug)) { html += cardHTML(s); have.add(s.slug); }
+  }
   if (html) grid.insertAdjacentHTML('beforeend', html);
+}
+
+// Run once the whole catalog has loaded: only do a full rebuild if the final sorted
+// order of the already-painted window differs from what's on screen. For the default
+// revenue-desc sort page 1 is already the top, so this is usually a no-op — no
+// end-of-load flash.
+function renderIfWindowChanged() {
+  const grid = document.getElementById('cards');
+  const dom = Array.from(grid.querySelectorAll('.card[data-slug]')).map(n => n.getAttribute('data-slug'));
+  if (!dom.length) { renderCards(); return; }
+  const want = displayItems.slice(0, dom.length).map(s => s.slug);
+  const same = dom.length === want.length && dom.every((sl, i) => sl === want[i]);
+  if (!same) renderCards();
 }
 
 let scrollObs = null;
@@ -561,12 +568,11 @@ function setupScroll() {
   if (!el) return;
   scrollObs = new IntersectionObserver(([e]) => {
     if (!e.isIntersecting) return;
-    // Widen the render window by appending the next slice — never a full rebuild,
-    // so logos already painted above stay loaded instead of being re-fetched.
+    // Widen the window and append the next batch — never a full rebuild, so logos
+    // already painted above stay loaded instead of being re-fetched.
     if (renderLimit < displayItems.length) {
-      const from = renderLimit;
       renderLimit = Math.min(renderLimit + 50, displayItems.length);
-      appendCards(displayItems.slice(from, renderLimit));
+      fillGrid();
       setupScroll();   // re-arm: a still-visible sentinel keeps filling
     }
   }, {rootMargin:'400px'});
