@@ -137,7 +137,13 @@ async function renderOverview() {
   ]);
   const dDone    = desc && desc.done != null ? desc.done : null;
   const catTotal = stats && stats.total != null ? stats.total : null;
+  const catOnSale = stats && stats.onSale != null ? stats.onSale : null;
+  const catUpdated = stats && stats.updatedAt ? stats.updatedAt : null;
   const dBacklog = (catTotal != null && dDone != null) ? Math.max(catTotal - dDone, 0) : null;
+  // Показная накрутка: index.html и catalog.html выводят счётчики каталога как (реальное + 300).
+  // Если меняешь это число там — поменяй и здесь, чтобы «реально / фейк / показываем» сходилось.
+  const CATALOG_INFLATE = 300;
+  const num = v => (v != null ? v.toLocaleString() : '—');
   const t = o.traffic || [];
   const today = t[t.length - 1] || { pageviews: 0, visitors: 0 };
   const last7 = t.slice(-7);
@@ -159,6 +165,16 @@ async function renderOverview() {
       <div class="adm-kpi"><div class="n">${o.waitlistTotal != null ? o.waitlistTotal.toLocaleString() : '—'}</div><div class="l">В вейтлисте Pro</div></div>
       <div class="adm-kpi"><div class="n">${dDone != null ? dDone.toLocaleString() : '—'}${catTotal != null ? ' / ' + catTotal.toLocaleString() : ''}</div><div class="l">Описания готовы (с переводом)</div></div>
       <div class="adm-kpi"><div class="n">${dBacklog != null ? dBacklog.toLocaleString() : '—'}</div><div class="l">Ждут перефраза/перевода</div></div>
+    </div>
+    <div class="adm-card">
+      <h3>Каталог — реально vs показываем${catUpdated ? ` <span class="adm-mini" style="font-weight:500;">свод ${fmtDateTime(catUpdated)}</span>` : ''}</h3>
+      <table class="adm-table" style="max-width:520px;">
+        <tr><th></th><th class="num">В листинге</th><th class="num">На продаже</th></tr>
+        <tr><td>Реально</td><td class="num">${num(catTotal)}</td><td class="num">${num(catOnSale)}</td></tr>
+        <tr><td>Накрутка показа (рисуем)</td><td class="num">+${CATALOG_INFLATE.toLocaleString()}</td><td class="num">+${CATALOG_INFLATE.toLocaleString()}</td></tr>
+        <tr><td>Видят пользователи</td><td class="num">${num(catTotal != null ? catTotal + CATALOG_INFLATE : null)}</td><td class="num">${num(catOnSale != null ? catOnSale + CATALOG_INFLATE : null)}</td></tr>
+      </table>
+      <div class="adm-mini" style="margin-top:8px;">«Реально» — из ночного свода каталога (/api/stats, ключ sm_totals_v1). «Накрутка показа» — фиксированный +${CATALOG_INFLATE}, который index.html и catalog.html прибавляют к счётчикам в герое.</div>
     </div>
     <div class="adm-card">
       <h3>Трафик за 30 дней
