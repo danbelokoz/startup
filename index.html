@@ -4,6 +4,10 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Startup Market — доступ к стартапам с подтверждённой выручкой</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png"/>
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png"/>
+<link rel="apple-touch-icon" href="/apple-touch-icon.png"/>
 <link rel="stylesheet" href="/shared.css"/>
 <script src="/auth-config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -429,6 +433,16 @@ function growthPill(g) {
   return '<span class="g '+(up?'up':'down')+'">'+(up?'↑':'↓')+Math.abs(parseFloat(g)).toFixed(1)+'%</span>';
 }
 
+// A listing is "anonymous/stealth" when the seller hides the brand. TrustMRR names
+// every such listing "Anonymous startup" (slugs vary: anonymous-startup-N,
+// confidential-startup-N, hidden-business-N, …) and strips the logo/site. These never
+// headline the landing recommendation rails — only real, named businesses do. A blank
+// name is treated the same (a nameless card looks broken in a "recommended" row).
+function isAnonStartup(s) {
+  const n = (s && s.name || '').trim().toLowerCase();
+  return !n || n.includes('anonymous');
+}
+
 function renderWidget(items) {
   const el = document.getElementById('list');
   if (!el) return;
@@ -479,7 +493,7 @@ async function loadLanding() {
   // Revenue leaders — highest 30-day revenue among on-sale startups → widget.
   try {
     const r = await fetch(API+'/startups?onSale=true&page=1&limit=20&sort=revenue-desc').then(r=>r.json()).catch(()=>null);
-    const items = ((r&&r.data)||[]).filter(s=>s&&s.slug&&!(s.name||'').toLowerCase().includes('anonymous'))
+    const items = ((r&&r.data)||[]).filter(s=>s&&s.slug&&!isAnonStartup(s))
       .sort((a,b)=>((b.revenue&&b.revenue.last30Days)||0)-((a.revenue&&a.revenue.last30Days)||0));
     renderWidget(items.slice(0,5));
   } catch { renderWidget([]); }
@@ -495,7 +509,7 @@ async function loadLanding() {
       if (!s || !s.slug || seen.has(s.slug)) continue;
       // Skip anonymous/stealth listings — they don't headline the landing page
       // (matches the revenue-leaders widget above).
-      if ((s.name||'').toLowerCase().includes('anonymous')) continue;
+      if (isAnonStartup(s)) continue;
       seen.add(s.slug);
       const rev = s.revenue || {};
       if (Number(rev.mrr||0) > 1000 && Number(rev.last30Days||0) >= 300) items.push(s);
