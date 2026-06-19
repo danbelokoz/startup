@@ -146,6 +146,15 @@ function pickFields(obj) {
     'brandingPrimaryColor', 'brandingSecondaryColor',
   ];
   for (const k of copy) if (obj[k] !== undefined) out[k] = obj[k];
+  // Stealth / "Anonymous startup" listings: TrustMRR blanks `description` (and the
+  // AI value-prop) in its API, but the public page still carries the real one-liner.
+  // Capture it so those detail pages aren't left with an empty description. We keep
+  // the displayed name as "Anonymous startup" (don't expose obj.name) — only the
+  // description, which TrustMRR itself shows publicly on the anonymous page. The
+  // stored rephrase/translation still wins downstream (see resolveDescription).
+  if (obj.stealthMode && typeof obj.description === 'string' && obj.description.trim()) {
+    out.description = obj.description.trim();
+  }
   // aiEnrichment can carry an error blob — strip noise.
   if (out.aiEnrichment) {
     const a = out.aiEnrichment;
