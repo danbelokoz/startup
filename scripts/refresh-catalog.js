@@ -120,9 +120,9 @@ async function writeSnapshots(allStartups) {
       else console.log(`  ⚠ snapshot batch ${i} → ${r.status}`);
     } catch (e) { console.log(`  ⚠ snapshot batch ${i} error: ${e.message}`); }
   }
-  // Prune snapshots older than 60 days (Supabase free tier hygiene).
+  // Prune snapshots older than 180 days (Supabase free tier hygiene).
   try {
-    const cutoff = new Date(Date.now() - 60 * 86400_000).toISOString().slice(0, 10);
+    const cutoff = new Date(Date.now() - 180 * 86400_000).toISOString().slice(0, 10);
     const r = await fetch(`${SUPABASE_URL}/rest/v1/daily_snapshots?snap_date=lt.${cutoff}`, {
       method: 'DELETE',
       headers: { ...headers, 'Prefer': 'return=representation,count=exact' },

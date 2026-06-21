@@ -186,9 +186,9 @@ export default async function handler(req, res) {
       } catch {}
     }
 
-    // Prune snapshots older than 60 days to stay well within the Supabase free tier.
+    // Prune snapshots older than 180 days to stay well within the Supabase free tier.
     try {
-      const cutoff = new Date(Date.now() - 60 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+      const cutoff = new Date(Date.now() - 180 * 24 * 3600 * 1000).toISOString().slice(0, 10);
       const r = await fetch(`${process.env.SUPABASE_URL}/rest/v1/daily_snapshots?snap_date=lt.${cutoff}`, {
         method: 'DELETE',
         headers: { ...supaHeaders, 'Prefer': 'return=representation,count=exact' },
