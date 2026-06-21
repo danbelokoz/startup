@@ -802,15 +802,43 @@ function showError() {
 // history entry). A browser "Back" from a startup page then reloads the catalog with
 // these params and applyUrlParams() restores them — instead of resetting to the
 // default "For sale" view. (Ranges aren't mirrored; status is the reported pain point.)
-function syncUrl() {
+function syncUrl(push) {
   const p = new URLSearchParams();
   if (filters.onSale !== true) p.set('status', 'all');          // 'sale' is default → omit
   if (filters.search)   p.set('search', filters.search);
   if (filters.category) p.set('category', filters.category);
   if (filters.sort && filters.sort !== 'revenue-desc') p.set('sort', filters.sort);
   const qs = p.toString();
-  try { history.replaceState(history.state, '', location.pathname + (qs ? '?' + qs : '')); } catch {}
+  const url = location.pathname + (qs ? '?' + qs : '');
+  try {
+    // Discrete filter changes (status/category/sort) push a new history entry so browser
+    // "Back" undoes them step by step instead of throwing you off the catalog. Continuous
+    // typing (search) replaces in place so we don't flood history with one entry per key.
+    if (push && url !== location.pathname + location.search) history.pushState(history.state, '', url);
+    else history.replaceState(history.state, '', url);
+  } catch {}
 }
+
+// Back/Forward between filter states (same document) → re-apply whatever the URL now
+// encodes. Reset to defaults first so a param that dropped off (e.g. status back to the
+// default "sale") is actually cleared, then overlay applyUrlParams().
+function restoreFromUrl() {
+  const prevOnSale = filters.onSale;
+  filters = {onSale:true,category:'',sort:'revenue-desc',search:'',mrrMin:0,mrrMax:0,rev30Min:0,rev30Max:0,priceMin:0,priceMax:0,growthMin:'',growthMax:'',multipleMax:0,marginMin:0,marginMax:0,audience:'',mobile:'',saleFirst:false};
+  document.querySelectorAll('.sb-input').forEach(i=>i.value='');
+  document.querySelectorAll('.sb-select').forEach(s=>s.selectedIndex=0);
+  const si=document.getElementById('searchInput'); if(si) si.value='';
+  const ss=document.getElementById('sortSelect'); if(ss) ss.value='revenue-desc';
+  const cdl=document.getElementById('catDDLabel'); if(cdl) cdl.textContent=t('idx','fltCatsAll');
+  document.querySelectorAll('.status-opt').forEach(o=>o.classList.remove('sel'));
+  const saleOpt=document.querySelector('.status-opt[data-filter="sale"]'); if(saleOpt) saleOpt.classList.add('sel');
+  applyUrlParams();                               // overlay status/search/category/sort from the URL
+  document.querySelectorAll('.cat-dd-opt').forEach(o => o.classList.toggle('active', (o.dataset.value||'') === filters.category));
+  renderLimit = 60;
+  if (filters.onSale !== prevOnSale) reloadFromAPI();   // dataset differs (sale vs all) → refetch
+  else { displayItems = applyClientFilters(loadedItems); renderCards(); updateCount(); }
+}
+window.addEventListener('popstate', restoreFromUrl);
 
 let _scrollRestored = false;
 function restoreScroll() {
@@ -831,7 +859,7 @@ function setStatus(el) {
   document.querySelectorAll('.status-opt').forEach(o=>o.classList.remove('sel'));
   el.classList.add('sel');
   filters.onSale=el.dataset.filter==='sale'?true:null;
-  syncUrl();
+  syncUrl(true);
   reloadFromAPI();
 }
 function onCategoryChange(v) {
@@ -839,13 +867,13 @@ function onCategoryChange(v) {
   const lbl = document.getElementById('catDDLabel');
   if (lbl) lbl.textContent = v || t('idx','fltCatsAll');
   document.querySelectorAll('.cat-dd-opt').forEach(o => o.classList.toggle('active', (o.dataset.value||'') === v));
-  displayItems = applyClientFilters(loadedItems); renderCards(); updateCount(); syncUrl();
+  displayItems = applyClientFilters(loadedItems); renderCards(); updateCount(); syncUrl(true);
 }
 // Sorting is client-side over the already-loaded set — instant, and it never wipes
 // the catalog (the old reloadFromAPI caused the "nothing found" flash on sort).
 function onSortChange(v) {
   filters.sort = v; renderLimit = 60;
-  displayItems = applyClientFilters(loadedItems); renderCards(); updateCount(); syncUrl();
+  displayItems = applyClientFilters(loadedItems); renderCards(); updateCount(); syncUrl(true);
 }
 function onSearch(v) {
   filters.search=v.trim(); clearTimeout(searchTimer);
@@ -877,7 +905,7 @@ function resetFilters() {
   const cdl=document.getElementById('catDDLabel'); if(cdl) cdl.textContent=t('idx','fltCatsAll');
   closeCatDD(); _catSig='';
   filters={onSale:true,category:'',sort:'revenue-desc',search:'',mrrMin:0,mrrMax:0,rev30Min:0,rev30Max:0,priceMin:0,priceMax:0,growthMin:'',growthMax:'',multipleMax:0,marginMin:0,marginMax:0,audience:'',mobile:'',saleFirst:false};
-  syncUrl();
+  syncUrl(true);
   reloadFromAPI();
 }
 
