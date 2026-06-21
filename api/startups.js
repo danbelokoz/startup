@@ -41,25 +41,39 @@ async function redisSet(key, value, ttl) {
 const SUPA_URL = process.env.SUPABASE_URL;
 const SUPA_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-async function fetchOurDescriptions(slugs) {
-  if (!SUPA_URL || !SUPA_KEY || !slugs.length) return {};
+// Full map { slug: {description, translations} } of our descriptions, cached in the
+// function's memory for a minute. A burst catalog load (many pages back-to-back) then
+// costs ONE Supabase fetch instead of one per page, and a freshly upserted description
+// shows up within ~60s. The catalog's own Redis cache stays TrustMRR-only; this map is
+// merged onto the response per request from memory (no per-request DB query).
+let _descMap = null, _descMapAt = 0;
+const DESC_TTL = 60000;
+async function getDescMap() {
+  if (_descMap && Date.now() - _descMapAt < DESC_TTL) return _descMap;
+  if (!SUPA_URL || !SUPA_KEY) return (_descMap = _descMap || {});
   try {
-    const inList = '(' + slugs.map(s => '"' + String(s).replace(/["\\]/g, '') + '"').join(',') + ')';
-    const url = `${SUPA_URL}/rest/v1/startup_descriptions?slug=in.${encodeURIComponent(inList)}&select=slug,description,translations`;
-    const r = await fetch(url, { headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}` } });
-    if (!r.ok) return {};
-    const rows = await r.json();
     const map = {};
-    for (const row of (Array.isArray(rows) ? rows : [])) if (row && row.slug) map[row.slug] = row;
-    return map;
-  } catch { return {}; }
+    let offset = 0; const page = 1000;
+    for (;;) {
+      const url = `${SUPA_URL}/rest/v1/startup_descriptions?select=slug,description,translations&limit=${page}&offset=${offset}`;
+      const r = await fetch(url, { headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}` } });
+      if (!r.ok) break;
+      const rows = await r.json();
+      if (!Array.isArray(rows) || !rows.length) break;
+      for (const row of rows) if (row && row.slug) map[row.slug] = row;
+      if (rows.length < page) break;
+      offset += page;
+    }
+    _descMap = map; _descMapAt = Date.now();
+  } catch { /* keep the previous map on a transient failure */ }
+  return _descMap || {};
 }
 
 async function withOurDescriptions(data, lang) {
   try {
     const items = data && Array.isArray(data.data) ? data.data : [];
     if (!items.length) return data;
-    const map = await fetchOurDescriptions(items.map(s => s && s.slug).filter(Boolean));
+    const map = await getDescMap();
     for (const s of items) {
       const row = s && map[s.slug];
       if (!row) continue;
