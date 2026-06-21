@@ -55,7 +55,7 @@ def main():
         done = set()
 
     on_sale = "" if args.all else "&onSale=true"
-    pending, page, scanned = [], 1, 0
+    pending, page, scanned, seen = [], 1, 0, set()
     while len(pending) < args.limit:
         d = get_json(f"{PUBLIC_API}/api/startups?page={page}&limit=50&sort=revenue-desc{on_sale}")
         rows = d.get("data") or []
@@ -65,8 +65,11 @@ def main():
             scanned += 1
             slug = s.get("slug")
             desc = (s.get("description") or "").strip()
-            if not slug or slug in done or len(desc) < args.min_len:
+            # skip done, already-seen this run (the catalog can repeat a slug across
+            # pages), and items too short to be worth rephrasing
+            if not slug or slug in done or slug in seen or len(desc) < args.min_len:
                 continue
+            seen.add(slug)
             pending.append({"slug": slug, "name": s.get("name") or "", "original": desc})
             if len(pending) >= args.limit:
                 break
