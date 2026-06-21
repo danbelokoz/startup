@@ -342,6 +342,19 @@ function lastKnownDataDate() {
   return null;
 }
 
+// Freshest date with an actual NON-ZERO reading — used to date the "no daily
+// data" notice. A startup can have zero-valued snapshots (the source records it
+// but reports nothing), which must not count as real data: dating the notice
+// from those would falsely imply data flowed until then.
+function lastMeaningfulDataDate() {
+  let best = null;
+  const bump = d => { if (d && (!best || d > best)) best = d; };
+  for (const p of (_revenueHistory || [])) if (Number(p.rev_usd) > 0) bump(p.rev_date);
+  for (const r of (_chartData || []))
+    if (['mrr_cents','customers','subscriptions','visitors_30d'].some(k => Number(r[k]) > 0)) bump(r.snap_date);
+  return best;
+}
+
 function renderArchiveBanner() {
   const el = document.getElementById('archiveBanner');
   if (!el) return;
@@ -928,16 +941,25 @@ async function initChart(s) {
   renderChart();
 }
 
+// A metric is worth charting only if it has ≥2 points AND at least one non-zero
+// reading. An all-zero series (e.g. a startup the source records but reports no
+// subscriptions/MRR for) counts as "no data" — we show the notice rather than a
+// pointless flat line at zero.
+function seriesHasSignal(metric) {
+  const pts = computePoints(metric, 'all').points;
+  return pts.length >= 2 && pts.some(p => Number(p.val) !== 0);
+}
+
 // ── Chart controls (metric + period dropdowns) ────────────────────────────────
-// Only metrics that actually have data (≥2 points) are offered. Period options
-// are limited to windows that are smaller than the available data span.
+// Only metrics with real (non-zero) data are offered. Period options are limited
+// to windows that are smaller than the available data span.
 function buildChartControls() {
   const metricSel = document.getElementById('chartMetricSel');
   const periodSel = document.getElementById('chartPeriodSel');
   const filters   = document.querySelector('.chart-filters');
   if (!metricSel || !periodSel) return;
 
-  const avail = _chartMetrics.filter(m => computePoints(m, 'all').points.length >= 2);
+  const avail = _chartMetrics.filter(seriesHasSignal);
   if (!avail.length) { if (filters) filters.style.display = 'none'; metricSel.innerHTML = ''; periodSel.innerHTML = ''; return; }
   if (filters) filters.style.display = '';
 
@@ -1160,10 +1182,11 @@ function renderChart() {
   // Header: period total (sum for revenue) + change vs previous window
   renderChartHeader(metric, fmtFull);
 
-  if (points.length < 2) {
-    // No real daily series — say so honestly instead of drawing an estimate.
-    // Date the gap when we hold at least one real point; otherwise stay generic.
-    const dateStr = lastKnownDataDate();
+  if (points.length < 2 || !seriesHasSignal(metric)) {
+    // No real daily series, or an all-zero one — say so honestly instead of
+    // drawing a flat line at zero. Date the gap only when we held a real
+    // non-zero reading at some point; otherwise stay generic.
+    const dateStr = lastMeaningfulDataDate();
     let title;
     if (dateStr) {
       const human = new Date(dateStr).toLocaleDateString(getLang(), { year:'numeric', month:'long', day:'numeric' });
