@@ -641,7 +641,7 @@ function renderStartup(s) {
         </div>
       </div>
       <div class="chart-wrap" id="chartWrap">
-        <div id="chartBody"><div class="chart-empty"><strong data-i18n="startupPage.chartCollecting">Собираем дневные данные</strong><span data-i18n="startupPage.chartWillAppear">График появится через несколько дней — каждый день в 3:00 UTC мы сохраняем снимок метрик.</span></div></div>
+        <div id="chartBody"><div class="chart-empty"><span>···</span></div></div>
         <div class="chart-cross" id="chartCross"></div>
         <div class="chart-dot" id="chartDot"></div>
         <div class="chart-tooltip" id="chartTip"></div>
@@ -867,13 +867,14 @@ async function fetchEnrichment(slug) {
 }
 
 // ── Daily metrics chart ───────────────────────────────────────────────────────
-// MRR / Revenue can be backfilled with a synthetic projection from growth30d
-// when fewer than 2 real snapshots are available — clearly labelled "estimated".
+// We only ever plot REAL data points. When a metric has fewer than 2 real
+// snapshots we show an honest "daily data not transmitted" notice instead of a
+// synthesised/estimated curve (see renderChart's empty state).
 // Asking price comes from a separate scrape of trustmrr.com (asking-price changes
 // don't make it into the TrustMRR API).
 const CHART_METRICS_ALL = [
-  { key: 'daily_rev',    label: 'Daily Revenue', kind: 'money', source: 'revenue-history', flow: true, projectFrom: 'rev30dDaily', growthField: 'growth30d' },
-  { key: 'mrr_cents',    label: 'MRR',           kind: 'money', projectFrom: 'mrr',    growthField: 'growthMRR30d' },
+  { key: 'daily_rev',    label: 'Daily Revenue', kind: 'money', source: 'revenue-history', flow: true },
+  { key: 'mrr_cents',    label: 'MRR',           kind: 'money' },
   { key: 'customers',    label: 'Customers',     kind: 'int'   },
   { key: 'subscriptions',label: 'Subscriptions', kind: 'int'   },
   { key: 'growth30d',    label: 'Growth %',      kind: 'pct'   },
@@ -982,7 +983,7 @@ function onPeriodChange(val) {
 // Build the raw {date,val} series for a metric, optionally trimmed to last N days.
 function computePoints(metric, period) {
   const s = _chartStartup || {};
-  let points = [], projected = false, stepped = false;
+  let points = [], stepped = false;
 
   if (metric.source === 'revenue-history') {
     points = (_revenueHistory || [])
@@ -1000,17 +1001,9 @@ function computePoints(metric, period) {
     points = _chartData.map(r => ({ date: r.snap_date, val: r[metric.key] })).filter(p => p.val != null);
   }
 
-  // Projection fallback when real data is missing (<2 points) for any projectable
-  // metric — daily revenue and MRR both back-cast from their 30-day value + growth.
-  if (points.length < 2 && metric.projectFrom) {
-    const current = metric.projectFrom === 'mrr'        ? (s.revenue && s.revenue.mrr)
-                  : metric.projectFrom === 'rev30d'      ? (s.revenue && s.revenue.last30Days)
-                  : metric.projectFrom === 'rev30dDaily' ? (s.revenue && s.revenue.last30Days != null ? s.revenue.last30Days / 30 : null)
-                  : null;
-    const growth = metric.growthField ? s[metric.growthField] : null;
-    const proj = projectFromGrowth(current, growth);
-    if (proj.length) { points = proj; projected = true; }
-  }
+  // No projection fallback: when real data is missing (<2 points) we leave the
+  // series empty so renderChart can show the "daily data not transmitted" notice
+  // instead of a synthesised curve.
 
   // Trim to the selected period (skip for stepped price — changes are rare).
   // If the requested window holds no data — e.g. a delisted startup whose snapshots
@@ -1035,7 +1028,7 @@ function computePoints(metric, period) {
     points = win;
   }
 
-  return { points, projected, stepped, widenedFrom };
+  return { points, stepped, widenedFrom };
 }
 
 // Header summary: SUM over the period for flow metrics (daily revenue), or the
@@ -1125,22 +1118,6 @@ function smoothPath(pts) {
   return d;
 }
 
-// Project a metric backwards 30 days using growth30d (% change in 30 days).
-// Returns array of {date, val, projected:true}.
-function projectFromGrowth(currentValue, growthPct) {
-  if (currentValue == null || !isFinite(growthPct)) return [];
-  const dailyRatio = Math.pow(1 + growthPct / 100, 1 / 30);
-  if (!isFinite(dailyRatio) || dailyRatio <= 0) return [];
-  const out = [];
-  const today = new Date();
-  for (let d = 29; d >= 0; d--) {
-    const date = new Date(today); date.setUTCDate(today.getUTCDate() - d);
-    const val = currentValue / Math.pow(dailyRatio, d);
-    out.push({ date: date.toISOString().slice(0, 10), val, projected: true });
-  }
-  return out;
-}
-
 // Round axis bounds to human-friendly tick values (1/2/5 × 10ⁿ): 0, 500, 1K, 2K…
 function niceTicks(min, max, count) {
   if (!isFinite(min) || !isFinite(max)) return { ticks: [0, 1], niceMin: 0, niceMax: 1, step: 1 };
@@ -1165,7 +1142,7 @@ function renderChart() {
   const metric = _chartMetrics.find(m => m.key === _chartMetric) || _chartMetrics[0];
   if (!metric) return;
 
-  const { points, projected, stepped, widenedFrom } = computePoints(metric, _chartPeriod);
+  const { points, stepped, widenedFrom } = computePoints(metric, _chartPeriod);
 
   const fmt = (v) => {
     if (metric.kind === 'money') return formatMoney(v);   // money series are in whole USD
@@ -1184,7 +1161,18 @@ function renderChart() {
   renderChartHeader(metric, fmtFull);
 
   if (points.length < 2) {
-    body.innerHTML = `<div class="chart-empty"><strong>${t('startupPage','chartCollecting') || 'Собираем дневные данные'}</strong><span>${t('startupPage','chartWillAppear') || 'График появится через несколько дней.'}</span></div>`;
+    // No real daily series — say so honestly instead of drawing an estimate.
+    // Date the gap when we hold at least one real point; otherwise stay generic.
+    const dateStr = lastKnownDataDate();
+    let title;
+    if (dateStr) {
+      const human = new Date(dateStr).toLocaleDateString(getLang(), { year:'numeric', month:'long', day:'numeric' });
+      title = (t('startupPage','chartNoDailySince') || 'Подневные данные не передаются с {date}').replace('{date}', human);
+    } else {
+      title = t('startupPage','chartNoDaily') || 'Подневные данные не передаются';
+    }
+    const note = t('startupPage','chartNoDailyNote') || 'Источник не присылает дневную разбивку по этому стартапу.';
+    body.innerHTML = `<div class="chart-empty"><strong>${escHtml(title)}</strong><span>${escHtml(note)}</span></div>`;
     if (rangeLabel) rangeLabel.textContent = '';
     if (legendEl) legendEl.innerHTML = '';
     _chartGeom = null;
@@ -1230,9 +1218,9 @@ function renderChart() {
     return `<text x="${x(i).toFixed(1)}" y="${H-8}" text-anchor="middle" font-size="10" fill="var(--text3)">${lbl}</text>`;
   }).join('');
 
-  const stroke = projected ? 'var(--text3)' : 'var(--accent)';
-  const dash   = projected ? 'stroke-dasharray="5 4"' : '';
-  const fillGrad = projected ? 'url(#chartGradMuted)' : 'url(#chartGrad)';
+  const stroke = 'var(--accent)';
+  const dash   = '';
+  const fillGrad = 'url(#chartGrad)';
 
   body.innerHTML = `
     <svg class="chart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
@@ -1265,8 +1253,7 @@ function renderChart() {
 
   if (rangeLabel) {
     const range = points.length ? `${points[0].date} — ${points[points.length-1].date}` : '';
-    if (projected) rangeLabel.innerHTML = `<span style="color:var(--text2);font-weight:500;">${t('startupPage','chartEstimated')||'Расчётно'}</span> · прогноз по росту 30 дн.`;
-    else if (widenedFrom) {
+    if (widenedFrom) {
       const note = (t('startupPage','chartStaleNote') || 'Нет данных за последние {n} дн.').replace('{n}', widenedFrom);
       rangeLabel.innerHTML = `<span style="color:var(--text2);font-weight:500;">${note}</span> · ${range}`;
     }
@@ -1277,7 +1264,7 @@ function renderChart() {
     const last = ys[ys.length - 1];
     const ptWord = points.length === 1 ? 'точка' : points.length < 5 ? 'точки' : 'точек';
     legendEl.innerHTML =
-      `<span class="chart-legend-item"><span class="chart-legend-swatch${projected?' muted':''}"></span>${metric.label}${projected?' <span style="color:var(--text3)">· расчётно</span>':''}</span>`
+      `<span class="chart-legend-item"><span class="chart-legend-swatch"></span>${metric.label}</span>`
     + `<span class="chart-legend-item">Сейчас: <b>${fmt(last)}</b></span>`
     + `<span class="chart-legend-item">Макс: <b>${fmt(yMaxRaw)}</b></span>`
     + `<span class="chart-legend-item">Мин: <b>${fmt(yMinRaw)}</b></span>`
