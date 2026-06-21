@@ -977,16 +977,15 @@ function closeCatDD() {
 
 // Safety net for "Back" from a startup page. Normally the catalog URL carries the
 // filters (?status=all…) and applyUrlParams() restores them. But some browsers reload
-// the catalog as a bare /catalog (query stripped) on a Back/Forward nav, which would
-// snap the view to the default "For sale". If so, re-inject the query we saved on the
-// way out. One-shot (cleared every load) so a deeper Back to the genuine default still
-// shows "For sale", and gated to back_forward so a fresh /catalog link stays default.
+// the catalog as a bare /catalog (query stripped) on that Back, which would snap the
+// view to the default "For sale". When the URL comes back bare, re-inject the filter we
+// remembered for this tab so it sticks. Sticky (not one-shot): the URL is still the
+// source of truth, this only fills in when the query is missing. Picking "For sale"
+// saves an empty query, so it correctly stops forcing a previous "All".
 function restoreFiltersOnBack() {
   try {
     const savedQ = sessionStorage.getItem('sm_cat_q');
-    sessionStorage.removeItem('sm_cat_q');                       // consume once
-    const navType = (performance.getEntriesByType('navigation')[0] || {}).type;
-    if (navType === 'back_forward' && !location.search && savedQ && savedQ.length > 1) {
+    if (!location.search && savedQ && savedQ.length > 1) {
       history.replaceState(history.state, '', location.pathname + savedQ);
     }
   } catch {}
