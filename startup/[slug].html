@@ -289,7 +289,7 @@ async function loadStartup(slug) {
   if (!slug) slug = location.pathname.replace('/startup/','').replace('.html','');
   let res;
   try {
-    res = await fetch(`/api/startup?slug=${encodeURIComponent(slug)}`);
+    res = await fetch(`/api/startup?slug=${encodeURIComponent(slug)}&lang=${encodeURIComponent(getLang())}`);
   } catch(e) {
     return showLoadError();
   }
@@ -484,7 +484,11 @@ function renderStartup(s) {
   // the catalog cache or /api/startup). Show a skeleton instead of flashing it, then
   // swap in our rephrased/translated text — or fall back to the original if we have
   // no rephrase for this startup yet (see fetchEnrichment, which always resolves).
-  const descHtml = !_enrichDone
+  // Show our text immediately when the data already carries it (descI18n, overlaid by
+  // /api/startups & /api/startup); otherwise skeleton until enrichment resolves so we
+  // never flash TrustMRR's original.
+  const descReady = _enrichDone || s.descI18n;
+  const descHtml = !descReady
     ? '<div class="startup-desc desc-skeleton" aria-hidden="true"><span></span><span></span><span></span></div>'
     : (descText ? `<div class="startup-desc">${maskBrand(descText, s.name)}</div>` : '');
 
@@ -826,7 +830,7 @@ async function loadSimilar(s) {
   const cat = s.category || '';
   if (!cat) { el.style.display = 'none'; return; }
   try {
-    const p = new URLSearchParams({ page: '1', limit: '50', sort: 'revenue-desc', onSale: 'true', category: cat });
+    const p = new URLSearchParams({ page: '1', limit: '50', sort: 'revenue-desc', onSale: 'true', category: cat, lang: getLang() });
     const r = await fetch('/api/startups?' + p);
     const j = await r.json();
     // Real, on-sale, non-anonymous, non-zero listings only (drop the current startup),

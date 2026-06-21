@@ -274,7 +274,7 @@ const LIMIT = 50;
 const API_SORT = 'revenue-desc';  // catalog always pulls the full set in one stable
                                   // order; revenue/growth/price sorting is done
                                   // client-side so it's instant and never reloads.
-const LS_KEY  = 'sm_v5_p1';   // bump version to clear old caches
+const LS_KEY  = 'sm_v6_p1_' + getLang();   // per-language (descriptions overlaid by lang); bump version to clear old caches
 const LS_FAVS = 'sm_favs';
 const CACHE_TTL  = 7 * 24 * 3600 * 1000; // serve stale cache up to 7 days
 const FRESH_TTL  = 24 *      3600 * 1000; // background refresh only if >24h old
@@ -361,6 +361,7 @@ async function fetchPage(page, bg) {
   try {
     const p = new URLSearchParams({page, limit:LIMIT, sort:API_SORT});
     if (filters.onSale===true) p.set('onSale','true');
+    p.set('lang', getLang());   // server overlays our rephrased/translated description
 
     const res = await fetch(API+'/startups?'+p);
     if (!res.ok) throw new Error('api');
@@ -693,9 +694,9 @@ function saveStartup(slug) {
   // Remember where we were so a "Back" from the detail page lands on the same scroll
   // position and the same number of rendered cards (the URL already carries filters).
   try{ sessionStorage.setItem('sm_cat_scroll', JSON.stringify({ url: location.href, y: window.scrollY||window.pageYOffset||0, n: renderLimit })); }catch{}
-  // …and remember the active filter query as a fallback: some browsers reload the
-  // catalog as a bare /catalog (query dropped) when you press Back from here, which
-  // would snap the view to the default. restoreFiltersOnBack() re-injects this.
+  // …and remember the active filter query (covers a URL we arrived at via a deep-link
+  // rather than a syncUrl change). restoreFiltersOnBack() re-injects it if the browser
+  // drops the query when you press Back to a bare /catalog.
   try{ sessionStorage.setItem('sm_cat_q', location.search); }catch{}
 }
 
@@ -813,7 +814,8 @@ function syncUrl(push) {
   if (filters.category) p.set('category', filters.category);
   if (filters.sort && filters.sort !== 'revenue-desc') p.set('sort', filters.sort);
   const qs = p.toString();
-  const url = location.pathname + (qs ? '?' + qs : '');
+  const query = qs ? '?' + qs : '';
+  const url = location.pathname + query;
   try {
     // Discrete filter changes (status/category/sort) push a new history entry so browser
     // "Back" undoes them step by step instead of throwing you off the catalog. Continuous
@@ -821,6 +823,10 @@ function syncUrl(push) {
     if (push && url !== location.pathname + location.search) history.pushState(history.state, '', url);
     else history.replaceState(history.state, '', url);
   } catch {}
+  // Remember the active filter for this tab. Source of truth is the URL, but some browsers
+  // drop the query when you press Back to the catalog from a startup page (it reloads as a
+  // bare /catalog) — restoreFiltersOnBack() falls back to this so the filter still sticks.
+  try { sessionStorage.setItem('sm_cat_q', query); } catch {}
 }
 
 // Back/Forward between filter states (same document) → re-apply whatever the URL now

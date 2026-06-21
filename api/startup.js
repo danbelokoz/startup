@@ -66,6 +66,27 @@ function archivedResponse(res, snapshot, lastSeen) {
   return res.status(200).json({ data: snapshot, archived: true, lastSeen: lastSeen || null });
 }
 
+// Overlay our rephrased/translated description (by ?lang=) onto a live response, so
+// the detail page's first paint shows our copy instead of TrustMRR's original. The
+// Redis cache stays language-agnostic — we mutate only the outgoing copy. descI18n
+// lets the client render it immediately instead of showing the loading skeleton.
+const TR_LANGS = new Set(['de', 'fr', 'it', 'ru', 'zh', 'ar']);
+async function withOurDescription(payload, slug, lang) {
+  try {
+    if (!payload || !payload.data || !supaConfigured()) return payload;
+    const { ok, data } = await sb(
+      `/rest/v1/startup_descriptions?slug=eq.${encodeURIComponent(slug)}&select=description,translations&limit=1`
+    );
+    const row = ok && Array.isArray(data) && data[0] ? data[0] : null;
+    if (!row) return payload;
+    const tr = (TR_LANGS.has(lang) && row.translations) ? row.translations[lang] : null;
+    const txt = (tr && String(tr).trim()) ? String(tr).trim()
+              : (row.description && String(row.description).trim()) ? String(row.description).trim() : null;
+    if (txt) { payload.data.description = txt; payload.data.descI18n = true; }
+  } catch {}
+  return payload;
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -77,6 +98,7 @@ export default async function handler(req, res) {
 
   const slug = req.query.slug;
   if (!slug) return res.status(400).json({ error: 'Missing slug' });
+  const lang = (req.query.lang || 'en').toLowerCase();
 
   const cacheKey = `sm_startup_${slug}`;
   const freshKey = `${cacheKey}_f`;
@@ -88,7 +110,7 @@ export default async function handler(req, res) {
   if (cached && isFresh) {
     res.setHeader('X-Cache', 'HIT');
     res.setHeader('Cache-Control', swr);
-    return res.status(200).json(cached);
+    return res.status(200).json(await withOurDescription(cached, slug, lang));
   }
 
   // Stale cache — revalidate synchronously (serverless won't reliably run code after
@@ -104,7 +126,7 @@ export default async function handler(req, res) {
           redisSet(freshKey, 1, FRESH_TTL),
         ]);
         res.setHeader('X-Cache', 'REVALIDATED');
-        return res.status(200).json(fresh.data);
+        return res.status(200).json(await withOurDescription(fresh.data, slug, lang));
       }
       // Gone from upstream (404) — serve the archived snapshot (or the stale copy),
       // flagged archived so the page shows the "no longer updated" banner.
@@ -114,7 +136,7 @@ export default async function handler(req, res) {
       }
     } catch {}
     res.setHeader('X-Cache', 'STALE');
-    return res.status(200).json(cached);
+    return res.status(200).json(await withOurDescription(cached, slug, lang));
   }
 
   // No cache — fetch and wait.
@@ -127,7 +149,7 @@ export default async function handler(req, res) {
       ]);
       res.setHeader('X-Cache', 'MISS');
       res.setHeader('Cache-Control', swr);
-      return res.status(200).json(fresh.data);
+      return res.status(200).json(await withOurDescription(fresh.data, slug, lang));
     }
     // Delisted and nothing cached — fall back to the archived snapshot if we kept one.
     if (fresh.status === 404) {

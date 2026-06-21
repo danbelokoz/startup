@@ -32,6 +32,46 @@ async function redisSet(key, value, ttl) {
   } catch {}
 }
 
+// ── Our rephrased + translated descriptions (Supabase) ────────────────────────
+// Overlaid onto the catalog at read-time so the listing — and the detail page's
+// first paint from this cached dataset — shows our own copy in the UI language
+// instead of TrustMRR's original. The Redis cache stays language-agnostic (the
+// overlay is applied per request from ?lang=). Overlaid items get descI18n:true so
+// the client can render them immediately instead of showing the loading skeleton.
+const SUPA_URL = process.env.SUPABASE_URL;
+const SUPA_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+async function fetchOurDescriptions(slugs) {
+  if (!SUPA_URL || !SUPA_KEY || !slugs.length) return {};
+  try {
+    const inList = '(' + slugs.map(s => '"' + String(s).replace(/["\\]/g, '') + '"').join(',') + ')';
+    const url = `${SUPA_URL}/rest/v1/startup_descriptions?slug=in.${encodeURIComponent(inList)}&select=slug,description,translations`;
+    const r = await fetch(url, { headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}` } });
+    if (!r.ok) return {};
+    const rows = await r.json();
+    const map = {};
+    for (const row of (Array.isArray(rows) ? rows : [])) if (row && row.slug) map[row.slug] = row;
+    return map;
+  } catch { return {}; }
+}
+
+async function withOurDescriptions(data, lang) {
+  try {
+    const items = data && Array.isArray(data.data) ? data.data : [];
+    if (!items.length) return data;
+    const map = await fetchOurDescriptions(items.map(s => s && s.slug).filter(Boolean));
+    for (const s of items) {
+      const row = s && map[s.slug];
+      if (!row) continue;
+      const tr = (lang !== 'en' && row.translations) ? row.translations[lang] : null;
+      const txt = (tr && String(tr).trim()) ? String(tr).trim()
+                : (row.description && String(row.description).trim()) ? String(row.description).trim() : null;
+      if (txt) { s.description = txt; s.descI18n = true; }
+    }
+  } catch {}
+  return data;
+}
+
 async function fetchTrustMRR(params, apiKey) {
   const r = await fetch(`https://trustmrr.com/api/v1/startups?${params}`, { headers: { Authorization: `Bearer ${apiKey}` } });
   if (r.status === 401) throw new Error('401');
@@ -57,7 +97,9 @@ export default async function handler(req, res) {
   const apiKey = process.env.TRUSTMRR_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'Server not configured' });
 
+  const lang = (req.query.lang || 'en').toLowerCase();
   const params = new URLSearchParams(req.query);
+  params.delete('lang');   // keep the Redis cache key + upstream fetch language-agnostic
   const cacheKey = `sm_${params.toString()}`;
   const freshKey = `${cacheKey}_f`;
 
@@ -66,14 +108,14 @@ export default async function handler(req, res) {
   // Case 1: fresh cache — instant return
   if (cached && isFresh) {
     res.setHeader('X-Cache', 'HIT');
-    return res.status(200).json({ ...cached, fromCache: true });
+    return res.status(200).json({ ...(await withOurDescriptions(cached, lang)), fromCache: true });
   }
 
   // Case 2: stale cache — return immediately, update in background
   if (cached && !isFresh) {
     res.setHeader('X-Cache', 'STALE');
     // Send stale response right away
-    res.status(200).json({ ...cached, fromCache: true, stale: true });
+    res.status(200).json({ ...(await withOurDescriptions(cached, lang)), fromCache: true, stale: true });
     // Background refresh — runs after response sent
     // Vercel keeps function alive briefly after res.end() for cleanup
     try {
@@ -103,7 +145,7 @@ export default async function handler(req, res) {
       ]);
     }
     res.setHeader('X-Cache', valid ? 'MISS' : 'MISS-RAW');
-    return res.status(200).json({ ...data, fromCache: false });
+    return res.status(200).json({ ...(await withOurDescriptions(data, lang)), fromCache: false });
   } catch (err) {
     // Fallback: upstream dead. If onSale=true was requested, scan ALL cached
     // pages of the non-onSale dataset to build an aggregate of onSale items,
@@ -134,10 +176,12 @@ export default async function handler(req, res) {
       const page = parseInt(params.get('page') || '1', 10);
       const start = (page - 1) * limit;
       const slice = agg.data.slice(start, start + limit);
+      const total = agg.data.length;
+      const overlaid = await withOurDescriptions({ data: slice }, lang);
       res.setHeader('X-Cache', 'STALE-AGG');
       return res.status(200).json({
-        data: slice,
-        meta: { total: agg.data.length, page, limit, hasMore: start + slice.length < agg.data.length },
+        data: overlaid.data,
+        meta: { total, page, limit, hasMore: start + slice.length < total },
         fromCache: true,
         stale: true,
       });
