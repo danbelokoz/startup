@@ -207,13 +207,13 @@ Object.assign(T.ar, { legal: { footPrivacy:'الخصوصية', footTerms:'شرو
 
 // Contact email (questions & suggestions) — footer link + landing block.
 // Address: startupmarket.tech@gmail.com (same as the sell-modal fallback).
-Object.assign(T.en.legal, { footCopy: 'Copy', footCopied: 'Copied' });
-Object.assign(T.ru.legal, { footCopy: 'Скопировать', footCopied: 'Скопировано' });
-Object.assign(T.de.legal, { footCopy: 'Kopieren', footCopied: 'Kopiert' });
-Object.assign(T.fr.legal, { footCopy: 'Copier', footCopied: 'Copié' });
-Object.assign(T.it.legal, { footCopy: 'Copia', footCopied: 'Copiato' });
-Object.assign(T.zh.legal, { footCopy: '复制', footCopied: '已复制' });
-Object.assign(T.ar.legal, { footCopy: 'نسخ', footCopied: 'تم النسخ' });
+Object.assign(T.en.legal, { footContact: 'Contact', footCopy: 'Copy', footCopied: 'Copied' });
+Object.assign(T.ru.legal, { footContact: 'Контакты', footCopy: 'Скопировать', footCopied: 'Скопировано' });
+Object.assign(T.de.legal, { footContact: 'Kontakt', footCopy: 'Kopieren', footCopied: 'Kopiert' });
+Object.assign(T.fr.legal, { footContact: 'Contact', footCopy: 'Copier', footCopied: 'Copié' });
+Object.assign(T.it.legal, { footContact: 'Contatti', footCopy: 'Copia', footCopied: 'Copiato' });
+Object.assign(T.zh.legal, { footContact: '联系', footCopy: '复制', footCopied: '已复制' });
+Object.assign(T.ar.legal, { footContact: 'اتصل بنا', footCopy: 'نسخ', footCopied: 'تم النسخ' });
 Object.assign(T.en.landing, { contactTitle: 'Questions or suggestions?', contactSub: 'Email us — we read every message.' });
 Object.assign(T.ru.landing, { contactTitle: 'Вопросы или предложения?', contactSub: 'Напишите нам — прочитаем каждое сообщение.' });
 Object.assign(T.de.landing, { contactTitle: 'Fragen oder Vorschläge?', contactSub: 'Schreib uns — wir lesen jede Nachricht.' });
@@ -556,13 +556,26 @@ function buildModalHTML() { return ''; }
 // Single localized footer with legal links. Auto-mounted on every page (see the
 // DOMContentLoaded handler at the bottom): replaces an existing <footer> or, on
 // pages without one (startup detail, auth, dashboard), appends a fresh one.
+const CONTACT_EMAIL = 'startupmarket.tech@gmail.com';
+const CONTACT_X_URL = 'https://x.com/Dan_white_22';
+// "Two squares" copy glyph, a check for the copied state, and the X (Twitter) mark.
+const COPY_ICON  = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+const CHECK_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+const X_ICON     = '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2H21.5l-7.5 8.57L22.5 22h-6.6l-5.17-6.76L4.8 22H1.54l8.02-9.17L1.5 2h6.77l4.67 6.18L18.244 2Zm-1.16 18h1.8L7.02 3.9H5.09L17.084 20Z"/></svg>';
+
 function buildFooterHTML() {
   const l = (T[getLang()] || T.en).legal || T.en.legal;
   const year = new Date().getFullYear();
   return `<span class="foot-copy">© ${year} Startup Market · ${l.footRights}</span>` +
     `<span class="foot-contact">` +
-      `<span class="foot-email">startupmarket.tech@gmail.com</span>` +
-      `<button type="button" class="foot-copy-btn" data-copy="${l.footCopy}" data-done="${l.footCopied}" onclick="copyContactEmail(this)">${l.footCopy}</button>` +
+      `<button type="button" class="foot-contact-trigger" onclick="toggleContactPop(this)">${l.footContact}</button>` +
+      `<div class="foot-contact-pop">` +
+        `<div class="fcp-row">` +
+          `<span class="fcp-email">${CONTACT_EMAIL}</span>` +
+          `<button type="button" class="fcp-copy" title="${l.footCopy}" aria-label="${l.footCopy}" onclick="copyContactEmail(this)">${COPY_ICON}</button>` +
+        `</div>` +
+        `<a class="fcp-x" href="${CONTACT_X_URL}" target="_blank" rel="noopener">${X_ICON}<span>@Dan_white_22</span></a>` +
+      `</div>` +
     `</span>` +
     `<span class="foot-links">` +
       `<a href="/catalog">${l.footCatalog}</a>` +
@@ -572,16 +585,21 @@ function buildFooterHTML() {
     `</span>`;
 }
 
-// Copy the contact email to the clipboard from the footer box, with brief feedback.
+// Toggle the small contact popover above the footer "Contact" trigger.
+function toggleContactPop(btn) {
+  const pop = btn.parentElement && btn.parentElement.querySelector('.foot-contact-pop');
+  if (pop) pop.classList.toggle('open');
+}
+
+// Copy the contact email to the clipboard, flashing the copy glyph to a check.
+// Works for any copy button (footer popover + landing block) — restores to COPY_ICON.
 function copyContactEmail(btn) {
-  const done = btn.getAttribute('data-done') || 'Copied';
-  const orig = btn.getAttribute('data-copy') || 'Copy';
-  const reset = () => { btn.textContent = orig; btn.classList.remove('done'); };
+  const restore = () => { btn.innerHTML = COPY_ICON; btn.classList.remove('done'); };
   try {
-    navigator.clipboard.writeText('startupmarket.tech@gmail.com').then(() => {
-      btn.textContent = done; btn.classList.add('done'); setTimeout(reset, 1500);
-    }).catch(reset);
-  } catch { reset(); }
+    navigator.clipboard.writeText(CONTACT_EMAIL).then(() => {
+      btn.innerHTML = CHECK_ICON; btn.classList.add('done'); setTimeout(restore, 1200);
+    }).catch(restore);
+  } catch { restore(); }
 }
 
 function mountFooter() {
@@ -695,6 +713,10 @@ async function navSignOut() {
 document.addEventListener('click', (e) => {
   const sw = document.getElementById('langSwitcher');
   if (sw && !sw.contains(e.target)) document.getElementById('langDropdown')?.classList.remove('open');
+  // Close the footer contact popover when clicking outside it.
+  document.querySelectorAll('.foot-contact').forEach(fc => {
+    if (!fc.contains(e.target)) fc.querySelector('.foot-contact-pop')?.classList.remove('open');
+  });
 });
 
 // Close the mobile drawer on Escape.

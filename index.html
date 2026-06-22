@@ -41,8 +41,11 @@
 
 .cta{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
 .btn-y{text-decoration:none}
-.contact-mail{color:var(--text);font-weight:600;font-size:18px;text-decoration:none}
+.contact-mail{color:var(--text);font-weight:400;font-size:14px;text-decoration:none}
 .contact-mail:hover{color:var(--accent)}
+.contact-copy{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:var(--bg2);color:var(--text2);border:1px solid var(--border);border-radius:7px;cursor:pointer;transition:color .14s,border-color .14s}
+.contact-copy:hover{color:var(--accent);border-color:var(--accent)}
+.contact-copy.done{color:#0ECB81;border-color:#0ECB81}
 .cta .btn-y{display:inline-flex;align-items:center;justify-content:center;background:var(--accent);color:#181A20;font-weight:600;border:0;border-radius:10px;padding:15px 32px;font-size:15px;cursor:pointer;font-family:inherit}
 .cta .btn-y:hover{background:var(--accent2)}
 .selllink{display:inline-flex;align-items:center;gap:5px;color:var(--text3);font-weight:500;font-size:14px;background:none;border:0;cursor:pointer;font-family:inherit}
@@ -392,7 +395,7 @@
 <!-- Контакты -->
 <section class="sec">
   <div class="sechead"><h2 data-i18n="landing.contactTitle">Вопросы или предложения?</h2><p data-i18n="landing.contactSub">Напишите нам — прочитаем каждое сообщение.</p></div>
-  <div style="text-align:center"><a class="contact-mail" href="mailto:startupmarket.tech@gmail.com">startupmarket.tech@gmail.com</a></div>
+  <div style="display:flex;justify-content:center;align-items:center;gap:10px"><a class="contact-mail" href="mailto:startupmarket.tech@gmail.com">startupmarket.tech@gmail.com</a><button type="button" class="contact-copy" title="Copy" aria-label="Copy" onclick="copyContactEmail(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button></div>
 </section>
 
 <!-- 7. Финальный CTA -->

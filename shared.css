@@ -191,12 +191,19 @@ footer.site-footer { display: flex; flex-wrap: wrap; align-items: center; justif
 .foot-links { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
 .foot-links a { color: var(--text2); text-decoration: none; transition: color 0.14s; }
 .foot-links a:hover { color: var(--accent); }
-/* Footer contact box: email + copy button */
-.foot-contact { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: 8px; padding: 4px 4px 4px 12px; background: var(--bg2); }
-.foot-email { color: var(--text2); font-size: 12px; }
-.foot-copy-btn { background: var(--bg3); color: var(--text2); border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; font-size: 11px; cursor: pointer; font-family: inherit; transition: color 0.14s, border-color 0.14s; }
-.foot-copy-btn:hover { color: var(--accent); border-color: var(--accent); }
-.foot-copy-btn.done { color: var(--trading-up, #0ECB81); border-color: currentColor; }
+/* Footer contact: a "Contact" trigger that opens a small popover (email + copy + X) */
+.foot-contact { position: relative; display: inline-flex; }
+.foot-contact-trigger { background: none; border: 0; padding: 0; color: var(--text2); font-size: 12px; font-family: inherit; cursor: pointer; transition: color 0.14s; }
+.foot-contact-trigger:hover { color: var(--accent); }
+.foot-contact-pop { position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%); display: none; flex-direction: column; gap: 9px; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 11px 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.35); white-space: nowrap; z-index: 60; }
+.foot-contact-pop.open { display: flex; }
+.fcp-row { display: inline-flex; align-items: center; gap: 8px; }
+.fcp-email { color: var(--text); font-size: 13px; }
+.fcp-copy { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; background: var(--bg3); color: var(--text2); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; transition: color 0.14s, border-color 0.14s; }
+.fcp-copy:hover { color: var(--accent); border-color: var(--accent); }
+.fcp-copy.done { color: #0ECB81; border-color: #0ECB81; }
+.fcp-x { display: inline-flex; align-items: center; gap: 7px; color: var(--text2); text-decoration: none; font-size: 13px; transition: color 0.14s; }
+.fcp-x:hover { color: var(--accent); }
 
 /* ── Cookie / tracking consent banner ──────────────────────────────────────── */
 .cookie-banner {
