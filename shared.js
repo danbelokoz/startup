@@ -207,13 +207,13 @@ Object.assign(T.ar, { legal: { footPrivacy:'الخصوصية', footTerms:'شرو
 
 // Contact email (questions & suggestions) — footer link + landing block.
 // Address: startupmarket.tech@gmail.com (same as the sell-modal fallback).
-Object.assign(T.en.legal, { footContact: 'Contact' });
-Object.assign(T.ru.legal, { footContact: 'Контакты' });
-Object.assign(T.de.legal, { footContact: 'Kontakt' });
-Object.assign(T.fr.legal, { footContact: 'Contact' });
-Object.assign(T.it.legal, { footContact: 'Contatti' });
-Object.assign(T.zh.legal, { footContact: '联系' });
-Object.assign(T.ar.legal, { footContact: 'اتصل بنا' });
+Object.assign(T.en.legal, { footCopy: 'Copy', footCopied: 'Copied' });
+Object.assign(T.ru.legal, { footCopy: 'Скопировать', footCopied: 'Скопировано' });
+Object.assign(T.de.legal, { footCopy: 'Kopieren', footCopied: 'Kopiert' });
+Object.assign(T.fr.legal, { footCopy: 'Copier', footCopied: 'Copié' });
+Object.assign(T.it.legal, { footCopy: 'Copia', footCopied: 'Copiato' });
+Object.assign(T.zh.legal, { footCopy: '复制', footCopied: '已复制' });
+Object.assign(T.ar.legal, { footCopy: 'نسخ', footCopied: 'تم النسخ' });
 Object.assign(T.en.landing, { contactTitle: 'Questions or suggestions?', contactSub: 'Email us — we read every message.' });
 Object.assign(T.ru.landing, { contactTitle: 'Вопросы или предложения?', contactSub: 'Напишите нам — прочитаем каждое сообщение.' });
 Object.assign(T.de.landing, { contactTitle: 'Fragen oder Vorschläge?', contactSub: 'Schreib uns — wir lesen jede Nachricht.' });
@@ -560,13 +560,28 @@ function buildFooterHTML() {
   const l = (T[getLang()] || T.en).legal || T.en.legal;
   const year = new Date().getFullYear();
   return `<span class="foot-copy">© ${year} Startup Market · ${l.footRights}</span>` +
+    `<span class="foot-contact">` +
+      `<span class="foot-email">startupmarket.tech@gmail.com</span>` +
+      `<button type="button" class="foot-copy-btn" data-copy="${l.footCopy}" data-done="${l.footCopied}" onclick="copyContactEmail(this)">${l.footCopy}</button>` +
+    `</span>` +
     `<span class="foot-links">` +
-      `<a href="mailto:startupmarket.tech@gmail.com">${l.footContact}</a>` +
       `<a href="/catalog">${l.footCatalog}</a>` +
       `<a href="/acquire.html">${l.footHow}</a>` +
       `<a href="/privacy">${l.footPrivacy}</a>` +
       `<a href="/terms">${l.footTerms}</a>` +
     `</span>`;
+}
+
+// Copy the contact email to the clipboard from the footer box, with brief feedback.
+function copyContactEmail(btn) {
+  const done = btn.getAttribute('data-done') || 'Copied';
+  const orig = btn.getAttribute('data-copy') || 'Copy';
+  const reset = () => { btn.textContent = orig; btn.classList.remove('done'); };
+  try {
+    navigator.clipboard.writeText('startupmarket.tech@gmail.com').then(() => {
+      btn.textContent = done; btn.classList.add('done'); setTimeout(reset, 1500);
+    }).catch(reset);
+  } catch { reset(); }
 }
 
 function mountFooter() {

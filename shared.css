@@ -191,6 +191,12 @@ footer.site-footer { display: flex; flex-wrap: wrap; align-items: center; justif
 .foot-links { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
 .foot-links a { color: var(--text2); text-decoration: none; transition: color 0.14s; }
 .foot-links a:hover { color: var(--accent); }
+/* Footer contact box: email + copy button */
+.foot-contact { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: 8px; padding: 4px 4px 4px 12px; background: var(--bg2); }
+.foot-email { color: var(--text2); font-size: 12px; }
+.foot-copy-btn { background: var(--bg3); color: var(--text2); border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; font-size: 11px; cursor: pointer; font-family: inherit; transition: color 0.14s, border-color 0.14s; }
+.foot-copy-btn:hover { color: var(--accent); border-color: var(--accent); }
+.foot-copy-btn.done { color: var(--trading-up, #0ECB81); border-color: currentColor; }
 
 /* ── Cookie / tracking consent banner ──────────────────────────────────────── */
 .cookie-banner {
