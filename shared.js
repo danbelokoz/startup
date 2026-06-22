@@ -205,6 +205,23 @@ Object.assign(T.it, { legal: { footPrivacy:'Privacy', footTerms:'Termini d’uso
 Object.assign(T.zh, { legal: { footPrivacy:'隐私政策', footTerms:'使用条款', footCatalog:'目录', footHow:'工作原理', footRights:'版权所有。', cookieText:'我们使用 localStorage 及类似技术以运行网站，并进行匿名访问统计。不使用广告或第三方跟踪 cookie。', cookieAccept:'全部接受', cookieReject:'仅必要', cookieMore:'详情', privacyTitle:'隐私政策', termsTitle:'使用条款' } });
 Object.assign(T.ar, { legal: { footPrivacy:'الخصوصية', footTerms:'شروط الاستخدام', footCatalog:'الكتالوج', footHow:'كيف يعمل', footRights:'جميع الحقوق محفوظة.', cookieText:'نستخدم localStorage وتقنيات مماثلة لتشغيل الموقع، إضافةً إلى عدّ زيارات مجهول. لا نستخدم كوكيز إعلانية أو تتبّعًا من جهات خارجية.', cookieAccept:'قبول الكل', cookieReject:'الضرورية فقط', cookieMore:'تفاصيل', privacyTitle:'سياسة الخصوصية', termsTitle:'شروط الاستخدام' } });
 
+// Contact email (questions & suggestions) — footer link + landing block.
+// Address: startupmarket.tech@gmail.com (same as the sell-modal fallback).
+Object.assign(T.en.legal, { footContact: 'Contact' });
+Object.assign(T.ru.legal, { footContact: 'Контакты' });
+Object.assign(T.de.legal, { footContact: 'Kontakt' });
+Object.assign(T.fr.legal, { footContact: 'Contact' });
+Object.assign(T.it.legal, { footContact: 'Contatti' });
+Object.assign(T.zh.legal, { footContact: '联系' });
+Object.assign(T.ar.legal, { footContact: 'اتصل بنا' });
+Object.assign(T.en.landing, { contactTitle: 'Questions or suggestions?', contactSub: 'Email us — we read every message.' });
+Object.assign(T.ru.landing, { contactTitle: 'Вопросы или предложения?', contactSub: 'Напишите нам — прочитаем каждое сообщение.' });
+Object.assign(T.de.landing, { contactTitle: 'Fragen oder Vorschläge?', contactSub: 'Schreib uns — wir lesen jede Nachricht.' });
+Object.assign(T.fr.landing, { contactTitle: 'Questions ou suggestions ?', contactSub: 'Écrivez-nous — nous lisons chaque message.' });
+Object.assign(T.it.landing, { contactTitle: 'Domande o suggerimenti?', contactSub: 'Scrivici — leggiamo ogni messaggio.' });
+Object.assign(T.zh.landing, { contactTitle: '有问题或建议？', contactSub: '给我们发邮件——每条留言我们都会查看。' });
+Object.assign(T.ar.landing, { contactTitle: 'أسئلة أو اقتراحات؟', contactSub: 'راسلنا — نقرأ كل رسالة.' });
+
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 function getLang() { return localStorage.getItem('lang') || 'en'; }
 function setLangCode(code) { localStorage.setItem('lang', code); location.reload(); }
@@ -544,6 +561,7 @@ function buildFooterHTML() {
   const year = new Date().getFullYear();
   return `<span class="foot-copy">© ${year} Startup Market · ${l.footRights}</span>` +
     `<span class="foot-links">` +
+      `<a href="mailto:startupmarket.tech@gmail.com">${l.footContact}</a>` +
       `<a href="/catalog">${l.footCatalog}</a>` +
       `<a href="/acquire.html">${l.footHow}</a>` +
       `<a href="/privacy">${l.footPrivacy}</a>` +
