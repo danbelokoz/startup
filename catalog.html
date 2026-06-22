@@ -268,6 +268,17 @@ applyLangToDoc();
 document.getElementById('navPlaceholder').innerHTML = buildNavHTML('catalog');
 initNavAuth();
 
+// Stale-cache guard (see shared.js): a returning user may still have an old cached
+// shared.js without isGmvLike — install a local fallback so card labels and the
+// revenue sort never throw a ReferenceError.
+window.isGmvLike = window.isGmvLike || function (s) {
+  const r = (s && s.revenue) || {};
+  return Number(r.mrr || 0) === 0
+      && Number((s && s.activeSubscriptions) || 0) === 0
+      && Number((s && s.customers) || 0) === 0
+      && Number(r.last30Days || 0) >= 100000;
+};
+
 /* ── CONSTANTS ─────────────────────────────────────────────────────────────── */
 const API   = '/api';
 const LIMIT = 50;
@@ -466,6 +477,7 @@ function sortItems(arr) {
     if (sort === 'growth-desc') return s.growth30d != null ? s.growth30d : -Infinity;
     if (sort === 'price-asc')   return (s.onSale && s.askingPrice) ? s.askingPrice : Infinity;  // no price → last
     if (sort === 'price-desc')  return (s.onSale && s.askingPrice) || 0;
+    if (sort === 'revenue-desc' && isGmvLike(s)) return 0;  // MoR/marketplace gross volume isn't company revenue — keep it out of the revenue ranking
     return (s.revenue && s.revenue.last30Days) || 0;  // revenue-desc (default)
   };
   // No revenue and no MRR → there's nothing to build daily metrics from, so these
@@ -628,12 +640,12 @@ function cardHTML(s) {
   const g = s.growth30d;
   const gh = g!=null?' <span class="cm-sub '+(g>=0?'up':'dn')+'">'+(g>=0?'↑':'↓')+Math.abs(parseFloat(g)).toFixed(1)+'%</span>':'';
   const hasP = s.onSale&&s.askingPrice;
-  const lblRev = t('idx','cardRev') || 'Rev. 30d';
+  const lblRev = isGmvLike(s) ? 'GMV' : (t('idx','cardRev') || 'Rev. 30d');
   const lblAsk = t('idx','cardAsk') || 'Ask. price';
   const lblMult= t('idx','cardMult')|| 'Multiple';
   const lblMrr = t('idx','cardMrr') || 'MRR';
   // Tooltips explaining each metric/tag on hover (req) + clickable category (req: tag → filtered page)
-  const tRev = escHtml(t('idx','tipRev30')||'');
+  const tRev = escHtml((isGmvLike(s) ? t('idx','tipGmv') : t('idx','tipRev30'))||'');
   const tAsk = escHtml(t('idx','tipPrice')||'');
   const tMul = escHtml(t('idx','tipMultiple')||'');
   const tMrr = escHtml(t('idx','tipMrr')||'');
@@ -724,7 +736,7 @@ function updateStats() {
   const onSaleTotald = onSaleTotal != null ? onSaleTotal + 300 : null;
   // Catalog-wide sums from /api/stats; until they arrive, fall back to the sum
   // over loaded items (page 1) so the block isn't empty on first paint.
-  const rev = dbRev30 != null ? dbRev30 : loadedItems.reduce((a,s)=>a+(s.revenue&&s.revenue.last30Days||0),0);
+  const rev = dbRev30 != null ? dbRev30 : loadedItems.reduce((a,s)=>a+(isGmvLike(s)?0:(s.revenue&&s.revenue.last30Days||0)),0);
   const mrr = dbMrr  != null ? dbMrr  : loadedItems.reduce((a,s)=>a+(s.revenue&&s.revenue.mrr||0),0);
   const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
   const num=id=>document.getElementById(id);

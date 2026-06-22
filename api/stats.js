@@ -38,11 +38,24 @@ function readPage(p) {
   return redisGet(`sm_${params.toString()}`);
 }
 
+// Mirror of shared.js isGmvLike (the server has no access to shared.js): a big 30-day
+// figure with zero MRR / active subscriptions / customers is gross volume from a
+// MoR/marketplace platform, not the company's own revenue — keep it out of the sum.
+function isGmvLike(s) {
+  const r = (s && s.revenue) || {};
+  return Number(r.mrr || 0) === 0
+      && Number((s && s.activeSubscriptions) || 0) === 0
+      && Number((s && s.customers) || 0) === 0
+      && Number(r.last30Days || 0) >= 100000;
+}
+
 export function computeTotals(startups) {
   const t = { total: 0, onSale: 0, rev30: 0, mrr: 0, onSaleRev30: 0, onSaleMrr: 0 };
   for (const s of startups) {
     if (!s) continue;
-    const rev = (s.revenue && s.revenue.last30Days) || 0;
+    // GMV-like listings still count toward the catalog/on-sale counts, but their gross
+    // volume is excluded from the summed revenue (it isn't the company's own revenue).
+    const rev = isGmvLike(s) ? 0 : ((s.revenue && s.revenue.last30Days) || 0);
     const mrr = (s.revenue && s.revenue.mrr) || 0;
     t.total++; t.rev30 += rev; t.mrr += mrr;
     if (s.onSale) { t.onSale++; t.onSaleRev30 += rev; t.onSaleMrr += mrr; }

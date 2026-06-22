@@ -635,8 +635,8 @@ function renderStartup(s) {
     <div class="section-title">Revenue metrics</div>
     <div class="metrics-grid">
       <div class="metric-card"><div class="metric-card-label">${t('startupPage','mrr')}</div><div class="metric-card-value">${formatMoney(s.revenue&&s.revenue.mrr)}</div><div class="metric-card-sub">MRR growth: ${gMrr}</div></div>
-      <div class="metric-card"><div class="metric-card-label">${t('startupPage','rev30')}</div><div class="metric-card-value">${formatMoney(s.revenue&&s.revenue.last30Days)}</div><div class="metric-card-sub">${t('startupPage','growth')}: ${gStr}</div></div>
-      <div class="metric-card"><div class="metric-card-label">${t('startupPage','totalRev')}</div><div class="metric-card-value">${formatMoney(s.revenue&&s.revenue.total)}</div><div class="metric-card-sub">all time</div></div>
+      <div class="metric-card"><div class="metric-card-label">${s.isMerchantOfRecord?t('startupPage','gmv30'):t('startupPage','rev30')}</div><div class="metric-card-value">${formatMoney(s.revenue&&s.revenue.last30Days)}</div><div class="metric-card-sub">${t('startupPage','growth')}: ${gStr}</div></div>
+      <div class="metric-card"><div class="metric-card-label">${s.isMerchantOfRecord?t('startupPage','gmv'):t('startupPage','totalRev')}</div><div class="metric-card-value">${formatMoney(s.revenue&&s.revenue.total)}</div><div class="metric-card-sub">all time</div></div>
       ${s.profitMarginLast30Days!=null?`<div class="metric-card"><div class="metric-card-label">${t('startupPage','margin')}</div><div class="metric-card-value">${Math.round(s.profitMarginLast30Days)}%</div></div>`:''}
       <div class="metric-card"><div class="metric-card-label">${t('startupPage','customers')}</div><div class="metric-card-value">${(s.customers||0).toLocaleString()}</div></div>
       <div class="metric-card"><div class="metric-card-label">${t('startupPage','subs')}</div><div class="metric-card-value">${(s.activeSubscriptions||0).toLocaleString()}</div></div>
