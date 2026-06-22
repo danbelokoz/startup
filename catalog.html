@@ -710,6 +710,10 @@ function saveStartup(slug) {
   // rather than a syncUrl change). restoreFiltersOnBack() re-injects it if the browser
   // drops the query when you press Back to a bare /catalog.
   try{ sessionStorage.setItem('sm_cat_q', location.search); }catch{}
+  // One-shot marker: we're leaving the catalog *for a startup detail page*, so a later bare
+  // /catalog is a "Back" and should restore this filter. A fresh open (nav link, new tab,
+  // typed URL) never sets this, so it correctly falls through to the default "For sale" view.
+  try{ sessionStorage.setItem('sm_cat_back', '1'); }catch{}
 }
 
 // Clicking a category badge on a card opens the catalog filtered by that tag,
@@ -991,17 +995,25 @@ function closeCatDD() {
 // filters (?status=all…) and applyUrlParams() restores them. But some browsers reload
 // the catalog as a bare /catalog (query stripped) on that Back, which would snap the
 // view to the default "For sale". When the URL comes back bare, re-inject the filter we
-// remembered for this tab so it sticks. Sticky (not one-shot): the URL is still the
-// source of truth, this only fills in when the query is missing. Picking "For sale"
-// saves an empty query, so it correctly stops forcing a previous "All".
+// remembered for this tab so it sticks — BUT only when we actually came back from a
+// startup detail page (saveStartup set the one-shot sm_cat_back marker). A genuinely fresh
+// open of the catalog — nav link, landing CTA, new tab, typed URL — has no marker, so it
+// always opens on the default "For sale" view regardless of the last filter used.
 function restoreFiltersOnBack() {
   try {
+    const returning = sessionStorage.getItem('sm_cat_back');
+    sessionStorage.removeItem('sm_cat_back');                 // consume on every fresh load (one-shot)
+    if (!returning) return;                                   // fresh open → keep the default "For sale"
     const savedQ = sessionStorage.getItem('sm_cat_q');
     if (!location.search && savedQ && savedQ.length > 1) {
       history.replaceState(history.state, '', location.pathname + savedQ);
     }
   } catch {}
 }
+// A Back restored from bfcache keeps the catalog already in its previous filtered state, so
+// consume the marker here too — otherwise it would leak into the *next* fresh open and
+// wrongly restore "All" there.
+window.addEventListener('pageshow', e => { if (e.persisted) { try { sessionStorage.removeItem('sm_cat_back'); } catch {} } });
 
 restoreFiltersOnBack();
 applyUrlParams();
