@@ -214,13 +214,13 @@ Object.assign(T.fr.legal, { footContact: 'Contact', footCopy: 'Copier', footCopi
 Object.assign(T.it.legal, { footContact: 'Contatti', footCopy: 'Copia', footCopied: 'Copiato' });
 Object.assign(T.zh.legal, { footContact: '联系', footCopy: '复制', footCopied: '已复制' });
 Object.assign(T.ar.legal, { footContact: 'اتصل بنا', footCopy: 'نسخ', footCopied: 'تم النسخ' });
-Object.assign(T.en.landing, { contactTitle: 'Questions or suggestions?', contactSub: 'For questions or suggestions, reach out:' });
-Object.assign(T.ru.landing, { contactTitle: 'Вопросы или предложения?', contactSub: 'По вопросам и предложениям пишите:' });
-Object.assign(T.de.landing, { contactTitle: 'Fragen oder Vorschläge?', contactSub: 'Bei Fragen oder Vorschlägen schreib uns:' });
-Object.assign(T.fr.landing, { contactTitle: 'Questions ou suggestions ?', contactSub: 'Pour toute question ou suggestion, écrivez-nous :' });
-Object.assign(T.it.landing, { contactTitle: 'Domande o suggerimenti?', contactSub: 'Per domande o suggerimenti, scrivici:' });
-Object.assign(T.zh.landing, { contactTitle: '有问题或建议？', contactSub: '如有问题或建议，请联系我们：' });
-Object.assign(T.ar.landing, { contactTitle: 'أسئلة أو اقتراحات؟', contactSub: 'لأي أسئلة أو اقتراحات، تواصل معنا:' });
+Object.assign(T.en.landing, { contactTitle: 'Questions or suggestions?', contactSub: 'Email us — we read every message.' });
+Object.assign(T.ru.landing, { contactTitle: 'Вопросы или предложения?', contactSub: 'Напишите нам — прочитаем каждое сообщение.' });
+Object.assign(T.de.landing, { contactTitle: 'Fragen oder Vorschläge?', contactSub: 'Schreib uns — wir lesen jede Nachricht.' });
+Object.assign(T.fr.landing, { contactTitle: 'Questions ou suggestions ?', contactSub: 'Écrivez-nous — nous lisons chaque message.' });
+Object.assign(T.it.landing, { contactTitle: 'Domande o suggerimenti?', contactSub: 'Scrivici — leggiamo ogni messaggio.' });
+Object.assign(T.zh.landing, { contactTitle: '有问题或建议？', contactSub: '给我们发邮件——每条留言我们都会查看。' });
+Object.assign(T.ar.landing, { contactTitle: 'أسئلة أو اقتراحات؟', contactSub: 'راسلنا — نقرأ كل رسالة.' });
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 function getLang() { return localStorage.getItem('lang') || 'en'; }
@@ -571,7 +571,7 @@ function buildFooterHTML() {
       `<button type="button" class="foot-contact-trigger" onclick="toggleContactPop(this)">${l.footContact}</button>` +
       `<div class="foot-contact-pop">` +
         `<div class="fcp-row">` +
-          `<span class="fcp-email">${CONTACT_EMAIL}</span>` +
+          `<a class="fcp-email" href="mailto:${CONTACT_EMAIL}">${CONTACT_EMAIL}</a>` +
           `<button type="button" class="fcp-copy" title="${l.footCopy}" aria-label="${l.footCopy}" onclick="copyContactEmail(this)">${COPY_ICON}</button>` +
         `</div>` +
         `<a class="fcp-x" href="${CONTACT_X_URL}" target="_blank" rel="noopener">${X_ICON}<span>@Dan_white_22</span></a>` +

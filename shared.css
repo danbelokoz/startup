@@ -198,7 +198,8 @@ footer.site-footer { display: flex; flex-wrap: wrap; align-items: center; justif
 .foot-contact-pop { position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%); display: none; flex-direction: column; gap: 9px; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 11px 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.35); white-space: nowrap; z-index: 60; }
 .foot-contact-pop.open { display: flex; }
 .fcp-row { display: inline-flex; align-items: center; gap: 8px; }
-.fcp-email { color: var(--text); font-size: 13px; }
+.fcp-email { color: var(--text); font-size: 13px; text-decoration: none; transition: color 0.14s; }
+.fcp-email:hover { color: var(--accent); }
 .fcp-copy { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; background: var(--bg3); color: var(--text2); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; transition: color 0.14s, border-color 0.14s; }
 .fcp-copy:hover { color: var(--accent); border-color: var(--accent); }
 .fcp-copy.done { color: #0ECB81; border-color: #0ECB81; }
