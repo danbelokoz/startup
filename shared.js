@@ -207,13 +207,13 @@ Object.assign(T.ar, { legal: { footPrivacy:'الخصوصية', footTerms:'شرو
 
 // Contact email (questions & suggestions) — footer link + landing block.
 // Address: startupmarket.tech@gmail.com (same as the sell-modal fallback).
-Object.assign(T.en.legal, { footContact: 'Contact', footCopy: 'Copy', footCopied: 'Copied' });
-Object.assign(T.ru.legal, { footContact: 'Контакты', footCopy: 'Скопировать', footCopied: 'Скопировано' });
-Object.assign(T.de.legal, { footContact: 'Kontakt', footCopy: 'Kopieren', footCopied: 'Kopiert' });
-Object.assign(T.fr.legal, { footContact: 'Contact', footCopy: 'Copier', footCopied: 'Copié' });
-Object.assign(T.it.legal, { footContact: 'Contatti', footCopy: 'Copia', footCopied: 'Copiato' });
-Object.assign(T.zh.legal, { footContact: '联系', footCopy: '复制', footCopied: '已复制' });
-Object.assign(T.ar.legal, { footContact: 'اتصل بنا', footCopy: 'نسخ', footCopied: 'تم النسخ' });
+Object.assign(T.en.legal, { footContact: 'Contact', footCopy: 'Copy', footCopied: 'Copied', contactHeading: 'Get in touch', contactDesc: 'Questions or suggestions — reach us anytime.' });
+Object.assign(T.ru.legal, { footContact: 'Контакты', footCopy: 'Скопировать', footCopied: 'Скопировано', contactHeading: 'Свяжитесь с нами', contactDesc: 'Вопросы или предложения — пишите в любое время.' });
+Object.assign(T.de.legal, { footContact: 'Kontakt', footCopy: 'Kopieren', footCopied: 'Kopiert', contactHeading: 'Kontakt aufnehmen', contactDesc: 'Fragen oder Vorschläge — schreib uns jederzeit.' });
+Object.assign(T.fr.legal, { footContact: 'Contact', footCopy: 'Copier', footCopied: 'Copié', contactHeading: 'Nous contacter', contactDesc: 'Questions ou suggestions — écrivez-nous à tout moment.' });
+Object.assign(T.it.legal, { footContact: 'Contatti', footCopy: 'Copia', footCopied: 'Copiato', contactHeading: 'Contattaci', contactDesc: 'Domande o suggerimenti — scrivici quando vuoi.' });
+Object.assign(T.zh.legal, { footContact: '联系', footCopy: '复制', footCopied: '已复制', contactHeading: '联系我们', contactDesc: '有问题或建议，随时联系我们。' });
+Object.assign(T.ar.legal, { footContact: 'اتصل بنا', footCopy: 'نسخ', footCopied: 'تم النسخ', contactHeading: 'تواصل معنا', contactDesc: 'لأي أسئلة أو اقتراحات — راسلنا في أي وقت.' });
 Object.assign(T.en.landing, { contactTitle: 'Questions or suggestions?', contactSub: 'Email us — we read every message.' });
 Object.assign(T.ru.landing, { contactTitle: 'Вопросы или предложения?', contactSub: 'Напишите нам — прочитаем каждое сообщение.' });
 Object.assign(T.de.landing, { contactTitle: 'Fragen oder Vorschläge?', contactSub: 'Schreib uns — wir lesen jede Nachricht.' });
@@ -562,21 +562,13 @@ const CONTACT_X_URL = 'https://x.com/Dan_white_22';
 const COPY_ICON  = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
 const CHECK_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
 const X_ICON     = '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2H21.5l-7.5 8.57L22.5 22h-6.6l-5.17-6.76L4.8 22H1.54l8.02-9.17L1.5 2h6.77l4.67 6.18L18.244 2Zm-1.16 18h1.8L7.02 3.9H5.09L17.084 20Z"/></svg>';
+const MAIL_ICON  = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4.5" width="19" height="15" rx="3"/><path d="M3 7l9 6 9-6"/></svg>';
 
 function buildFooterHTML() {
   const l = (T[getLang()] || T.en).legal || T.en.legal;
   const year = new Date().getFullYear();
   return `<span class="foot-copy">© ${year} Startup Market · ${l.footRights}</span>` +
-    `<span class="foot-contact">` +
-      `<button type="button" class="foot-contact-trigger" onclick="toggleContactPop(this)">${l.footContact}</button>` +
-      `<div class="foot-contact-pop">` +
-        `<div class="fcp-row">` +
-          `<a class="fcp-email" href="mailto:${CONTACT_EMAIL}">${CONTACT_EMAIL}</a>` +
-          `<button type="button" class="fcp-copy" title="${l.footCopy}" aria-label="${l.footCopy}" onclick="copyContactEmail(this)">${COPY_ICON}</button>` +
-        `</div>` +
-        `<a class="fcp-x" href="${CONTACT_X_URL}" target="_blank" rel="noopener">${X_ICON}<span>@Dan_white_22</span></a>` +
-      `</div>` +
-    `</span>` +
+    `<button type="button" class="foot-contact-trigger" onclick="openContactModal()">${l.footContact}</button>` +
     `<span class="foot-links">` +
       `<a href="/catalog">${l.footCatalog}</a>` +
       `<a href="/acquire.html">${l.footHow}</a>` +
@@ -585,10 +577,50 @@ function buildFooterHTML() {
     `</span>`;
 }
 
-// Toggle the small contact popover above the footer "Contact" trigger.
-function toggleContactPop(btn) {
-  const pop = btn.parentElement && btn.parentElement.querySelector('.foot-contact-pop');
-  if (pop) pop.classList.toggle('open');
+// ── CONTACT MODAL ─────────────────────────────────────────────────────────────
+// A centered, dimmed dialog with the email and X — opened from the footer "Contact"
+// link. Built fresh each open so the language is always current.
+function buildContactModalHTML() {
+  const l = (T[getLang()] || T.en).legal || T.en.legal;
+  return `<div class="contact-modal" role="dialog" aria-modal="true" aria-label="${l.footContact}">` +
+      `<button type="button" class="contact-modal-close" aria-label="Close" onclick="closeContactModal()">&times;</button>` +
+      `<div class="contact-modal-head"><h2>${l.contactHeading}</h2><p>${l.contactDesc}</p></div>` +
+      `<div class="contact-rows">` +
+        `<div class="contact-item">` +
+          `<span class="contact-item-ic">${MAIL_ICON}</span>` +
+          `<div class="contact-item-main"><span class="contact-item-label">Email</span>` +
+            `<a class="contact-item-val" href="mailto:${CONTACT_EMAIL}">${CONTACT_EMAIL}</a></div>` +
+          `<button type="button" class="contact-item-copy" title="${l.footCopy}" aria-label="${l.footCopy}" onclick="copyContactEmail(this)">${COPY_ICON}</button>` +
+        `</div>` +
+        `<a class="contact-item contact-item-link" href="${CONTACT_X_URL}" target="_blank" rel="noopener">` +
+          `<span class="contact-item-ic">${X_ICON}</span>` +
+          `<div class="contact-item-main"><span class="contact-item-label">X (Twitter)</span>` +
+            `<span class="contact-item-val">@Dan_white_22</span></div>` +
+          `<span class="contact-item-arrow">↗</span>` +
+        `</a>` +
+      `</div>` +
+    `</div>`;
+}
+
+function _contactEsc(e) { if (e.key === 'Escape') closeContactModal(); }
+
+function openContactModal() {
+  let bg = document.getElementById('contactModalBg');
+  if (!bg) {
+    bg = document.createElement('div');
+    bg.id = 'contactModalBg';
+    bg.className = 'contact-modal-bg';
+    bg.addEventListener('click', (e) => { if (e.target === bg) closeContactModal(); });
+    document.body.appendChild(bg);
+  }
+  bg.innerHTML = buildContactModalHTML();
+  bg.classList.add('open');
+  document.addEventListener('keydown', _contactEsc);
+}
+
+function closeContactModal() {
+  document.getElementById('contactModalBg')?.classList.remove('open');
+  document.removeEventListener('keydown', _contactEsc);
 }
 
 // Copy the contact email to the clipboard, flashing the copy glyph to a check.
@@ -713,10 +745,6 @@ async function navSignOut() {
 document.addEventListener('click', (e) => {
   const sw = document.getElementById('langSwitcher');
   if (sw && !sw.contains(e.target)) document.getElementById('langDropdown')?.classList.remove('open');
-  // Close the footer contact popover when clicking outside it.
-  document.querySelectorAll('.foot-contact').forEach(fc => {
-    if (!fc.contains(e.target)) fc.querySelector('.foot-contact-pop')?.classList.remove('open');
-  });
 });
 
 // Close the mobile drawer on Escape.
