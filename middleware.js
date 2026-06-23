@@ -88,7 +88,7 @@ async function rateOk(bucket, ip, limit, windowSec) {
   if (!ip) return true;
   const slot = Math.floor(Date.now() / (windowSec * 1000));
   const key = `sm_rl_${bucket}_${ip}_${slot}`;
-  const res = await redisCmd([['INCR', key], ['EXPIRE', key, windowSec * 2]]);
+  const res = await redisCmd([['INCR', key], ['EXPIRE', key, String(windowSec * 2)]]);
   const n = res && res[0] && Number(res[0].result);
   return !Number.isFinite(n) || n <= limit;
 }

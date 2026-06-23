@@ -19,7 +19,7 @@ async function rateOk(bucket, ip, limit, windowSec) {
   if (!ip) return true;
   const slot = Math.floor(Date.now() / (windowSec * 1000));
   const key = `sm_rl_${bucket}_${ip}_${slot}`;
-  const res = await redisPipeline([['INCR', key], ['EXPIRE', key, windowSec * 2]]);
+  const res = await redisPipeline([['INCR', key], ['EXPIRE', key, String(windowSec * 2)]]);
   const n = res && res[0] && Number(res[0].result);
   return !Number.isFinite(n) || n <= limit;
 }
@@ -112,9 +112,20 @@ export default async function handler(req, res) {
   // Internal calls from middleware.js (bot SSR) carry the shared secret and are already
   // rate-limited there, so they skip this guard to avoid being double-counted.
   const internal = !!process.env.CRON_SECRET && req.headers['x-sm-internal'] === process.env.CRON_SECRET;
-  if (!internal && !(await rateOk('api', clientIp(req), 240, 60))) {
-    res.setHeader('Retry-After', '30');
-    return res.status(429).json({ error: 'Too many requests' });
+  if (!internal) {
+    const ip = clientIp(req);
+    let n = 'noip';
+    if (ip) {
+      const slot = Math.floor(Date.now() / 60000);
+      const key = `sm_rl_api_${ip}_${slot}`;
+      const r = await redisPipeline([['INCR', key], ['EXPIRE', key, '120']]);
+      n = (r && r[0] && r[0].result != null) ? r[0].result : 'NULL';
+    }
+    res.setHeader('x-dbg', `ip=${ip ? 'Y' : 'N'};n=${n}`);
+    if (typeof n === 'number' && n > 240) {
+      res.setHeader('Retry-After', '30');
+      return res.status(429).json({ error: 'Too many requests' });
+    }
   }
 
   const apiKey = process.env.TRUSTMRR_API_KEY;
