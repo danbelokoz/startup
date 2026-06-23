@@ -1,12 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
   <defs>
-    <linearGradient id="smBg" x1="0" y1="0" x2="0" y2="1">
+    <linearGradient id="smTxt" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#FCD535"/>
       <stop offset="1" stop-color="#F0B90B"/>
     </linearGradient>
   </defs>
-  <rect width="64" height="64" rx="14.4" fill="url(#smBg)"/>
+  <rect width="64" height="64" rx="14.4" fill="#17181C"/>
   <text x="32" y="42" text-anchor="middle"
         font-family="'Arial Black','Helvetica Neue',Arial,sans-serif"
-        font-weight="900" font-size="28" fill="#17181C">SM</text>
+        font-weight="900" font-size="28" fill="url(#smTxt)">SM</text>
 </svg>
