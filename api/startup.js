@@ -4,9 +4,25 @@
 // instantly and revalidate in the background — and never overwrite good cache with a
 // broken/changed upstream payload.
 
-import { sb, supaConfigured } from './_lib.js';
+import { sb, supaConfigured, redisPipeline } from './_lib.js';
 
 const FRESH_TTL = 24 * 3600; // 24h freshness window
+
+// Per-IP rate limit (fixed window). Fail-OPEN: any Redis hiccup → allowed, so a
+// counter outage never blocks real visitors. This endpoint is public (no key), so it
+// needs its own guard against floods / cache-busting with random slugs.
+function clientIp(req) {
+  const xff = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  return xff || req.headers['x-real-ip'] || '';
+}
+async function rateOk(bucket, ip, limit, windowSec) {
+  if (!ip) return true;
+  const slot = Math.floor(Date.now() / (windowSec * 1000));
+  const key = `sm_rl_${bucket}_${ip}_${slot}`;
+  const res = await redisPipeline([['INCR', key], ['EXPIRE', key, windowSec * 2]]);
+  const n = res && res[0] && Number(res[0].result);
+  return !Number.isFinite(n) || n <= limit;
+}
 
 async function kv(method, path, body) {
   const url  = `${process.env.KV_REST_API_URL}${path}`;
@@ -92,6 +108,14 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
+
+  // Internal calls from middleware.js (bot SSR) carry the shared secret and are already
+  // rate-limited there, so they skip this guard to avoid being double-counted.
+  const internal = !!process.env.CRON_SECRET && req.headers['x-sm-internal'] === process.env.CRON_SECRET;
+  if (!internal && !(await rateOk('api', clientIp(req), 240, 60))) {
+    res.setHeader('Retry-After', '30');
+    return res.status(429).json({ error: 'Too many requests' });
+  }
 
   const apiKey = process.env.TRUSTMRR_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'Server not configured' });

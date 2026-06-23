@@ -63,8 +63,71 @@ async function redisGet(key) {
   } catch { return null; }
 }
 
+// One round-trip for the rate-limit counter.
+async function redisCmd(commands) {
+  const url = process.env.KV_REST_API_URL, tok = process.env.KV_REST_API_TOKEN;
+  if (!url || !tok) return null;
+  try {
+    const r = await fetch(`${url}/pipeline`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tok}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(commands),
+    });
+    return r.ok ? await r.json() : null;
+  } catch { return null; }
+}
+
+function clientIp(req) {
+  const xff = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim();
+  return xff || req.headers.get('x-real-ip') || '';
+}
+
+// Fixed-window per-IP limiter. Fail-OPEN: any Redis hiccup → allowed, so a counter
+// outage never blocks real users. The slot is baked into the key so it self-expires.
+async function rateOk(bucket, ip, limit, windowSec) {
+  if (!ip) return true;
+  const slot = Math.floor(Date.now() / (windowSec * 1000));
+  const key = `sm_rl_${bucket}_${ip}_${slot}`;
+  const res = await redisCmd([['INCR', key], ['EXPIRE', key, windowSec * 2]]);
+  const n = res && res[0] && Number(res[0].result);
+  return !Number.isFinite(n) || n <= limit;
+}
+
+// Known-slug set, cached in this edge instance's memory for 5 min so we don't read the
+// ~7k-slug list from Redis on every request. Source: sm_sitemap_slugs (catalog sweep).
+let _slugCache = { ts: 0, set: null };
+async function getKnownSlugs() {
+  if (_slugCache.set && Date.now() - _slugCache.ts < 300000) return _slugCache.set;
+  const arr = await redisGet('sm_sitemap_slugs');
+  _slugCache = { ts: Date.now(), set: Array.isArray(arr) ? new Set(arr) : null };
+  return _slugCache.set;
+}
+
+// Gate the upstream render. Returns false ONLY when we have a populated allowlist AND
+// the slug is neither in it nor already in the data cache — i.e. almost certainly a
+// bogus/cache-busting slug, so we skip the API hit (protects upstream TrustMRR).
+// Permissive (true) until the first catalog sweep fills the list, so SSR is never
+// blocked during bootstrap.
+async function slugWorthRendering(slug) {
+  const set = await getKnownSlugs();
+  if (!set || set.size === 0) return true;
+  if (set.has(slug)) return true;
+  const cached = await redisGet(`sm_startup_${slug}`); // a fresh listing already loaded?
+  return !!(cached && (cached.data || cached.slug));
+}
+
 // ── /sitemap.xml ────────────────────────────────────────────────────────────────
+let _sitemapCache = { ts: 0, xml: null };
+const SITEMAP_HEADERS = {
+  'content-type': 'application/xml; charset=utf-8',
+  'cache-control': 'public, max-age=0, s-maxage=86400, stale-while-revalidate=604800',
+};
 async function sitemap() {
+  // Reuse the built XML for 10 min so a flood of /sitemap.xml can't make us re-read the
+  // ~7k-slug list and re-serialise ~600 KB on every hit.
+  if (_sitemapCache.xml && Date.now() - _sitemapCache.ts < 600000) {
+    return new Response(_sitemapCache.xml, { headers: SITEMAP_HEADERS });
+  }
   const staticUrls = [`${SITE}/`, `${SITE}/catalog`, `${SITE}/top.html`, `${SITE}/acquire.html`];
   const out = staticUrls.map(u => `<url><loc>${u}</loc></url>`);
   const slugs = await redisGet('sm_sitemap_slugs'); // written by scripts/refresh-catalog.js
@@ -75,12 +138,8 @@ async function sitemap() {
   }
   const xml = `<?xml version="1.0" encoding="UTF-8"?>\n` +
     `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${out.join('\n')}\n</urlset>`;
-  return new Response(xml, {
-    headers: {
-      'content-type': 'application/xml; charset=utf-8',
-      'cache-control': 'public, max-age=0, s-maxage=86400, stale-while-revalidate=604800',
-    },
-  });
+  _sitemapCache = { ts: Date.now(), xml };
+  return new Response(xml, { headers: SITEMAP_HEADERS });
 }
 
 // ── SSR injection for a startup detail page ──────────────────────────────────────
@@ -193,10 +252,21 @@ export default async function middleware(request) {
       return fetch(templateUrl);
     }
 
-    // Bot: fetch template + data, inject SEO, return server-rendered HTML.
+    // ── bot path, with cheap DoS guards ──
+    const ip = clientIp(request);
+    // Cap how fast one IP can trigger a server-side render. Over the limit → raw
+    // template (page still works via JS); fail-soft, never a hard error.
+    if (!(await rateOk('ssr', ip, 240, 60))) return fetch(templateUrl);
+    // Skip the upstream render for bogus/cache-busting slugs (protects TrustMRR).
+    if (!(await slugWorthRendering(slug))) return fetch(templateUrl);
+
+    // Render. The /api/startup call is marked internal (CRON_SECRET) so that endpoint's
+    // own limiter doesn't double-count it — this request is already capped above.
     const [tplRes, apiRes] = await Promise.all([
       fetch(templateUrl),
-      fetch(`${origin}/api/startup?slug=${encodeURIComponent(slug)}`),
+      fetch(`${origin}/api/startup?slug=${encodeURIComponent(slug)}`, {
+        headers: { 'x-sm-internal': process.env.CRON_SECRET || '' },
+      }),
     ]);
     const html = await tplRes.text();
     let data = null;
