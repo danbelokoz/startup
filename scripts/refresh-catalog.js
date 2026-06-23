@@ -165,6 +165,16 @@ async function writeArchive(allStartups) {
   return written;
 }
 
+// Slug list for the dynamic /sitemap.xml (served by middleware.js straight from Redis).
+// Kept ~26h so a single missed sweep doesn't blank the sitemap; middleware falls back to
+// the main pages when the key is absent.
+async function writeSitemap(allStartups) {
+  if (!KV_REST_API_URL || !KV_REST_API_TOKEN) return 0;
+  const slugs = allStartups.filter(s => s && s.slug).map(s => s.slug);
+  await redisSet('sm_sitemap_slugs', slugs, 26 * 3600);
+  return slugs.length;
+}
+
 // Guards the cache/snapshots from a broken/changed upstream payload: a page is valid
 // if it's an array and (when non-empty) at least half its items still carry a slug.
 // An empty page is the legit end of the catalog; a page that fails this means the
@@ -231,11 +241,12 @@ async function main() {
 
   const { written, pruned } = await writeSnapshots(allStartups);
   const archived = await writeArchive(allStartups);
+  const sitemapCount = await writeSitemap(allStartups);
 
   console.log(`\n─────────────────────────────────────`);
-  console.log(`Pages: ${page - 1} · startups: ${totalStartups} · snapshots: ${written} · archive: ${archived} · pruned: ${pruned}`);
+  console.log(`Pages: ${page - 1} · startups: ${totalStartups} · snapshots: ${written} · archive: ${archived} · pruned: ${pruned} · sitemap: ${sitemapCount}`);
 
-  await recordParserRun('catalog', true, written, `${page - 1} стр. · снимков: ${written} · архив: ${archived}`, totalStartups);
+  await recordParserRun('catalog', true, written, `${page - 1} стр. · снимков: ${written} · архив: ${archived} · sitemap: ${sitemapCount}`, totalStartups);
 }
 
 main().catch(async (e) => {

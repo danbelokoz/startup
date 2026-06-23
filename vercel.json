@@ -3,7 +3,7 @@
     { "source": "/catalog", "destination": "/catalog.html" },
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/terms", "destination": "/terms.html" },
-    { "source": "/startup/:slug", "destination": "/startup/[slug].html" },
+    { "source": "/startup/:slug", "destination": "/sp.html" },
     { "source": "/api/price-history", "destination": "/api/history?type=price" },
     { "source": "/api/revenue-history", "destination": "/api/history?type=revenue" },
     { "source": "/api/sell-listing-intent", "destination": "/api/intake?op=listing" },
