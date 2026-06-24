@@ -95,7 +95,7 @@ export default async function handler(req, res) {
     const checks = await Promise.all(startups.map(async (s) => {
       const host = hostKey(s.website);
       if (!host) return null;
-      const cached = await redisGet(`sm_site_${host}`);
+      const cached = await redisGet(`sm_site2_${host}`); // keep in sync with scrape-site.js cache key version
       return cached ? null : s;
     }));
     toScrape = checks.filter(Boolean);

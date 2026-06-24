@@ -155,7 +155,7 @@ export default async function handler(req, res) {
   const host = hostnameKey(rawUrl);
   if (!host) return res.status(400).json({ error: 'Invalid url' });
 
-  const cacheKey = `sm_site_${host}`;
+  const cacheKey = `sm_site2_${host}`; // v2: bumped after thum.io URL fix (encodeURIComponent → raw) to drop poisoned entries
   const cached = await redisGet(cacheKey);
   if (cached) {
     res.setHeader('X-Cache', 'HIT');
@@ -208,7 +208,8 @@ export default async function handler(req, res) {
       hasAPI:       /\/(api|docs|developers)\b/i.test(html) || /API documentation/i.test(html),
       socials:      findSocials(html),
       apps:         findApps(html),
-      screenshotUrl:`https://image.thum.io/get/width/720/${encodeURIComponent(rawUrl)}`,
+      // thum.io takes the target URL RAW in the path — encodeURIComponent here makes it 400.
+      screenshotUrl:`https://image.thum.io/get/width/1200/${rawUrl}`,
     };
 
     await redisSet(cacheKey, data, CACHE_TTL);
