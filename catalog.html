@@ -288,10 +288,13 @@ initNavAuth();
 // revenue sort never throw a ReferenceError.
 window.isGmvLike = window.isGmvLike || function (s) {
   const r = (s && s.revenue) || {};
-  return Number(r.mrr || 0) === 0
-      && Number((s && s.activeSubscriptions) || 0) === 0
-      && Number((s && s.customers) || 0) === 0
-      && Number(r.last30Days || 0) >= 100000;
+  const mrr  = Number(r.mrr || 0);
+  const subs = Number((s && s.activeSubscriptions) || 0);
+  const cust = Number((s && s.customers) || 0);
+  const l30  = Number(r.last30Days || 0);
+  if (mrr === 0 && subs === 0 && cust === 0 && l30 >= 100000) return true;
+  if (mrr > 0 && cust === 0 && subs <= 2 && l30 >= mrr * 100 && l30 >= 25000) return true;
+  return false;
 };
 
 /* ── CONSTANTS ─────────────────────────────────────────────────────────────── */

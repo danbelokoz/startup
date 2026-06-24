@@ -38,25 +38,34 @@ function readPage(p) {
   return redisGet(`sm_${params.toString()}`);
 }
 
-// Mirror of shared.js isGmvLike (the server has no access to shared.js): a big 30-day
-// figure with zero MRR / active subscriptions / customers is gross volume from a
-// MoR/marketplace platform, not the company's own revenue — keep it out of the sum.
+// Mirror of shared.js isGmvLike (the server has no access to shared.js): gross volume
+// from a MoR/marketplace platform — or a retail storefront's sales — is not the
+// company's own revenue, so keep it out of the sum. Two shapes qualify:
 function isGmvLike(s) {
   const r = (s && s.revenue) || {};
-  return Number(r.mrr || 0) === 0
-      && Number((s && s.activeSubscriptions) || 0) === 0
-      && Number((s && s.customers) || 0) === 0
-      && Number(r.last30Days || 0) >= 100000;
+  const mrr  = Number(r.mrr || 0);
+  const subs = Number((s && s.activeSubscriptions) || 0);
+  const cust = Number((s && s.customers) || 0);
+  const l30  = Number(r.last30Days || 0);
+  // 1) Zero subscription footprint + a large 30-day figure = pure processed volume.
+  if (mrr === 0 && subs === 0 && cust === 0 && l30 >= 100000) return true;
+  // 2) Retail/e-commerce whose tiny MRR (one stray Stripe subscription) masks storefront
+  //    sales: a 30-day take that dwarfs MRR (>=100x) with no customer base is gross sales
+  //    volume, not recurring revenue (e.g. an online shop selling physical goods).
+  if (mrr > 0 && cust === 0 && subs <= 2 && l30 >= mrr * 100 && l30 >= 25000) return true;
+  return false;
 }
 
 export function computeTotals(startups) {
   const t = { total: 0, onSale: 0, rev30: 0, mrr: 0, onSaleRev30: 0, onSaleMrr: 0 };
   for (const s of startups) {
     if (!s) continue;
-    // GMV-like listings still count toward the catalog/on-sale counts, but their gross
-    // volume is excluded from the summed revenue (it isn't the company's own revenue).
-    const rev = isGmvLike(s) ? 0 : ((s.revenue && s.revenue.last30Days) || 0);
-    const mrr = (s.revenue && s.revenue.mrr) || 0;
+    // GMV-like listings still count toward the catalog/on-sale counts, but neither their
+    // gross volume nor their nominal MRR belongs in the summed revenue (it isn't the
+    // company's own recurring revenue).
+    const gmv = isGmvLike(s);
+    const rev = gmv ? 0 : ((s.revenue && s.revenue.last30Days) || 0);
+    const mrr = gmv ? 0 : ((s.revenue && s.revenue.mrr) || 0);
     t.total++; t.rev30 += rev; t.mrr += mrr;
     if (s.onSale) { t.onSale++; t.onSaleRev30 += rev; t.onSaleMrr += mrr; }
   }

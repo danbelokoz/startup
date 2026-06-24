@@ -253,15 +253,22 @@ function isAnonStartup(s) {
   return !n || n.includes('anonymous');
 }
 // "GMV-not-revenue" heuristic for list surfaces (catalog sort/sum) where the API does
-// not expose isMerchantOfRecord: a big 30-day figure with zero MRR, zero active
-// subscriptions and zero customers is gross volume processed through a MoR/marketplace
-// platform, not the company's own revenue. Detail pages use the real isMerchantOfRecord.
+// not expose isMerchantOfRecord: gross volume processed through a MoR/marketplace
+// platform — or a retail storefront's sales — is not the company's own recurring
+// revenue. Detail pages use the real isMerchantOfRecord. Two shapes qualify:
 function isGmvLike(s) {
   const r = (s && s.revenue) || {};
-  return Number(r.mrr || 0) === 0
-      && Number((s && s.activeSubscriptions) || 0) === 0
-      && Number((s && s.customers) || 0) === 0
-      && Number(r.last30Days || 0) >= 100000;
+  const mrr  = Number(r.mrr || 0);
+  const subs = Number((s && s.activeSubscriptions) || 0);
+  const cust = Number((s && s.customers) || 0);
+  const l30  = Number(r.last30Days || 0);
+  // 1) Zero subscription footprint + a large 30-day figure = pure processed volume.
+  if (mrr === 0 && subs === 0 && cust === 0 && l30 >= 100000) return true;
+  // 2) Retail/e-commerce whose tiny MRR (one stray Stripe subscription) masks storefront
+  //    sales: a 30-day take that dwarfs MRR (>=100x) with no customer base is gross sales
+  //    volume, not recurring revenue (e.g. an online shop selling physical goods).
+  if (mrr > 0 && cust === 0 && subs <= 2 && l30 >= mrr * 100 && l30 >= 25000) return true;
+  return false;
 }
 // Eligible to be *recommended* in a rail (landing leaders/cards + the startup-page
 // "More … for sale" rail): a real, live deal only — on sale, not anonymous/stealth,
@@ -269,7 +276,9 @@ function isGmvLike(s) {
 // listings out of the recommendations. We have hundreds of eligible listings, so the
 // rails can afford to be picky.
 function isRecommendable(s) {
-  if (!s || !s.slug || !s.onSale || isAnonStartup(s)) return false;
+  // isGmvLike: a storefront/marketplace whose headline figure is gross volume, not the
+  // company's own revenue — it shouldn't compete in revenue-ranked recommendation rails.
+  if (!s || !s.slug || !s.onSale || isAnonStartup(s) || isGmvLike(s)) return false;
   const rev = s.revenue || {};
   if (!(Number(rev.last30Days) > 0) && !(Number(rev.mrr) > 0)) return false;
   return Number(s.askingPrice) > 0;

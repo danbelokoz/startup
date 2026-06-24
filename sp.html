@@ -248,6 +248,7 @@ window.isAnonStartup = window.isAnonStartup || function (s) {
 };
 window.isRecommendable = window.isRecommendable || function (s) {
   if (!s || !s.slug || !s.onSale || isAnonStartup(s)) return false;
+  if (window.isGmvLike && window.isGmvLike(s)) return false;   // gross-volume listing — not revenue
   const rev = s.revenue || {};
   if (!(Number(rev.last30Days) > 0) && !(Number(rev.mrr) > 0)) return false;
   return Number(s.askingPrice) > 0;
