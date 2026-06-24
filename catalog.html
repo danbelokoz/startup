@@ -504,17 +504,27 @@ function sortItems(arr) {
     const rev = s.revenue && s.revenue.last30Days, mrr = s.revenue && s.revenue.mrr;
     return ((rev == null || rev <= 0) && (mrr == null || mrr <= 0)) ? 1 : 0;
   };
+  // No real website — a blank field or a trustmrr.com placeholder stub — means the
+  // listing can't be independently verified, so it sinks below every startup that links
+  // its own site, whatever the chosen sort. (Project A is one of these: it has a
+  // description but its "website" is just a trustmrr.com placeholder.)
+  const noSite = s => {
+    const w = s && s.website;
+    return (!w || !String(w).trim() || String(w).toLowerCase().includes('trustmrr.com')) ? 1 : 0;
+  };
   return arr
     .map((s, i) => ({ s, i,
       sale: (saleFirst && s.onSale) ? 0 : 1,
       nodata: noMetrics(s),
       anon: (s.name||'').toLowerCase().includes('anonymous') ? 1 : 0,
+      bare: noSite(s),
       v: metricVal(s),
       score: dataScore(s) }))
     .sort((a, b) =>
       (a.sale - b.sale) ||
       (a.anon - b.anon) ||
       (a.nodata - b.nodata) ||
+      (a.bare - b.bare) ||
       (asc ? a.v - b.v : b.v - a.v) ||
       (b.score - a.score) ||
       (a.i - b.i))

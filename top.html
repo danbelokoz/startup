@@ -176,6 +176,8 @@ async function loadLeaderboard() {
       mrrCents:    s.revenue && s.revenue.mrr        != null ? s.revenue.mrr        : null,
       rev30dCents: s.revenue && s.revenue.last30Days != null ? s.revenue.last30Days : null,
       growth30d:   s.growth30d != null ? s.growth30d : (s.cachedGrowth30d != null ? s.cachedGrowth30d : null),
+      // No real website (blank or a trustmrr.com placeholder) → ranked below verifiable listings.
+      noSite:      (!s.website || !String(s.website).trim() || String(s.website).toLowerCase().includes('trustmrr.com')) ? 1 : 0,
     }));
     if (!leadItems.length) { host.innerHTML = emptyHTML(); return; }
     renderTable();
@@ -186,13 +188,14 @@ async function loadLeaderboard() {
 
 function sortItems() {
   const arr = leadItems.slice();
-  // Anonymous ("stealth") listings rank below every named startup, then by the
-  // chosen metric within each group — so a stealth card never tops the board.
+  // Anonymous ("stealth") listings, then listings with no real website, rank below
+  // verifiable named startups; within each group by the chosen metric — so a stealth
+  // or no-site card never tops the board.
   const anon = s => (s.name || '').toLowerCase().includes('anonymous') ? 1 : 0;
   const metric = sortKey === 'mrr' ? (s => s.mrrCents || 0)
                : sortKey === 'rev' ? (s => s.rev30dCents || 0)
                : (s => s.growth30d != null ? s.growth30d : -1e9);
-  arr.sort((a, b) => (anon(a) - anon(b)) || (metric(b) - metric(a)));
+  arr.sort((a, b) => (anon(a) - anon(b)) || ((a.noSite||0) - (b.noSite||0)) || (metric(b) - metric(a)));
   return arr;
 }
 
