@@ -3,17 +3,17 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Startup Market — Verified Startup Database</title>
-<meta name="description" content="Search and filter thousands of verified startups by MRR, revenue, growth and category. Metrics are read directly from each startup's payment provider — not screenshots."/>
+<title>Startup Market - Verified Startup Database</title>
+<meta name="description" content="Search and filter thousands of verified startups by MRR, revenue, growth and category. Metrics are read directly from each startup's payment provider - not screenshots."/>
 <link rel="canonical" href="https://startupmarket.tech/catalog"/>
 <meta property="og:type" content="website"/>
 <meta property="og:site_name" content="Startup Market"/>
 <meta property="og:url" content="https://startupmarket.tech/catalog"/>
-<meta property="og:title" content="Verified startup database — search by MRR, revenue & growth"/>
+<meta property="og:title" content="Verified startup database - search by MRR, revenue & growth"/>
 <meta property="og:description" content="Thousands of startups with payment-provider-verified revenue. Filter by MRR, growth, category and for-sale status."/>
 <meta property="og:image" content="https://startupmarket.tech/apple-touch-icon.png"/>
 <meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="Verified startup database — search by MRR, revenue & growth"/>
+<meta name="twitter:title" content="Verified startup database - search by MRR, revenue & growth"/>
 <meta name="twitter:description" content="Thousands of startups with payment-provider-verified revenue."/>
 <meta name="twitter:image" content="https://startupmarket.tech/apple-touch-icon.png"/>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"CollectionPage","name":"Verified Startup Database","url":"https://startupmarket.tech/catalog","description":"Searchable catalog of startups with revenue verified from Stripe, LemonSqueezy and Polar.","isPartOf":{"@type":"WebSite","name":"Startup Market","url":"https://startupmarket.tech/"}}</script>
@@ -65,7 +65,7 @@ input.search-input:focus { border-color: var(--accent); background: var(--bg2); 
 input.search-input::placeholder { color: var(--text3); }
 select.sb-select { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: 7px; padding: 6px 26px 6px 9px; font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif; font-size: 12px; color: var(--text2); outline: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238888a0' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; cursor: pointer; }
 select.sb-select:focus { border-color: var(--accent); outline: none; }
-/* Custom category dropdown — on-brand replacement for the native <select> popup
+/* Custom category dropdown - on-brand replacement for the native <select> popup
    (the OS popup ignored our dark theme and looked out of place). */
 .cat-dd { position: relative; }
 .cat-dd-btn { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 6px; background: var(--bg3); border: 1px solid var(--border); border-radius: 7px; padding: 6px 9px; font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif; font-size: 12px; color: var(--text2); cursor: pointer; transition: border-color 0.12s, background 0.12s; text-align: left; }
@@ -118,7 +118,7 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
 .cmp-btn { background: none; border: 1px solid transparent; cursor: pointer; color: var(--text3); padding: 2px 3px; line-height: 1; border-radius: 5px; transition: color 0.12s, background 0.12s, border-color 0.12s; display: inline-flex; }
 .cmp-btn:hover { color: var(--accent); }
 .cmp-btn.active { color: #0B0E11; background: var(--accent); border-color: var(--accent); }
-/* Floating compare tray — collects up to two startups across catalog pages */
+/* Floating compare tray - collects up to two startups across catalog pages */
 .compare-tray { position: fixed; left: 50%; transform: translateX(-50%); bottom: 18px; z-index: 120; background: var(--bg2); border: 1px solid var(--border2); border-radius: 14px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); padding: 10px 12px; display: none; align-items: center; gap: 12px; max-width: calc(100vw - 24px); }
 .compare-tray.show { display: flex; }
 .ct-slots { display: flex; align-items: center; gap: 8px; min-width: 0; }
@@ -191,10 +191,10 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
 
 
   <div class="stats-bar">
-    <div class="stat-item"><div class="stat-n" id="statTotal">—</div><div class="stat-l" data-i18n="idx.statTotal">Стартапов в базе</div></div>
-    <div class="stat-item"><div class="stat-n" id="statSale">—</div><div class="stat-l" data-i18n="idx.statSale">На продаже</div></div>
-    <div class="stat-item"><div class="stat-n" id="statRevenue">—</div><div class="stat-l" data-i18n="idx.statRev30">Выручка (30д)</div></div>
-    <div class="stat-item"><div class="stat-n" id="statMRR">—</div><div class="stat-l" data-i18n="idx.statMrr">Суммарный MRR</div></div>
+    <div class="stat-item"><div class="stat-n" id="statTotal">-</div><div class="stat-l" data-i18n="idx.statTotal">Стартапов в базе</div></div>
+    <div class="stat-item"><div class="stat-n" id="statSale">-</div><div class="stat-l" data-i18n="idx.statSale">На продаже</div></div>
+    <div class="stat-item"><div class="stat-n" id="statRevenue">-</div><div class="stat-l" data-i18n="idx.statRev30">Выручка (30д)</div></div>
+    <div class="stat-item"><div class="stat-n" id="statMRR">-</div><div class="stat-l" data-i18n="idx.statMrr">Суммарный MRR</div></div>
   </div>
 
 </div>
@@ -215,8 +215,8 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
       <div class="sb-section">
         <div class="sb-label" data-i18n="idx.fltStatus">Статус</div>
         <div class="status-opts">
-          <div class="status-opt sel" data-filter="sale" onclick="setStatus(this)"><span data-i18n="idx.fltStatusSale">На продаже</span> <span class="cnt" id="cntSale">—</span></div>
-          <div class="status-opt" data-filter="all" onclick="setStatus(this)"><span data-i18n="idx.fltStatusAll">Все</span> <span class="cnt" id="cntAll">—</span></div>
+          <div class="status-opt sel" data-filter="sale" onclick="setStatus(this)"><span data-i18n="idx.fltStatusSale">На продаже</span> <span class="cnt" id="cntSale">-</span></div>
+          <div class="status-opt" data-filter="all" onclick="setStatus(this)"><span data-i18n="idx.fltStatusAll">Все</span> <span class="cnt" id="cntAll">-</span></div>
         </div>
       </div>
       <div class="sb-section">
@@ -231,19 +231,19 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
       </div>
       <div class="sb-section">
         <div class="sb-label"><span data-i18n="idx.fltRev30">Выручка 30 дней</span> <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box" data-i18n="idx.tipRev30">Суммарная выручка за последние 30 дней</span></span></div>
-        <div class="range-row"><input class="sb-input" id="rev30Min" type="text" placeholder="$ Min"><div class="range-sep">—</div><input class="sb-input" id="rev30Max" type="text" placeholder="$ Max"></div>
+        <div class="range-row"><input class="sb-input" id="rev30Min" type="text" placeholder="$ Min"><div class="range-sep">-</div><input class="sb-input" id="rev30Max" type="text" placeholder="$ Max"></div>
       </div>
       <div class="sb-section">
         <div class="sb-label">MRR <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box" data-i18n="idx.tipMrr">Monthly Recurring Revenue</span></span></div>
-        <div class="range-row"><input class="sb-input" id="mrrMin" type="text" placeholder="$ Min"><div class="range-sep">—</div><input class="sb-input" id="mrrMax" type="text" placeholder="$ Max"></div>
+        <div class="range-row"><input class="sb-input" id="mrrMin" type="text" placeholder="$ Min"><div class="range-sep">-</div><input class="sb-input" id="mrrMax" type="text" placeholder="$ Max"></div>
       </div>
       <div class="sb-section">
         <div class="sb-label"><span data-i18n="idx.fltGrowth">Рост 30 дней</span> <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box" data-i18n="idx.tipGrowth">Изменение MRR за 30 дней в %</span></span></div>
-        <div class="range-row"><input class="sb-input" id="growthMin" type="text" placeholder="Min %"><div class="range-sep">—</div><input class="sb-input" id="growthMax" type="text" placeholder="Max %"></div>
+        <div class="range-row"><input class="sb-input" id="growthMin" type="text" placeholder="Min %"><div class="range-sep">-</div><input class="sb-input" id="growthMax" type="text" placeholder="Max %"></div>
       </div>
       <div class="sb-section">
         <div class="sb-label"><span data-i18n="idx.fltPrice">Цена продажи</span> <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box" data-i18n="idx.tipPrice">Запрашиваемая цена за 100% доли</span></span></div>
-        <div class="range-row"><input class="sb-input" id="priceMin" type="text" placeholder="$ Min"><div class="range-sep">—</div><input class="sb-input" id="priceMax" type="text" placeholder="$ Max"></div>
+        <div class="range-row"><input class="sb-input" id="priceMin" type="text" placeholder="$ Min"><div class="range-sep">-</div><input class="sb-input" id="priceMax" type="text" placeholder="$ Max"></div>
       </div>
       <div class="sb-section">
         <div class="sb-label"><span data-i18n="idx.fltMultiple">Мультипликатор</span> <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box" data-i18n="idx.tipMultiple">Цена / годовой MRR</span></span></div>
@@ -254,7 +254,7 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
       </div>
       <div class="sb-section">
         <div class="sb-label"><span data-i18n="idx.fltMargin">Маржа прибыли</span></div>
-        <div class="range-row"><input class="sb-input" id="marginMin" type="text" placeholder="Min %"><div class="range-sep">—</div><input class="sb-input" id="marginMax" type="text" placeholder="Max %"></div>
+        <div class="range-row"><input class="sb-input" id="marginMin" type="text" placeholder="Min %"><div class="range-sep">-</div><input class="sb-input" id="marginMax" type="text" placeholder="Max %"></div>
       </div>
       <div class="sb-section">
         <div class="sb-label" data-i18n="idx.fltAudience">Аудитория</div>
@@ -306,7 +306,7 @@ initNavAuth();
 renderTray();   // restore any compare selection from a previous visit (names fill in after load)
 
 // Stale-cache guard (see shared.js): a returning user may still have an old cached
-// shared.js without isGmvLike — install a local fallback so card labels and the
+// shared.js without isGmvLike - install a local fallback so card labels and the
 // revenue sort never throw a ReferenceError.
 window.isGmvLike = window.isGmvLike || function (s) {
   const r = (s && s.revenue) || {};
@@ -336,8 +336,8 @@ let displayItems = [];   // after client-side filters
 let apiPage      = 0;
 let hasMore      = false;
 let isLoading    = false;
-let apiMeta      = null; // last meta from API { total, hasMore } — reflects current filter
-let dbTotal      = null; // total startups in DB (no filter) — for "Startups in database" stat
+let apiMeta      = null; // last meta from API { total, hasMore } - reflects current filter
+let dbTotal      = null; // total startups in DB (no filter) - for "Startups in database" stat
 let dbOnSale     = null; // total onSale items (from a dedicated count fetch)
 let dbRev30      = null; // 30-day revenue summed across ALL startups (cents, /api/stats)
 let dbMrr        = null; // MRR summed across ALL startups (cents, /api/stats)
@@ -363,7 +363,7 @@ function cacheWrite(data,hasMore,total) {
   try { localStorage.setItem(LS_KEY,JSON.stringify({data,hasMore,total,ts:Date.now()})); } catch{}
 }
 // The page-1 cache only depends on the status (onSale vs all) now that sorting and
-// category filtering happen client-side — so the cached onSale page-1 is valid for
+// category filtering happen client-side - so the cached onSale page-1 is valid for
 // any sort/category the user picks.
 function isDefault() { return filters.onSale===true; }
 
@@ -457,7 +457,7 @@ async function fetchPage(page, bg) {
     const res = await fetch(API+'/startups?'+p);
     if (!res.ok) throw new Error('api');
     const {data, meta} = await res.json();
-    // Filter switched while we were awaiting — drop this stale result instead of
+    // Filter switched while we were awaiting - drop this stale result instead of
     // writing the old status's items into the freshly-cleared list.
     if (tk !== loadToken) return;
     const items = (data||[]).filter(s=>s&&s.slug);
@@ -477,7 +477,7 @@ async function fetchPage(page, bg) {
       hasMore      = !!(meta&&meta.hasMore);
       apiPage      = page;
       // Keep the in-memory set sorted so search/filters/scroll see the right order,
-      // but DON'T rebuild the grid — only top it up if the window isn't full yet
+      // but DON'T rebuild the grid - only top it up if the window isn't full yet
       // (e.g. page 1 returned fewer than renderLimit). fillGrid() is a no-op once the
       // visible window is full, so streaming pages never disturb the painted cards.
       displayItems = applyClientFilters(loadedItems);
@@ -498,16 +498,16 @@ async function fetchPage(page, bg) {
 }
 
 /* ── CLIENT-SIDE FILTERS ──────────────────────────────────────────────────── */
-// Stable client-side sort — anonymous to the bottom, then by data completeness
+// Stable client-side sort - anonymous to the bottom, then by data completeness
 // descending, then the API's chosen order for ties. Buyers see the richest
 // cards first without losing the global revenue/growth/price sort.
 // Pull every remaining page of the current status filter into memory so search,
-// category and range filters work over the whole catalog — not just page 1.
+// category and range filters work over the whole catalog - not just page 1.
 async function loadAllPages(token) {
   if (allLoaded) return;
   let guard = 0;
   while (hasMore && guard++ < 400) {
-    if (token !== loadToken) return;   // a newer load started — abort this one
+    if (token !== loadToken) return;   // a newer load started - abort this one
     await fetchPage(apiPage + 1, true);
   }
   if (token !== loadToken) return;
@@ -520,7 +520,7 @@ async function loadAllPages(token) {
 // Rebuild the category dropdown from categories actually present in the data.
 // (The upstream API ignores ?category=, so filtering is client-side and the
 // options must match the real category strings exactly.) Built incrementally as
-// pages stream in — the top categories appear right after page 1, so the list no
+// pages stream in - the top categories appear right after page 1, so the list no
 // longer waits ~5s for the whole catalog to load. _catSig skips no-op rebuilds.
 let _catSig = '';
 function buildCategoryOptions() {
@@ -531,7 +531,7 @@ function buildCategoryOptions() {
   const cats = Object.keys(counts).sort((a,b) => counts[b] - counts[a]);
   const cur = filters.category;
   const sig = cats.length + '|' + cats.join(',') + '||' + (cur||'');
-  if (sig === _catSig) return;   // nothing changed — don't churn the DOM
+  if (sig === _catSig) return;   // nothing changed - don't churn the DOM
   _catSig = sig;
   const allLbl = escHtml(t('idx','fltCatsAll'));
   panel.innerHTML =
@@ -544,7 +544,7 @@ function buildCategoryOptions() {
 
 // Client-side ranking. Anonymous ("stealth") listings are pushed below every named
 // startup (owner-requested): anonymity is a top-level group key, above the chosen
-// metric — so an anonymous card never outranks a named one whatever its numbers.
+// metric - so an anonymous card never outranks a named one whatever its numbers.
 // Within each group the sort the user picks (revenue / growth / price) is the key,
 // then data-completeness, then the API order for ties. saleFirst (tag/category
 // deep-links) still floats for-sale up first. Items missing the sort metric sink
@@ -557,7 +557,7 @@ function sortItems(arr) {
     if (sort === 'growth-desc') return s.growth30d != null ? s.growth30d : -Infinity;
     if (sort === 'price-asc')   return (s.onSale && s.askingPrice) ? s.askingPrice : Infinity;  // no price → last
     if (sort === 'price-desc')  return (s.onSale && s.askingPrice) || 0;
-    if (sort === 'revenue-desc' && isGmvLike(s)) return 0;  // MoR/marketplace gross volume isn't company revenue — keep it out of the revenue ranking
+    if (sort === 'revenue-desc' && isGmvLike(s)) return 0;  // MoR/marketplace gross volume isn't company revenue - keep it out of the revenue ranking
     return (s.revenue && s.revenue.last30Days) || 0;  // revenue-desc (default)
   };
   // No revenue and no MRR → there's nothing to build daily metrics from, so these
@@ -566,7 +566,7 @@ function sortItems(arr) {
     const rev = s.revenue && s.revenue.last30Days, mrr = s.revenue && s.revenue.mrr;
     return ((rev == null || rev <= 0) && (mrr == null || mrr <= 0)) ? 1 : 0;
   };
-  // No real website — a blank field or a trustmrr.com placeholder stub — means the
+  // No real website - a blank field or a trustmrr.com placeholder stub - means the
   // listing can't be independently verified, so it sinks below every startup that links
   // its own site, whatever the chosen sort. (Project A is one of these: it has a
   // description but its "website" is just a trustmrr.com placeholder.)
@@ -623,10 +623,10 @@ function applyClientFilters(items) {
 }
 
 /* ── RENDER ────────────────────────────────────────────────────────────────── */
-// Full rebuild — ONLY on explicit user actions (sort / filter / category / search /
+// Full rebuild - ONLY on explicit user actions (sort / filter / category / search /
 // status switch) and the first paint. Background page-fill must never call this:
 // grid.innerHTML='' re-creates every <img>, which both aborts in-flight logo loads
-// (so logos never finish) and flashes/reorders the whole list — the "cards refresh
+// (so logos never finish) and flashes/reorders the whole list - the "cards refresh
 // every second" the big catalog showed while its ~140 pages streamed in.
 function renderCards() {
   const grid = document.getElementById('cards');
@@ -641,7 +641,7 @@ function renderCards() {
 }
 
 // Append-only top-up: bring the grid up to renderLimit cards from the current
-// displayItems, adding only slugs not already painted. Idempotent — once the window
+// displayItems, adding only slugs not already painted. Idempotent - once the window
 // is full it's a no-op, so the dozens of background pages never touch the DOM and the
 // logos already painted keep loading undisturbed. Used by background fill + scroll.
 function fillGrid() {
@@ -658,7 +658,7 @@ function fillGrid() {
 
 // Run once the whole catalog has loaded: only do a full rebuild if the final sorted
 // order of the already-painted window differs from what's on screen. For the default
-// revenue-desc sort page 1 is already the top, so this is usually a no-op — no
+// revenue-desc sort page 1 is already the top, so this is usually a no-op - no
 // end-of-load flash.
 function renderIfWindowChanged() {
   const grid = document.getElementById('cards');
@@ -676,7 +676,7 @@ function setupScroll() {
   if (!el) return;
   scrollObs = new IntersectionObserver(([e]) => {
     if (!e.isIntersecting) return;
-    // Widen the window and append the next batch — never a full rebuild, so logos
+    // Widen the window and append the next batch - never a full rebuild, so logos
     // already painted above stay loaded instead of being re-fetched.
     if (renderLimit < displayItems.length) {
       renderLimit = Math.min(renderLimit + 50, displayItems.length);
@@ -687,7 +687,7 @@ function setupScroll() {
   scrollObs.observe(el);
 }
 
-// Real country flag (flagcdn SVG — renders identically on every OS, unlike the
+// Real country flag (flagcdn SVG - renders identically on every OS, unlike the
 // Apple/Windows flag emoji) followed by the ISO code.
 function flagBadge(code) {
   if (!code) return '';
@@ -719,8 +719,8 @@ function cardHTML(s) {
   const init = s.name.split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase()||'?';
   const isAnon = (s.name||'').toLowerCase().includes('anonymous');
   const revealed = isRevealed(s.slug);          // already unblurred elsewhere → keep it unblurred here
-  const blurName = false;   // paywall removed — names public to all visitors
-  const blurLogo = false;   // paywall removed — logos public to all visitors
+  const blurName = false;   // paywall removed - names public to all visitors
+  const blurLogo = false;   // paywall removed - logos public to all visitors
   const iconInner = s.icon
     ? '<img src="'+escHtml(s.icon)+'" loading="lazy" onerror="this.parentElement.textContent=\''+init+'\'"/>'
     : init;
@@ -743,7 +743,7 @@ function cardHTML(s) {
   const catEnc = s.category ? encodeURIComponent(s.category).replace(/'/g,'%27') : '';
   const catTip = s.category ? escHtml((t('idx','tipCategory')||'Show all {cat} startups').replace('{cat}', s.category)) : '';
   const pBlock = hasP
-    ? '<div class="cm" title="'+tAsk+'"><div class="cm-label">'+lblAsk+'</div><div class="cm-val">'+formatMoney(s.askingPrice)+'</div></div><div class="cm" title="'+tMul+'"><div class="cm-label">'+lblMult+'</div><div class="cm-val">'+(s.multiple?parseFloat(s.multiple).toFixed(1)+'×':'—')+'</div></div>'
+    ? '<div class="cm" title="'+tAsk+'"><div class="cm-label">'+lblAsk+'</div><div class="cm-val">'+formatMoney(s.askingPrice)+'</div></div><div class="cm" title="'+tMul+'"><div class="cm-label">'+lblMult+'</div><div class="cm-val">'+(s.multiple?parseFloat(s.multiple).toFixed(1)+'×':'-')+'</div></div>'
     : '<div class="cm" title="'+tMrr+'"><div class="cm-label">'+lblMrr+'</div><div class="cm-val">'+formatMoney(s.revenue&&s.revenue.mrr)+'</div></div>';
   const views = s.views?'<span class="card-views">'+icon('eye',{size:11})+' '+(s.views>999?(s.views/1000).toFixed(1)+'k':s.views)+'</span>':'';
   const favOn = isFav(s.slug);
@@ -838,12 +838,12 @@ function updateStats() {
   const num=id=>document.getElementById(id);
   // Headline stat numbers count up; they update at most twice (loaded fallback →
   // real /api/stats total), and animateCount no-ops when the value is unchanged.
-  if (totalDBd != null) animateCount(num('statTotal'), totalDBd, v=>Math.round(v).toLocaleString()); else set('statTotal','—');
-  if (onSaleTotald != null) animateCount(num('statSale'), onSaleTotald, v=>Math.round(v).toLocaleString()); else set('statSale','—');
+  if (totalDBd != null) animateCount(num('statTotal'), totalDBd, v=>Math.round(v).toLocaleString()); else set('statTotal','-');
+  if (onSaleTotald != null) animateCount(num('statSale'), onSaleTotald, v=>Math.round(v).toLocaleString()); else set('statSale','-');
   animateCount(num('statRevenue'), rev, formatMoney);
   animateCount(num('statMRR'),     mrr, formatMoney);
-  set('cntSale',    onSaleTotald != null ? onSaleTotald.toLocaleString() : '—');
-  set('cntAll',     totalDBd != null ? totalDBd.toLocaleString() : '—');
+  set('cntSale',    onSaleTotald != null ? onSaleTotald.toLocaleString() : '-');
+  set('cntAll',     totalDBd != null ? totalDBd.toLocaleString() : '-');
 }
 
 // Fetch catalog-wide stats: true totals + revenue/MRR summed across ALL
@@ -871,7 +871,7 @@ async function fetchTotalsMeta() {
 }
 
 // True when the user has narrowed the catalog with anything beyond the on-sale/all
-// status toggle (search, category, or any range). Sorting doesn't count — same set.
+// status toggle (search, category, or any range). Sorting doesn't count - same set.
 function hasActiveFilter() {
   return !!(filters.search || filters.category ||
     filters.mrrMin || filters.mrrMax || filters.rev30Min || filters.rev30Max ||
@@ -913,7 +913,7 @@ function showError() {
 /* ── URL SYNC + SCROLL RESTORE (so "Back" returns to the same view) ─────────── */
 // Reflect the active status/search/category/sort in the URL via replaceState (no new
 // history entry). A browser "Back" from a startup page then reloads the catalog with
-// these params and applyUrlParams() restores them — instead of resetting to the
+// these params and applyUrlParams() restores them - instead of resetting to the
 // default "For sale" view. (Ranges aren't mirrored; status is the reported pain point.)
 function syncUrl(push) {
   const p = new URLSearchParams();
@@ -933,7 +933,7 @@ function syncUrl(push) {
   } catch {}
   // Remember the active filter for this tab. Source of truth is the URL, but some browsers
   // drop the query when you press Back to the catalog from a startup page (it reloads as a
-  // bare /catalog) — restoreFiltersOnBack() falls back to this so the filter still sticks.
+  // bare /catalog) - restoreFiltersOnBack() falls back to this so the filter still sticks.
   try { sessionStorage.setItem('sm_cat_q', query); } catch {}
 }
 
@@ -987,7 +987,7 @@ function onCategoryChange(v) {
   document.querySelectorAll('.cat-dd-opt').forEach(o => o.classList.toggle('active', (o.dataset.value||'') === v));
   displayItems = applyClientFilters(loadedItems); renderCards(); updateCount(); syncUrl(true);
 }
-// Sorting is client-side over the already-loaded set — instant, and it never wipes
+// Sorting is client-side over the already-loaded set - instant, and it never wipes
 // the catalog (the old reloadFromAPI caused the "nothing found" flash on sort).
 function onSortChange(v) {
   filters.sort = v; renderLimit = 60;
@@ -1027,7 +1027,7 @@ function resetFilters() {
   reloadFromAPI();
 }
 
-// Deep-link support: /?search= , /?category= , /?sort= — e.g. clicking a tag or
+// Deep-link support: /?search= , /?category= , /?sort= - e.g. clicking a tag or
 // category on a startup page lands here pre-filtered. Tag/category deep-links
 // pre-select the tag and restrict to on-sale startups (req).
 function applyUrlParams() {
@@ -1055,7 +1055,7 @@ function applyUrlParams() {
   };
   if (status === 'all')  { filters.onSale = null; selectStatus('all'); }
   else if (status === 'sale') { filters.onSale = true; selectStatus('sale'); }
-  // Tag/category deep-link → on-sale first — but only when status wasn't given
+  // Tag/category deep-link → on-sale first - but only when status wasn't given
   // explicitly, so a restored "All + search" view (?status=all&search=) isn't forced
   // back to "For sale" when returning from a startup page.
   if ((search || category) && !status) {
@@ -1087,9 +1087,9 @@ function closeCatDD() {
 // filters (?status=all…) and applyUrlParams() restores them. But some browsers reload
 // the catalog as a bare /catalog (query stripped) on that Back, which would snap the
 // view to the default "For sale". When the URL comes back bare, re-inject the filter we
-// remembered for this tab so it sticks — BUT only when we actually came back from a
+// remembered for this tab so it sticks - BUT only when we actually came back from a
 // startup detail page (saveStartup set the one-shot sm_cat_back marker). A genuinely fresh
-// open of the catalog — nav link, landing CTA, new tab, typed URL — has no marker, so it
+// open of the catalog - nav link, landing CTA, new tab, typed URL - has no marker, so it
 // always opens on the default "For sale" view regardless of the last filter used.
 function restoreFiltersOnBack() {
   try {
@@ -1103,7 +1103,7 @@ function restoreFiltersOnBack() {
   } catch {}
 }
 // A Back restored from bfcache keeps the catalog already in its previous filtered state, so
-// consume the marker here too — otherwise it would leak into the *next* fresh open and
+// consume the marker here too - otherwise it would leak into the *next* fresh open and
 // wrongly restore "All" there.
 window.addEventListener('pageshow', e => { if (e.persisted) { try { sessionStorage.removeItem('sm_cat_back'); } catch {} } });
 

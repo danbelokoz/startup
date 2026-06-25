@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title data-i18n="dash.title">My account — Startup Market</title>
+  <title data-i18n="dash.title">My account - Startup Market</title>
   <link rel="icon" href="/favicon.ico?v=2" sizes="any"/>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=2" />
@@ -135,7 +135,7 @@
     <button class="pro-close" onclick="closeProModal()">×</button>
     <div class="pro-price">$9<small data-i18n="dash.proPerMonth">/мес</small></div>
     <h2>Startup Market Pro</h2>
-    <p data-i18n="dash.proUnavail">Подписка временно недоступна — мы готовим запуск платных тарифов. Оставь email и сообщим, как только продвинутый уровень станет доступен.</p>
+    <p data-i18n="dash.proUnavail">Подписка временно недоступна - мы готовим запуск платных тарифов. Оставь email и сообщим, как только продвинутый уровень станет доступен.</p>
     <ul>
       <li data-i18n="dash.proFeat2">AI-бриф по каждому стартапу (анализ рисков и потенциала)</li>
       <li data-i18n="dash.proFeat3">Email-алерты о новых листингах по твоим фильтрам</li>
@@ -146,7 +146,7 @@
       <input type="email" id="proEmail" placeholder="you@email.com" required>
       <button type="submit" class="acct-btn" data-i18n="dash.proNotify">Уведомить</button>
     </form>
-    <div class="pro-success" id="proSuccess" data-i18n="dash.proSuccess">Готово — мы напишем тебе на этот email.</div>
+    <div class="pro-success" id="proSuccess" data-i18n="dash.proSuccess">Готово - мы напишем тебе на этот email.</div>
   </div>
 </div>
 
@@ -305,7 +305,7 @@ function fillData() {
   const nickEl = document.getElementById('nickInput'); if (nickEl) nickEl.value = n;
   const mailEl = document.getElementById('emailInput'); if (mailEl) mailEl.value = email;
 
-  // Beta: open access — no daily limits, no paid tiers. Hide limit/upgrade/Pro cards.
+  // Beta: open access - no daily limits, no paid tiers. Hide limit/upgrade/Pro cards.
   show('limitsCard', false); show('upgradeCard', false); show('proCard', false);
   if (!pro) {
     const used = ACCESS && ACCESS.viewsUsed != null ? ACCESS.viewsUsed : 0;
@@ -397,7 +397,7 @@ async function renderFavorites() {
   el.innerHTML = items.map(s => {
     const init = (s.name || s.slug).slice(0, 2).toUpperCase();
     const logo = s.icon ? '<img src="' + escHtml(s.icon) + '" onerror="this.parentElement.textContent=\'' + init + '\'"/>' : init;
-    const rev = s.revenue && s.revenue.last30Days ? formatMoney(s.revenue.last30Days) : '—';
+    const rev = s.revenue && s.revenue.last30Days ? formatMoney(s.revenue.last30Days) : '-';
     const m = [s.category ? escHtml(s.category) : '', s.onSale ? t('lead','forSale') : '', rev].filter(Boolean).join(' · ');
     return '<div style="display:flex;align-items:stretch;gap:6px;">' +
       '<a class="fav-row" href="/startup/' + escHtml(s.slug) + '.html" style="flex:1;"><div class="fav-logo">' + logo + '</div>' +

@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="robots" content="noindex, nofollow"/>
-<title>Админка — Startup Market</title>
+<title>Админка - Startup Market</title>
 <link rel="icon" href="/favicon.ico?v=2" sizes="any"/>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2"/>
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=2"/>
@@ -110,7 +110,7 @@ const fmtMskShort = ms => new Date(ms).toLocaleString('ru-RU', { timeZone: MSK_T
 
 const TAB_RENDERERS = { overview: renderOverview, listings: renderListings, topviews: renderTopviews, waitlist: renderWaitlist, parsers: renderParsers };
 // Active tab lives in the URL hash (#parsers, …) so a page refresh stays on the same
-// tab and browser Back/Forward steps through the tabs you visited — instead of always
+// tab and browser Back/Forward steps through the tabs you visited - instead of always
 // snapping back to "Обзор". The hashchange handler is the single place that renders.
 const tabFromHash = () => { const h = (location.hash || '').replace(/^#/, ''); return TAB_RENDERERS[h] ? h : 'overview'; };
 
@@ -170,9 +170,9 @@ async function renderOverview() {
   const catUpdated = stats && stats.updatedAt ? stats.updatedAt : null;
   const dBacklog = (catTotal != null && dDone != null) ? Math.max(catTotal - dDone, 0) : null;
   // Показная накрутка: index.html и catalog.html выводят счётчики каталога как (реальное + 300).
-  // Если меняешь это число там — поменяй и здесь, чтобы «реально / фейк / показываем» сходилось.
+  // Если меняешь это число там - поменяй и здесь, чтобы «реально / фейк / показываем» сходилось.
   const CATALOG_INFLATE = 300;
-  const num = v => (v != null ? v.toLocaleString() : '—');
+  const num = v => (v != null ? v.toLocaleString() : '-');
   const t = o.traffic || [];
   const today = t[t.length - 1] || { pageviews: 0, visitors: 0 };
   const last7 = t.slice(-7);
@@ -188,28 +188,28 @@ async function renderOverview() {
       <div class="adm-kpi"><div class="n">${today.pageviews.toLocaleString()}</div><div class="l">Визиты сегодня</div></div>
       <div class="adm-kpi"><div class="n">${today.visitors.toLocaleString()}</div><div class="l">Уникальные сегодня</div></div>
       <div class="adm-kpi"><div class="n">${pv7.toLocaleString()} / ${uv7.toLocaleString()}</div><div class="l">Визиты / уники за 7 дней</div></div>
-      <div class="adm-kpi"><div class="n">${o.totalUsers != null ? o.totalUsers.toLocaleString() : '—'}</div><div class="l">Пользователей всего</div></div>
+      <div class="adm-kpi"><div class="n">${o.totalUsers != null ? o.totalUsers.toLocaleString() : '-'}</div><div class="l">Пользователей всего</div></div>
       <div class="adm-kpi"><div class="n">${signups7.toLocaleString()}</div><div class="l">Регистраций за 7 дней</div></div>
       <div class="adm-kpi"><div class="n">${newListings.toLocaleString()}</div><div class="l">Новых заявок</div></div>
-      <div class="adm-kpi"><div class="n">${o.waitlistTotal != null ? o.waitlistTotal.toLocaleString() : '—'}</div><div class="l">В вейтлисте Pro</div></div>
-      <div class="adm-kpi"><div class="n">${dDone != null ? dDone.toLocaleString() : '—'}${catTotal != null ? ' / ' + catTotal.toLocaleString() : ''}</div><div class="l">Описания готовы (с переводом)</div></div>
-      <div class="adm-kpi"><div class="n">${dBacklog != null ? dBacklog.toLocaleString() : '—'}</div><div class="l">Ждут перефраза/перевода</div></div>
+      <div class="adm-kpi"><div class="n">${o.waitlistTotal != null ? o.waitlistTotal.toLocaleString() : '-'}</div><div class="l">В вейтлисте Pro</div></div>
+      <div class="adm-kpi"><div class="n">${dDone != null ? dDone.toLocaleString() : '-'}${catTotal != null ? ' / ' + catTotal.toLocaleString() : ''}</div><div class="l">Описания готовы (с переводом)</div></div>
+      <div class="adm-kpi"><div class="n">${dBacklog != null ? dBacklog.toLocaleString() : '-'}</div><div class="l">Ждут перефраза/перевода</div></div>
     </div>
     <div class="adm-card">
-      <h3>Каталог — реально vs показываем${catUpdated ? ` <span class="adm-mini" style="font-weight:500;">свод ${fmtDateTime(catUpdated)}</span>` : ''}</h3>
+      <h3>Каталог - реально vs показываем${catUpdated ? ` <span class="adm-mini" style="font-weight:500;">свод ${fmtDateTime(catUpdated)}</span>` : ''}</h3>
       <table class="adm-table" style="max-width:520px;">
         <tr><th></th><th class="num">В листинге</th><th class="num">На продаже</th></tr>
         <tr><td>Реально</td><td class="num">${num(catTotal)}</td><td class="num">${num(catOnSale)}</td></tr>
         <tr><td>Накрутка показа (рисуем)</td><td class="num">+${CATALOG_INFLATE.toLocaleString()}</td><td class="num">+${CATALOG_INFLATE.toLocaleString()}</td></tr>
         <tr><td>Видят пользователи</td><td class="num">${num(catTotal != null ? catTotal + CATALOG_INFLATE : null)}</td><td class="num">${num(catOnSale != null ? catOnSale + CATALOG_INFLATE : null)}</td></tr>
       </table>
-      <div class="adm-mini" style="margin-top:8px;">«Реально» — из ночного свода каталога (/api/stats, ключ sm_totals_v1). «Накрутка показа» — фиксированный +${CATALOG_INFLATE}, который index.html и catalog.html прибавляют к счётчикам в герое.</div>
+      <div class="adm-mini" style="margin-top:8px;">«Реально» - из ночного свода каталога (/api/stats, ключ sm_totals_v1). «Накрутка показа» - фиксированный +${CATALOG_INFLATE}, который index.html и catalog.html прибавляют к счётчикам в герое.</div>
     </div>
     <div class="adm-card">
       <h3>Трафик за 30 дней
         <span class="adm-legend"><span><i style="background:var(--accent)"></i>Визиты</span><span><i style="background:#7c6cf0"></i>Уникальные</span></span>
       </h3>
-      ${t.some(d => d.pageviews) ? lineChart(t) + '<div class="adm-mini" style="margin-top:6px;">Наведи на график — визиты и уникальные за конкретный день.</div>' : '<div class="adm-mini">Счётчики пустые — данные начнут копиться сразу после деплоя beacon\'а.</div>'}
+      ${t.some(d => d.pageviews) ? lineChart(t) + '<div class="adm-mini" style="margin-top:6px;">Наведи на график - визиты и уникальные за конкретный день.</div>' : '<div class="adm-mini">Счётчики пустые - данные начнут копиться сразу после деплоя beacon\'а.</div>'}
     </div>
     <div class="adm-card">
       <h3>Регистрации по дням (30 дней)</h3>
@@ -231,13 +231,13 @@ async function renderListings() {
       <tr><th>Дата</th><th>Провайдер</th><th>План</th><th class="num">Цена</th><th class="num">Маржа</th><th>Аноним</th><th>Email</th><th>API-ключ</th><th>Статус</th></tr>
       ${listings.map(l => `<tr>
         <td style="white-space:nowrap;">${fmtDateTime(l.created_at)}</td>
-        <td>${esc(l.provider || '—')}</td>
-        <td><span class="adm-pill">${esc(l.plan || '—')}</span></td>
-        <td class="num">${l.price != null ? '$' + Number(l.price).toLocaleString() : '—'}</td>
-        <td class="num">${l.margin != null ? Number(l.margin) + '%' : '—'}</td>
+        <td>${esc(l.provider || '-')}</td>
+        <td><span class="adm-pill">${esc(l.plan || '-')}</span></td>
+        <td class="num">${l.price != null ? '$' + Number(l.price).toLocaleString() : '-'}</td>
+        <td class="num">${l.margin != null ? Number(l.margin) + '%' : '-'}</td>
         <td>${l.anon ? 'да' : 'нет'}</td>
-        <td>${esc(l.email || '—')}</td>
-        <td><span class="adm-key" id="key-${l.id}">${esc(l.api_key_hint || '—')}</span><button class="adm-eye" onclick="revealKey('${l.id}')">показать</button></td>
+        <td>${esc(l.email || '-')}</td>
+        <td><span class="adm-key" id="key-${l.id}">${esc(l.api_key_hint || '-')}</span><button class="adm-eye" onclick="revealKey('${l.id}')">показать</button></td>
         <td><select class="adm-status st-${esc(l.status)}" onchange="setStatus('${l.id}', this.value, this)">
           ${['new','processing','listed','rejected'].map(s => `<option value="${s}"${s===l.status?' selected':''}>${({new:'новая',processing:'в работе',listed:'размещена',rejected:'отклонена'})[s]}</option>`).join('')}
         </select></td>
@@ -284,7 +284,7 @@ async function renderTopviews() {
         <td class="num">${s.registered.toLocaleString()}</td>
         <td class="num">${s.total.toLocaleString()}</td>
       </tr>`).join('')}</table>`
-    : '<div class="adm-mini">Пока пусто: гостевые просмотры начнут копиться после деплоя, просмотры юзеров — из таблицы startup_views.</div>'}
+    : '<div class="adm-mini">Пока пусто: гостевые просмотры начнут копиться после деплоя, просмотры юзеров - из таблицы startup_views.</div>'}
   </div>`;
 }
 
@@ -352,7 +352,7 @@ function attachChartTips() {
 
 // Activity chart for the last 3 days (МСК). Bars = startups updated per hour, read
 // against the left count axis. The thin strip on the baseline marks every run the
-// parser was DUE to make per its schedule — a small block, not a full column:
+// parser was DUE to make per its schedule - a small block, not a full column:
 // green = done · amber = late · orange = errored · red = missed. typicalBatch = how
 // many startups it normally takes per run (for the "0 / N" hover on a miss).
 function parserChart(h, expected, typicalBatch) {
@@ -390,8 +390,8 @@ function parserChart(h, expected, typicalBatch) {
     else if (e.state === 'late') latec++; else if (e.state === 'missed') missc++;
     const label = e.state === 'ok'      ? '✓ запуск выполнен'
                 : e.state === 'fail'    ? '✕ запущен, но завершился с ошибкой|обработано 0' + ofN
-                : e.state === 'late'    ? '⏳ опаздывает — запуска ещё не было|обновлено 0' + ofN
-                : e.state === 'missed'  ? '⚠ пропущен — запуска не было|обновлено 0' + ofN
+                : e.state === 'late'    ? '⏳ опаздывает - запуска ещё не было|обновлено 0' + ofN
+                : e.state === 'missed'  ? '⚠ пропущен - запуска не было|обновлено 0' + ofN
                 :                         '… ожидается (по плану только что)';
     const tip = 'по плану: ' + fmtMskShort(e.ts) + ' МСК|' + label;
     marks += `<rect x="${(x-mw/2).toFixed(2)}" y="${(baseY+0.6).toFixed(2)}" width="${mw.toFixed(2)}" height="${(MARK-1.2).toFixed(2)}" rx="0.4" fill="${COL[e.state]}" data-tip="${esc(tip)}"/>`;
@@ -434,15 +434,15 @@ function parserChart(h, expected, typicalBatch) {
       </svg>
     </div>
     <div style="display:flex;margin:3px 0 0 35px;">${xLabels}</div>
-    <div class="adm-mini" style="margin-top:5px;">столбцы — обновлено стартапов · полоса снизу — план: <span style="color:var(--green);">▮</span> выполнен <span style="color:#f5a623;">▮</span> ошибка <span style="color:#facc15;">▮</span> опаздывает <span style="color:#f6465d;">▮</span> пропуск</span>
+    <div class="adm-mini" style="margin-top:5px;">столбцы - обновлено стартапов · полоса снизу - план: <span style="color:var(--green);">▮</span> выполнен <span style="color:#f5a623;">▮</span> ошибка <span style="color:#facc15;">▮</span> опаздывает <span style="color:#f6465d;">▮</span> пропуск</span>
   </div>`;
 }
 async function renderParsers() {
   const { parsers } = await api('/api/admin?section=parsers');
-  const dt = iso => iso ? fmtDateTime(iso) : '—';
+  const dt = iso => iso ? fmtDateTime(iso) : '-';
   $('admContent').innerHTML = `<div class="adm-card">
     <h3>Парсеры и обновления <span class="adm-mini">время МСК</span></h3>
-    <div class="adm-mini" style="margin-bottom:14px;">Каждый парсер пишет статус в Redis при каждом запуске. Всё время — московское (МСК). «Обновлено сегодня» считается по UTC-суткам.</div>
+    <div class="adm-mini" style="margin-bottom:14px;">Каждый парсер пишет статус в Redis при каждом запуске. Всё время - московское (МСК). «Обновлено сегодня» считается по UTC-суткам.</div>
     <div style="display:grid;gap:12px;">
     ${parsers.map(p => {
       const okBadge = p.lastRun == null
@@ -456,10 +456,10 @@ async function renderParsers() {
             : `<span class="adm-pill" style="border-color:rgba(124,156,255,0.5);color:#7c9cff;">⏳ выполняется · ~${p.running.ageMin} мин</span>`)
         : '';
       const cnt = p.onDemand
-        ? (p.today != null ? p.today.toLocaleString() : '—')
+        ? (p.today != null ? p.today.toLocaleString() : '-')
         : ((p.attempted != null || p.count != null)
-            ? `${p.attempted != null ? p.attempted.toLocaleString() : '—'} → ${p.count != null ? p.count.toLocaleString() : '—'}`
-            : '—');
+            ? `${p.attempted != null ? p.attempted.toLocaleString() : '-'} → ${p.count != null ? p.count.toLocaleString() : '-'}`
+            : '-');
       return `<div style="border:1px solid var(--border);border-radius:12px;padding:14px 16px;background:var(--bg3);">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
           <div style="font-size:14px;font-weight:700;color:var(--text);">${esc(p.name)}</div>

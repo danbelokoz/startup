@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Compare startups — Startup Market</title>
-<meta name="description" content="Compare two verified startups side by side — MRR, revenue, growth, customers, asking price and revenue multiple, read directly from each startup's payment provider."/>
+<title>Compare startups - Startup Market</title>
+<meta name="description" content="Compare two verified startups side by side - MRR, revenue, growth, customers, asking price and revenue multiple, read directly from each startup's payment provider."/>
 <link rel="canonical" href="https://startupmarket.tech/compare"/>
 <meta name="robots" content="noindex,follow"/>
 <meta property="og:type" content="website"/>
 <meta property="og:site_name" content="Startup Market"/>
 <meta property="og:title" content="Compare two startups side by side"/>
-<meta property="og:description" content="MRR, revenue, growth, asking price and multiple — two verified startups, head to head."/>
+<meta property="og:description" content="MRR, revenue, growth, asking price and multiple - two verified startups, head to head."/>
 <meta property="og:image" content="https://startupmarket.tech/apple-touch-icon.png"/>
 <meta name="twitter:card" content="summary"/>
 <link rel="icon" href="/favicon.ico?v=2" sizes="any"/>
@@ -178,7 +178,7 @@ window.isGmvLike = window.isGmvLike || function (s) {
 };
 function L(key, fb)      { try { return (typeof t === 'function' && t('compare', key)) || fb; } catch { return fb; } }
 function LS(sec, key, fb){ try { return (typeof t === 'function' && t(sec, key)) || fb; } catch { return fb; } }
-function money(v)        { try { return (typeof formatMoney === 'function') ? formatMoney(v) : ('$' + Math.round(v).toLocaleString()); } catch { return '—'; } }
+function money(v)        { try { return (typeof formatMoney === 'function') ? formatMoney(v) : ('$' + Math.round(v).toLocaleString()); } catch { return '-'; } }
 function esc(s)          { try { return (typeof escHtml === 'function') ? escHtml(s) : String(s == null ? '' : s); } catch { return ''; } }
 
 /* ── state ──────────────────────────────────────────────────────────────────── */
@@ -188,7 +188,7 @@ const state = {
 };
 // Dataset for the second-startup search. The IndexedDB store is never populated
 // (catalog caches to localStorage, not IDB), so we page through the public
-// /api/startups (on-sale listings — the same source the catalog uses) on demand.
+// /api/startups (on-sale listings - the same source the catalog uses) on demand.
 const _ds = { started:false, loading:false, items:[] };
 
 function readUrl() {
@@ -205,8 +205,8 @@ function writeUrl() {
 }
 function setTitle() {
   const an = state.a.obj && state.a.obj.name, bn = state.b.obj && state.b.obj.name;
-  document.title = (an && bn) ? (an + ' vs ' + bn + ' — Startup Market')
-                             : (L('title', 'Compare') + ' — Startup Market');
+  document.title = (an && bn) ? (an + ' vs ' + bn + ' - Startup Market')
+                             : (L('title', 'Compare') + ' - Startup Market');
 }
 
 /* ── load one startup: local IndexedDB first (instant), then the public API for the
@@ -242,7 +242,7 @@ function gmvNature(s) { return !!(s && (s.isMerchantOfRecord || window.isGmvLike
 
 const METRICS = [
   { key:'price',   dir:'none', label:()=>LS('startupPage','price','Asking price'),
-    val:s=>s.onSale ? (Number(s.askingPrice)||0) : 0, fmt:v=>v>0?money(v):'—' },
+    val:s=>s.onSale ? (Number(s.askingPrice)||0) : 0, fmt:v=>v>0?money(v):'-' },
   { key:'mrr',     dir:'high', label:()=>LS('startupPage','mrr','MRR'),
     val:s=>rev(s,'mrr'), fmt:v=>money(v) },
   { key:'growth',  dir:'high', zeroOk:true, label:()=>LS('startupPage','growth','30-day growth'),
@@ -256,7 +256,7 @@ const METRICS = [
   { key:'subs',    dir:'high', label:()=>LS('startupPage','subs','Active subscriptions'),
     val:s=>Number(s.activeSubscriptions)||0, fmt:v=>Number(v).toLocaleString() },
   { key:'multiple', dir:'low', label:()=>LS('startupPage','multiple','Revenue multiple'),
-    val:s=>(s.onSale&&Number(s.multiple))?Number(s.multiple):0, fmt:v=>v>0?(v.toFixed(1)+'×'):'—', good:'betterValue' },
+    val:s=>(s.onSale&&Number(s.multiple))?Number(s.multiple):0, fmt:v=>v>0?(v.toFixed(1)+'×'):'-', good:'betterValue' },
   { key:'margin',  dir:'high', zeroOk:true, label:()=>LS('startupPage','margin','Profit margin'),
     val:s=>s.profitMarginLast30Days==null?null:Number(s.profitMarginLast30Days), fmt:v=>Math.round(v)+'%' },
   { key:'visitors', dir:'high', label:()=>LS('startupPage','visitors','Visitors (30d)'),
@@ -296,7 +296,7 @@ function slotHeaderHTML(side) {
   const foot = side === 'a' ? (rm + link + sale) : (sale + link + rm);
   return '<div class="slot '+side+'">'+
     '<div class="slot-name-row">'+nameRow+'</div>'+
-    (s.category ? '<div class="slot-cat">'+esc(s.category)+'</div>' : '<div class="slot-cat">—</div>')+
+    (s.category ? '<div class="slot-cat">'+esc(s.category)+'</div>' : '<div class="slot-cat">-</div>')+
     '<div class="slot-foot">'+foot+'</div>'+
   '</div>';
 }
@@ -330,7 +330,7 @@ function metricsHTML() {
   for (const m of METRICS) {
     const va = m.val(a), vb = m.val(b);
     const pa = present(m, va), pb = present(m, vb);
-    if (!pa && !pb) continue; // neither side has this metric — skip the row entirely
+    if (!pa && !pb) continue; // neither side has this metric - skip the row entirely
     const dir = rowDir(m, a, b);
     let clsA = 'mv a', clsB = 'mv b', markA = '', markB = '';
     if (dir !== 'none' && pa && pb && va !== vb) {
@@ -343,8 +343,8 @@ function metricsHTML() {
     const label = m.label.length ? m.label(bothGmv) : m.label();
     const gtagA = (m.gmv && gmvNature(a) && pa) ? '<span class="gmv-tag">GMV</span>' : '';
     const gtagB = (m.gmv && gmvNature(b) && pb) ? '<span class="gmv-tag">GMV</span>' : '';
-    const cellA = pa ? (m.fmt(va) + (clsA.includes('win')?markA:'')) : '—';
-    const cellB = pb ? (m.fmt(vb) + (clsB.includes('win')?markB:'')) : '—';
+    const cellA = pa ? (m.fmt(va) + (clsA.includes('win')?markA:'')) : '-';
+    const cellB = pb ? (m.fmt(vb) + (clsB.includes('win')?markB:'')) : '-';
     rows += '<div class="mrow">'+
       '<div class="'+clsA+'">'+gtagA+cellA+'</div>'+
       '<div class="mlabel">'+esc(label)+'</div>'+
@@ -382,7 +382,7 @@ const CHART_METRICS = [
 function barRow(cls, v, fmt, tag) {
   const pct = v.w, has = v.has;
   return '<div class="cc-row"><div class="cc-track"><span class="cc-bar '+cls+'" style="width:'+(has?pct:0)+'%"></span></div>'+
-    '<span class="cc-num">'+(has?(fmt+tag):'—')+'</span></div>';
+    '<span class="cc-num">'+(has?(fmt+tag):'-')+'</span></div>';
 }
 function chartHTML() {
   const a = state.a.obj, b = state.b.obj;
@@ -436,7 +436,7 @@ function render() {
   if (bothPicked) loadSpark();
 }
 
-/* ── second-startup search — pages the public catalog API on demand ──────────── */
+/* ── second-startup search - pages the public catalog API on demand ──────────── */
 function dsMerge(items) {
   const have = new Set(_ds.items.map(s => s.slug));
   for (const s of items) if (s && s.slug && !have.has(s.slug)) { _ds.items.push(s); have.add(s.slug); }
@@ -446,7 +446,7 @@ async function ensureDataset() {
   _ds.started = true; _ds.loading = true; refreshOpenSearch();
   // Instant seed if the IDB store ever gets populated; harmless when it's empty.
   try { if (typeof idbGetAll === 'function') { const a = await idbGetAll(); if (a && a.length) { dsMerge(a); refreshOpenSearch(); } } } catch {}
-  // Page through on-sale listings (a few hundred) — enough to find any sellable
+  // Page through on-sale listings (a few hundred) - enough to find any sellable
   // startup to compare. Same endpoint/shape the catalog uses; no API key needed.
   let page = 1, guard = 0;
   while (guard++ < 40) {

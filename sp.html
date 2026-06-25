@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Startup — MRRket</title>
+  <title>Startup - MRRket</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -23,7 +23,7 @@
     .header-badges { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
     .startup-desc { font-size: 16px; color: var(--text2); line-height: 1.7; margin-bottom: 32px; }
     /* Shown in place of the description until enrichment resolves our rephrased/
-       translated text — avoids briefly flashing TrustMRR's original copy. */
+       translated text - avoids briefly flashing TrustMRR's original copy. */
     .desc-skeleton { display: flex; flex-direction: column; gap: 9px; }
     .desc-skeleton span { height: 13px; border-radius: 6px; background: linear-gradient(90deg, var(--bg3) 25%, var(--bg2) 50%, var(--bg3) 75%); background-size: 200% 100%; animation: descShimmer 1.2s ease-in-out infinite; }
     .desc-skeleton span:nth-child(1) { width: 96%; } .desc-skeleton span:nth-child(2) { width: 88%; } .desc-skeleton span:nth-child(3) { width: 62%; }
@@ -42,7 +42,7 @@
     .info-table td { padding: 12px 16px; font-size: 14px; }
     .info-table td:first-child { color: var(--text3); width: 40%; }
     .info-table td:last-child { font-weight: 500; }
-    /* Compact asking-price chip — lives in the header next to the startup name */
+    /* Compact asking-price chip - lives in the header next to the startup name */
     .price-chip { display: inline-flex; align-items: baseline; gap: 9px; background: rgba(252,213,53,0.10); border: 1px solid rgba(252,213,53,0.32); border-radius: 999px; padding: 5px 9px 5px 14px; white-space: nowrap; }
     .price-chip .pc-cap { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--accent2); }
     .price-chip b { font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif; font-size: 19px; font-weight: 700; letter-spacing: -0.4px; color: var(--text); }
@@ -55,7 +55,7 @@
     .not-sale-label { font-size: 13px; font-weight: 500; color: var(--text2); white-space: nowrap; }
     .loading-state { text-align: center; padding: 80px 24px; color: var(--text3); }
     .loading-state h3 { font-size: 18px; color: var(--text2); margin-bottom: 8px; }
-    /* Archived / delisted notice — shown when the startup is gone from the source */
+    /* Archived / delisted notice - shown when the startup is gone from the source */
     #archiveBanner:empty { display: none; }
     .archive-banner { display: flex; gap: 12px; align-items: flex-start; background: rgba(252,213,53,0.07); border: 1px solid rgba(252,213,53,0.32); border-radius: var(--radius); padding: 14px 16px; margin: 8px 0 4px; }
     .archive-banner svg { flex-shrink: 0; color: var(--accent2, var(--accent)); margin-top: 1px; }
@@ -91,7 +91,7 @@
   .cmp-go { display: inline-flex; align-items: center; gap: 6px; background: var(--accent); color: #0B0E11; border: 1px solid var(--accent); border-radius: 8px; padding: 6px 12px; font-size: 13px; font-weight: 600; text-decoration: none; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
   .cmp-go:hover { background: var(--accent2); border-color: var(--accent2); }
   .badge-green { background: rgba(0,194,122,0.1); color: var(--green); border: 1px solid rgba(0,194,122,0.2); }
-  /* Sale box — 2-column layout: price on left, contact reveal on right */
+  /* Sale box - 2-column layout: price on left, contact reveal on right */
   .sale-box-row { display: flex; gap: 20px; align-items: stretch; flex-wrap: wrap; }
   .sale-box-left { flex: 1; min-width: 260px; }
   .sale-box-right { flex-shrink: 0; min-width: 260px; max-width: 340px; }
@@ -109,10 +109,10 @@
   .ai-tags { display: flex; flex-wrap: wrap; gap: 6px; }
   .ai-tag  { font-size: 11px; padding: 3px 9px; background: var(--bg3); border: 1px solid var(--border); border-radius: 999px; color: var(--text2); text-decoration: none; transition: all 0.12s; display: inline-flex; align-items: center; gap: 4px; }
   .ai-tag:hover { background: rgba(252,213,53,0.16); color: var(--accent); border-color: rgba(252,213,53,0.5); box-shadow: 0 0 0 3px rgba(252,213,53,0.10); }
-  /* Warm hover for header badges — replaces the old white-on-white hover/rest states */
+  /* Warm hover for header badges - replaces the old white-on-white hover/rest states */
   .badge { transition: background .15s, border-color .15s, color .15s, box-shadow .15s; }
   .header-badges .badge:hover { background: rgba(252,213,53,0.16) !important; border-color: rgba(252,213,53,0.5) !important; color: var(--accent) !important; box-shadow: 0 0 0 3px rgba(252,213,53,0.10), 0 2px 10px rgba(252,213,53,0.14); }
-  /* Hover description bubble — text comes from data-tip; nested-safe via :not(:has()) so the
+  /* Hover description bubble - text comes from data-tip; nested-safe via :not(:has()) so the
      price chip and its multiple show separate tips without overlapping. */
   .has-tip { position: relative; }
   .has-tip:hover:not(:has(.has-tip:hover))::after {
@@ -137,7 +137,7 @@
   .badge-score { background: var(--bg3); color: var(--text2); border: 1px solid var(--border); font-weight: 600; }
   .analytics-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
   .analytics-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 3px 8px; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; color: var(--text2); }
-  /* Startup insights — TrustMRR-style grid of info cards */
+  /* Startup insights - TrustMRR-style grid of info cards */
   .insights-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 32px; }
   .insight-card  { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; display: flex; gap: 14px; box-shadow: var(--shadow); }
   .insight-icon  { width: 32px; height: 32px; border-radius: 8px; background: var(--bg3); display: inline-flex; align-items: center; justify-content: center; color: var(--text2); flex-shrink: 0; }
@@ -254,14 +254,14 @@
 // and shuffle() from shared.js. If a browser serves a STALE cached shared.js right
 // after a deploy (fresh HTML + old JS that predates these helpers), they'd be undefined
 // and the rail would throw → vanish. Define fallbacks when missing. Canonical copies
-// live in shared.js — keep these in sync.
+// live in shared.js - keep these in sync.
 window.isAnonStartup = window.isAnonStartup || function (s) {
   const n = (s && s.name || '').trim().toLowerCase();
   return !n || n.includes('anonymous');
 };
 window.isRecommendable = window.isRecommendable || function (s) {
   if (!s || !s.slug || !s.onSale || isAnonStartup(s)) return false;
-  if (window.isGmvLike && window.isGmvLike(s)) return false;   // gross-volume listing — not revenue
+  if (window.isGmvLike && window.isGmvLike(s)) return false;   // gross-volume listing - not revenue
   const rev = s.revenue || {};
   if (!(Number(rev.last30Days) > 0) && !(Number(rev.mrr) > 0)) return false;
   return Number(s.askingPrice) > 0;
@@ -334,7 +334,7 @@ function showLoadError() {
 let _isArchived   = false;
 let _lastDataDate = null;   // YYYY-MM-DD of the freshest data we hold (for the note)
 
-// Only an explicit 404 marks a listing archived — network/other errors are
+// Only an explicit 404 marks a listing archived - network/other errors are
 // ignored so a transient hiccup can't mislabel a live startup.
 async function checkListingStatus(slug) {
   try {
@@ -364,7 +364,7 @@ function lastKnownDataDate() {
   return null;
 }
 
-// Freshest date with an actual NON-ZERO reading — used to date the "no daily
+// Freshest date with an actual NON-ZERO reading - used to date the "no daily
 // data" notice. A startup can have zero-valued snapshots (the source records it
 // but reports nothing), which must not count as real data: dating the notice
 // from those would falsely imply data flowed until then.
@@ -424,7 +424,7 @@ async function renderArchived(slug) {
 }
 
 let _startup = null;
-let _revealed = true;   // paywall removed — seller site + owner are public to all visitors
+let _revealed = true;   // paywall removed - seller site + owner are public to all visitors
 const LS_FAVS = 'sm_favs';
 function getFavs(){try{return JSON.parse(localStorage.getItem(LS_FAVS)||'[]');}catch{return[];}}
 function toggleDetailFav(){
@@ -481,7 +481,7 @@ function updateFavBtn(slug){
   const on=getFavs().includes(slug);btn.innerHTML=icon(on?'heartFill':'heart',{size:16});btn.classList.toggle('active',on);
 }
 
-// Real country flag (flagcdn SVG — renders identically on every OS, unlike the
+// Real country flag (flagcdn SVG - renders identically on every OS, unlike the
 // Apple/Windows flag emoji) followed by the ISO code. Used in the info table.
 function flagBadge(code) {
   if (!code) return '';
@@ -505,21 +505,21 @@ function maskBrand(text, brand) {
 }
 
 function renderStartup(s) {
-  document.title = `${s.name} — MRRket`;
+  document.title = `${s.name} - MRRket`;
   document.getElementById('backLink').textContent = '← ' + t('startupPage','back');
   _startup = s;
   // If user revealed in this session, persist across re-renders (enrichment merge).
   try { if (sessionStorage.getItem('revealed_'+s.slug) || isRevealed(s.slug)) _revealed = true; } catch {}
   updateFavBtn(s.slug);
-  renderCmpBtns();   // now we have the exact slug — reflect queued state on the button
+  renderCmpBtns();   // now we have the exact slug - reflect queued state on the button
 
   const fb = escHtml(s.name.charAt(0));
   const logoMarkup = s.icon ? `<img src="${escHtml(s.icon)}" data-fb="${fb}" onerror="this.parentElement.textContent=this.getAttribute('data-fb')"/>` : `<span>${fb}</span>`;
   const g    = s.growth30d != null ? s.growth30d : s.cachedGrowth30d;
-  const gStr = g!=null?`<span class="${g>0?'growth-positive':g<0?'growth-negative':''}">${g>0?'+':''}${parseFloat(g).toFixed(1)}%</span>`:'—';
+  const gStr = g!=null?`<span class="${g>0?'growth-positive':g<0?'growth-negative':''}">${g>0?'+':''}${parseFloat(g).toFixed(1)}%</span>`:'-';
   const gMrrRaw = s.growthMRR30d != null ? s.growthMRR30d : s.cachedGrowthMRR30d;
-  const gMrr = gMrrRaw!=null?`<span class="${gMrrRaw>0?'growth-positive':gMrrRaw<0?'growth-negative':''}">${gMrrRaw>0?'+':''}${parseFloat(gMrrRaw).toFixed(1)}%</span>`:'—';
-  const website = s.website?`<a href="${escHtml(s.website)}" target="_blank" style="color:var(--accent)">${s.website.replace(/^https?:\/\//,'')}</a>`:'—';
+  const gMrr = gMrrRaw!=null?`<span class="${gMrrRaw>0?'growth-positive':gMrrRaw<0?'growth-negative':''}">${gMrrRaw>0?'+':''}${parseFloat(gMrrRaw).toFixed(1)}%</span>`:'-';
+  const website = s.website?`<a href="${escHtml(s.website)}" target="_blank" style="color:var(--accent)">${s.website.replace(/^https?:\/\//,'')}</a>`:'-';
 
   const isAnon = (s.name||'').toLowerCase().includes('anonymous');
   const isSubscriber = window._access && window._access.role === 'subscriber';
@@ -539,7 +539,7 @@ function renderStartup(s) {
   const descText = realDesc || fallback || '';
   // Until enrichment resolves, the description we hold is TrustMRR's original (from
   // the catalog cache or /api/startup). Show a skeleton instead of flashing it, then
-  // swap in our rephrased/translated text — or fall back to the original if we have
+  // swap in our rephrased/translated text - or fall back to the original if we have
   // no rephrase for this startup yet (see fetchEnrichment, which always resolves).
   // Show our text immediately when the data already carries it (descI18n, overlaid by
   // /api/startups & /api/startup); otherwise skeleton until enrichment resolves so we
@@ -549,7 +549,7 @@ function renderStartup(s) {
     ? '<div class="startup-desc desc-skeleton" aria-hidden="true"><span></span><span></span><span></span></div>'
     : (descText ? `<div class="startup-desc">${maskBrand(descText, s.name)}</div>` : '');
 
-  // Cofounders — render as chips when populated
+  // Cofounders - render as chips when populated
   const cofoundersHtml = s.cofounders&&s.cofounders.length
     ? `<div class="section-title">Cofounders</div><div class="tech-tags">${s.cofounders.map(c=>{
         if (typeof c==='string') return `<span class="tech-tag">${escHtml(c)}</span>`;
@@ -595,7 +595,7 @@ function renderStartup(s) {
   const cofounderBadge = s.lookingForCofounder ? `<span class="badge badge-cofounder has-tip" data-tip="${escHtml(t('startupPage','tipCofounder'))}">${icon('handshake',{size:10})} Hiring cofounder</span>` : '';
   const fundingBadge   = ai.fundingStatus && ai.fundingStatus !== 'Unknown' ? `<span class="badge badge-funding has-tip" data-tip="${escHtml(t('startupPage','tipFunding'))}">${escHtml(ai.fundingStatus)}</span>` : '';
   const scoreBadge     = s.acquireScore != null ? `<span class="badge badge-score has-tip" data-tip="${escHtml(t('startupPage','tipScore'))}">${icon('trophy',{size:10})} Score ${(s.acquireScore * 100).toFixed(0)}</span>` : '';
-  // Tags are now clickable — link home filter by tag as a search keyword
+  // Tags are now clickable - link home filter by tag as a search keyword
   const tagBadges      = tags.slice(0, 6).map(tg => `<a class="ai-tag has-tip" href="/catalog?search=${encodeURIComponent(tg)}" data-tip="${escHtml('Показать стартапы с тегом «' + tg + '»')}">${icon('tag',{size:10})} ${escHtml(tg)}</a>`).join('');
   const tagsRow        = tagBadges ? `<div class="ai-tags" style="margin-top:8px;">${tagBadges}</div>` : '';
   // Non-onSale startups get a small inline reveal pill in the header.
@@ -715,7 +715,7 @@ function renderStartup(s) {
     <div class="chart-card" id="chartCard">
       <div class="chart-head">
         <div class="chart-summary">
-          <div class="chart-total" id="chartTotal">—</div>
+          <div class="chart-total" id="chartTotal">-</div>
           <div class="chart-subline">
             <span class="chart-change" id="chartChange"></span>
             <span id="chartRangeLabel"></span>
@@ -850,7 +850,7 @@ function renderSiteSection() {
   // Blur the screenshot while the seller's identity is still paywalled
   const shotBlur = (!_revealed && !((s.name||'').toLowerCase().includes('anonymous'))) ? ' blurred' : '';
   const statusCls = d.ok ? 'up' : 'down';
-  const statusText = d.ok ? `Live · ${d.latencyMs || '–'}ms` : 'Down';
+  const statusText = d.ok ? `Live · ${d.latencyMs || '-'}ms` : 'Down';
 
   el.innerHTML = `
     <div class="site-section">
@@ -873,7 +873,7 @@ function renderSiteSection() {
     </div>`;
 }
 
-// ── Similar startups — 8 same-category onSale cards at the page bottom ───────
+// ── Similar startups - 8 same-category onSale cards at the page bottom ───────
 // Items are cached after the first fetch so re-renders (e.g. after reveal,
 // which wipes #similarSection) replay the same content without an extra HTTP.
 let _similarItems = null;
@@ -892,7 +892,7 @@ async function loadSimilar(s) {
     const j = await r.json();
     // Real, on-sale, non-anonymous, non-zero listings only (drop the current startup),
     // then shuffle so each visit surfaces a different set from the category instead of
-    // always the same top earners — categories hold dozens of eligible startups.
+    // always the same top earners - categories hold dozens of eligible startups.
     const pool = (j.data || []).filter(x => x.slug !== s.slug && isRecommendable(x));
     const items = shuffle(pool).slice(0, 8);
     if (!items.length) { el.style.display = 'none'; return; }
@@ -912,13 +912,13 @@ function renderSimilarInto(el, s, items) {
     <div class="similar-grid">
       ${items.map(it => {
         const init = (it.name||'?').split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
-        const wantBlur2 = false;   // paywall removed — names/logos public
+        const wantBlur2 = false;   // paywall removed - names/logos public
         const blurN = wantBlur2 ? ' name-blur' : '';
         const blurL = wantBlur2 ? ' logo-blur' : '';
         const logo = it.icon
           ? `<img src="${escHtml(it.icon)}" onerror="this.parentElement.textContent='${init}'"/>`
           : init;
-        const mult = it.multiple ? parseFloat(it.multiple).toFixed(1)+'×' : '—';
+        const mult = it.multiple ? parseFloat(it.multiple).toFixed(1)+'×' : '-';
         return `<a class="similar-card" href="/startup/${escHtml(it.slug)}.html">
           <div class="similar-head-row">
             <span class="similar-logo${blurL}">${logo}</span>
@@ -1021,7 +1021,7 @@ async function initChart(s) {
 
 // A metric is worth charting only if it has ≥2 points AND at least one non-zero
 // reading. An all-zero series (e.g. a startup the source records but reports no
-// subscriptions/MRR for) counts as "no data" — we show the notice rather than a
+// subscriptions/MRR for) counts as "no data" - we show the notice rather than a
 // pointless flat line at zero.
 function seriesHasSignal(metric) {
   const pts = computePoints(metric, 'all').points;
@@ -1060,7 +1060,7 @@ function buildPeriodOptions() {
 
   const opts = CHART_PERIODS.filter(p => p < spanDays).map(p => ({ value: String(p), label: p + ' дней' }));
   // Always offer a 30-day view (the product default), even when the series is ~30d
-  // or shorter — it then simply shows everything available.
+  // or shorter - it then simply shows everything available.
   if (points.length && !opts.some(o => o.value === '30')) opts.unshift({ value: '30', label: '30 дней' });
   opts.push({ value: 'all', label: spanDays ? `Всё (${spanDays}д)` : 'Всё' });
 
@@ -1105,9 +1105,9 @@ function computePoints(metric, period) {
   // series empty so renderChart can show the "daily data not transmitted" notice
   // instead of a synthesised curve.
 
-  // Trim to the selected period (skip for stepped price — changes are rare).
-  // If the requested window holds no data — e.g. a delisted startup whose snapshots
-  // stopped weeks ago — widen through the standard windows, up to the full history,
+  // Trim to the selected period (skip for stepped price - changes are rare).
+  // If the requested window holds no data - e.g. a delisted startup whose snapshots
+  // stopped weeks ago - widen through the standard windows, up to the full history,
   // so we show the real (earlier) data instead of an empty/zero chart. widenedFrom
   // records the originally requested period so the UI can say "no data in the last N days".
   let widenedFrom = null;
@@ -1132,7 +1132,7 @@ function computePoints(metric, period) {
 }
 
 // Header summary: SUM over the period for flow metrics (daily revenue), or the
-// latest value for snapshots — plus % change vs the previous equal-length window.
+// latest value for snapshots - plus % change vs the previous equal-length window.
 function computeSummary(metric, period) {
   const all = computePoints(metric, 'all').points;
   if (!all.length) return null;
@@ -1148,7 +1148,7 @@ function computeSummary(metric, period) {
     // Mirror the points the chart actually draws. computePoints applies the same
     // period window but falls back to the last N snapshots when the series is stale
     // (e.g. a delisted startup whose data stops weeks ago). Recomputing the window
-    // by calendar date here instead made the header total disagree with the curve —
+    // by calendar date here instead made the header total disagree with the curve -
     // that's what produced "$0 / ↓100%" under a clearly non-zero line.
     const cp = computePoints(metric, period);
     curArr = cp.points;
@@ -1157,7 +1157,7 @@ function computeSummary(metric, period) {
     const idx = firstDrawn ? all.findIndex(p => p.date >= firstDrawn) : all.length;
     prevArr = idx > 0 ? all.slice(Math.max(0, idx - n), idx) : [];
     // When the window was widened past the requested period, "пред. N дн." would be
-    // misleading — the drawn window isn't N days. Label it generically instead.
+    // misleading - the drawn window isn't N days. Label it generically instead.
     basis = cp.widenedFrom ? 'пред. период' : `пред. ${period} дн.`;
   }
 
@@ -1187,7 +1187,7 @@ function renderChartHeader(metric, fmtFull) {
   if (!totalEl) return;
   const summary = computeSummary(metric, _chartPeriod);
   if (!summary || summary.value == null) {
-    totalEl.textContent = '—';
+    totalEl.textContent = '-';
     if (changeEl) { changeEl.textContent = ''; changeEl.className = 'chart-change'; }
     return;
   }
@@ -1251,7 +1251,7 @@ function renderChart() {
   };
   // Full-precision formatter for the header total and the hover tooltip
   const fmtFull = (v) => {
-    if (v == null) return '—';
+    if (v == null) return '-';
     if (metric.kind === 'money') return '$' + Math.round(v).toLocaleString();
     if (metric.kind === 'pct') return (v >= 0 ? '+' : '') + parseFloat(v).toFixed(1) + '%';
     return Number(Math.round(v)).toLocaleString();
@@ -1261,7 +1261,7 @@ function renderChart() {
   renderChartHeader(metric, fmtFull);
 
   if (points.length < 2 || !seriesHasSignal(metric)) {
-    // No real daily series, or an all-zero one — say so honestly instead of
+    // No real daily series, or an all-zero one - say so honestly instead of
     // drawing a flat line at zero. Date the gap only when we held a real
     // non-zero reading at some point; otherwise stay generic.
     const dateStr = lastMeaningfulDataDate();
@@ -1287,7 +1287,7 @@ function renderChart() {
   const yMaxRaw = Math.max(...ys);
   // Round the y-axis to "nice" tick values (0, 1K, 2K…) instead of the raw data
   // range. Flow metrics (revenue) anchor at a 0 baseline; snapshots keep their
-  // range so a high-floor trend (e.g. MRR ~$300–500) isn't flattened.
+  // range so a high-floor trend (e.g. MRR ~$300-500) isn't flattened.
   const { ticks: yTicks, niceMin, niceMax } = niceTicks(metric.flow ? Math.min(0, yMinRaw) : yMinRaw, yMaxRaw, 4);
   const yLo = niceMin;
   const yHi = niceMax > niceMin ? niceMax : niceMin + 1;
@@ -1353,7 +1353,7 @@ function renderChart() {
   hideChartHover();
 
   if (rangeLabel) {
-    const range = points.length ? `${points[0].date} — ${points[points.length-1].date}` : '';
+    const range = points.length ? `${points[0].date} - ${points[points.length-1].date}` : '';
     if (widenedFrom) {
       const note = (t('startupPage','chartStaleNote') || 'Нет данных за последние {n} дн.').replace('{n}', widenedFrom);
       rangeLabel.innerHTML = `<span style="color:var(--text2);font-weight:500;">${note}</span> · ${range}`;
@@ -1431,7 +1431,7 @@ function hideChartHover() {
   });
 }
 
-// ── Contact CTA — lives on the right side of the sale box ────────────────────
+// ── Contact CTA - lives on the right side of the sale box ────────────────────
 function renderContactSection(s) {
   const section = document.getElementById('contactSection');
   if (!section) return;
@@ -1448,7 +1448,7 @@ function renderContactSection(s) {
     </div>`;
   // Re-apply i18n to the just-inserted content
   if (typeof applyLangToDoc === 'function') applyLangToDoc();
-  // If already revealed: apply contact links directly — do NOT call doReveal() here,
+  // If already revealed: apply contact links directly - do NOT call doReveal() here,
   // as doReveal → renderStartup → renderContactSection → doReveal creates infinite recursion.
   if (_revealed) {
     const wrap = document.getElementById('contactWrap');
@@ -1513,7 +1513,7 @@ function doReveal(s) {
   }
 }
 // `tryReveal` is a top-level function declaration, so it is already exposed as
-// window.tryReveal for the shared.js paywall CTA — do NOT reassign it here
+// window.tryReveal for the shared.js paywall CTA - do NOT reassign it here
 // (a wrapper that calls tryReveal() would overwrite the global binding and
 // recurse into itself → "Maximum call stack size exceeded").
 
@@ -1521,7 +1521,7 @@ function showLocked(type) {
   const from=encodeURIComponent(location.pathname);
   const wrap=document.getElementById('contactWrap'); if(!wrap)return;
   if (type==='user') {
-    wrap.innerHTML=`<div class="contact-locked"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span>Создайте аккаунт — получите 8 просмотров в день</span><a href="/auth.html?from=${from}" class="btn btn-primary btn-sm">Зарегистрироваться</a></div>`;
+    wrap.innerHTML=`<div class="contact-locked"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span>Создайте аккаунт - получите 8 просмотров в день</span><a href="/auth.html?from=${from}" class="btn btn-primary btn-sm">Зарегистрироваться</a></div>`;
   } else {
     wrap.innerHTML=`<div class="contact-locked"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span>Оформите подписку для безлимитного доступа</span><a href="/dashboard.html" class="btn btn-primary btn-sm">Подписаться</a></div>`;
   }

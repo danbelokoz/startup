@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sign in — Startup Market</title>
+  <title>Sign in - Startup Market</title>
   <link rel="icon" href="/favicon.ico?v=2" sizes="any"/>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=2" />
@@ -113,7 +113,7 @@
 <script src="/shared.js"></script>
 <script>
 // ── Supabase config ───────────────────────────────────────────────────────────
-// Anon key is public by design — RLS policies protect data, not the key.
+// Anon key is public by design - RLS policies protect data, not the key.
 // Replace these after creating a project at supabase.com.
 const SUPABASE_URL  = 'https://gebmvkghoshihlebgvxm.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlYm12a2dob3NoaWhsZWJndnhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NjU3NzcsImV4cCI6MjA5NjE0MTc3N30.r2UwYb6--NlAjichb3xeDnttSNbJW2UMnt7e3OtVfQU';
@@ -135,7 +135,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
   sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-  // If already logged in — go back to the page they came from
+  // If already logged in - go back to the page they came from
   const { data: { session } } = await sb.auth.getSession();
   if (session) { location.href = redirectTo; return; }
 

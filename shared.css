@@ -1,8 +1,8 @@
 /* =============================================
-   Startup Market — shared.css
-   Font: IBM Plex Sans — the open-source family Binance's "BinancePlex" is
+   Startup Market - shared.css
+   Font: IBM Plex Sans - the open-source family Binance's "BinancePlex" is
    built on. Tabular figures give prices/metrics the Binance trading look.
-   Theme: Binance dark — #181A20 surface, #FCD535 yellow accent.
+   Theme: Binance dark - #181A20 surface, #FCD535 yellow accent.
    ============================================= */
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
 
@@ -23,7 +23,7 @@
   --green-bg: rgba(14,203,129,0.12);
   --red: #F6465D;
   --red-bg: rgba(246,70,93,0.12);
-  /* Trading semantics — used only for metric up/down (price/growth) indicators,
+  /* Trading semantics - used only for metric up/down (price/growth) indicators,
      matching Binance: price-up green / price-down red. */
   --trading-up: #0ECB81;
   --trading-down: #f6465d;
@@ -42,7 +42,7 @@ body {
   line-height: 1.6;
 }
 
-/* NAV — flex row: logo + tabs grouped on the left, controls pushed to the right */
+/* NAV - flex row: logo + tabs grouped on the left, controls pushed to the right */
 nav {
   position: sticky; top: 0; z-index: 100;
   background: rgba(11,14,17,0.92);
@@ -62,7 +62,7 @@ nav {
 .nav-right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 .nav-acct { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* Hamburger — hidden on desktop, shown on mobile (see media query at the bottom) */
+/* Hamburger - hidden on desktop, shown on mobile (see media query at the bottom) */
 .nav-burger {
   display: none; margin-left: auto; align-items: center; justify-content: center;
   flex-direction: column; gap: 4px; width: 38px; height: 38px; padding: 0;
@@ -71,7 +71,7 @@ nav {
 .nav-burger span { display: block; width: 18px; height: 2px; border-radius: 2px; background: var(--text); }
 .nav-burger:hover { border-color: var(--text2); }
 
-/* Mobile drawer — slides in from the right, full-height overlay */
+/* Mobile drawer - slides in from the right, full-height overlay */
 .mobile-menu { position: fixed; inset: 0; z-index: 250; visibility: hidden; }
 .mobile-menu.open { visibility: visible; }
 .mm-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.55); opacity: 0; transition: opacity 0.25s; }
@@ -131,7 +131,7 @@ body.mm-lock { overflow: hidden; }
 .badge-sale { background: rgba(252,213,53,0.14); color: var(--accent2); border: 1px solid rgba(252,213,53,0.25); }
 .badge-verified { background: var(--green-bg); color: var(--green); border: 1px solid rgba(14,203,129,0.2); }
 
-/* Country flag image (flagcdn) — uniform height, OS-independent */
+/* Country flag image (flagcdn) - uniform height, OS-independent */
 .flag-img { height: 11px; width: auto; border-radius: 2px; vertical-align: -1px; box-shadow: 0 0 0 1px rgba(0,0,0,0.3); display: inline-block; }
 
 /* TOOLTIP */
@@ -288,7 +288,7 @@ a.contact-item-val:hover { color: var(--accent); }
   color: rgba(255,255,255,0.7); text-decoration: underline; cursor: pointer;
 }
 
-/* Paywall modal — opened on click of any blurred element */
+/* Paywall modal - opened on click of any blurred element */
 #paywallModalBg { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 10000; display: none; align-items: center; justify-content: center; padding: 24px; }
 #paywallModalBg.open { display: flex; }
 .pw-modal { background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; padding: 28px; width: 100%; max-width: 420px; box-shadow: 0 24px 60px rgba(0,0,0,0.5); position: relative; font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif; }

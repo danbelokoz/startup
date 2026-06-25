@@ -157,10 +157,10 @@ function injectSeo(html, s, slug) {
   const customers = Number(s.customers) || 0;
   const isMoR = !!s.isMerchantOfRecord;          // acquirer/platform: figures are GMV, not revenue
   const revLabel = isMoR ? 'GMV' : 'Revenue';
-  const title = `${name} — Startup Market`;
+  const title = `${name} - Startup Market`;
 
   const baseDesc = (s.description && String(s.description).trim()) ||
-    `${name} — a ${onSale ? 'for-sale ' : ''}startup${category ? ' in ' + category : ''} on Startup Market, with revenue read directly from its payment provider.`;
+    `${name} - a ${onSale ? 'for-sale ' : ''}startup${category ? ' in ' + category : ''} on Startup Market, with revenue read directly from its payment provider.`;
   const metaDesc = clamp(baseDesc, 300);
 
   // ── meta + OG + Twitter ──
