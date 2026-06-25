@@ -21,7 +21,7 @@
 <link rel="stylesheet" href="/shared.css"/>
 <script src="/auth-config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="/shared.js"></script>
+<script src="/shared.js?v=20260625"></script>
 <style>
 .page-wrap { max-width: 920px; margin: 0 auto; padding: 28px 20px 80px; }
 .cmp-back { display: inline-flex; align-items: center; gap: 6px; color: var(--text2); font-size: 13px; text-decoration: none; margin: 4px 0 14px; transition: color 0.15s; }
@@ -88,32 +88,54 @@
 .mv .winmark { font-size: 11px; }
 .mv .gmv-tag { display: inline-block; font-size: 9px; font-weight: 600; color: var(--text3); border: 1px solid var(--border2); border-radius: 4px; padding: 0 4px; margin: 0 3px; vertical-align: 1px; }
 
-/* ── verdict + spark ── */
+/* ── verdict ── */
 .cmp-verdict { margin-top: 14px; display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--text2); background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
 .cmp-verdict .vt { color: var(--accent); display: inline-flex; }
 .cmp-verdict b { color: var(--text); font-weight: 600; }
-.cmp-spark { margin-top: 12px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 13px 14px; }
-.cmp-spark .sl-legend { display: flex; align-items: center; gap: 14px; margin-bottom: 9px; flex-wrap: wrap; }
-.cmp-spark .sl-legend .sl-ttl { font-size: 11px; color: var(--text3); }
-.cmp-spark .sl-legend .sl-key { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); }
-.cmp-spark .sl-key .sl-dash { width: 14px; height: 2px; display: inline-block; border-radius: 2px; }
 
-/* ── bar chart (paired bars per metric, normalised to the larger of the two) ── */
-.cmp-chart { margin-top: 12px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
-.cc-head { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; }
-.cc-title { font-size: 12px; color: var(--text3); }
-.cc-key { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); min-width: 0; }
-.cc-key .cc-dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; flex-shrink: 0; }
-.cc-key .cc-knm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px; }
-.cc-group { margin-bottom: 13px; }
-.cc-group:last-child { margin-bottom: 0; }
-.cc-mlabel { font-size: 11px; color: var(--text3); margin-bottom: 6px; }
-.cc-row { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
-.cc-track { flex: 1; height: 14px; background: var(--bg3); border-radius: 4px; overflow: hidden; min-width: 0; }
-.cc-bar { display: block; height: 100%; border-radius: 4px; min-width: 2px; }
-.cc-bar.a { background: var(--accent); }
-.cc-bar.b { background: var(--green); }
-.cc-num { font-size: 12px; color: var(--text2); white-space: nowrap; min-width: 56px; text-align: right; font-variant-numeric: tabular-nums; }
+/* ── daily dynamics: two lines over time + drag-to-select range ── */
+.cmp-dyn { margin-top: 12px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
+.dyn-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
+.dyn-title { font-size: 12px; color: var(--text3); }
+.dyn-controls { display: inline-flex; gap: 8px; }
+.dyn-sel { appearance: none; -webkit-appearance: none; background: var(--bg3); border: 1px solid var(--border); color: var(--text); font-size: 12px; font-weight: 500; padding: 5px 26px 5px 10px; border-radius: 8px; cursor: pointer; font-family: inherit; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23999' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 9px center; }
+.dyn-sel:focus { outline: none; border-color: var(--accent); }
+.dyn-legend { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 8px; }
+.dyn-legend .dl-key { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text2); min-width: 0; }
+.dyn-legend .dl-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+.dyn-legend .dl-nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px; }
+.dyn-plot { position: relative; width: 100%; touch-action: pan-y; cursor: crosshair; -webkit-user-select: none; user-select: none; }
+.dyn-svg { width: 100%; height: 210px; display: block; }
+.dyn-band { position: absolute; background: rgba(252,213,53,0.10); border-left: 1px solid var(--accent); border-right: 1px solid var(--accent); pointer-events: none; opacity: 0; }
+.dyn-cross { position: absolute; width: 1px; background: var(--border2); pointer-events: none; opacity: 0; }
+.dyn-dot { position: absolute; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--bg2); pointer-events: none; opacity: 0; transform: translate(-50%, -50%); }
+.dyn-tip { position: absolute; z-index: 6; max-width: 230px; background: var(--text); color: var(--bg2); font-size: 11px; line-height: 1.45; padding: 7px 9px; border-radius: 7px; pointer-events: none; transform: translate(-50%, calc(-100% - 14px)); opacity: 0; box-shadow: 0 4px 16px rgba(0,0,0,0.35); }
+.dyn-tip .tt-d { color: var(--text3); display: block; font-size: 10px; margin-bottom: 3px; }
+.dyn-tip .tt-r { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.dyn-tip .tt-r b { font-weight: 700; }
+.dyn-tip .tt-sw { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+.dyn-hint { font-size: 11px; color: var(--text3); margin-top: 9px; display: flex; align-items: center; gap: 6px; }
+.dyn-hint svg { flex-shrink: 0; opacity: 0.8; }
+.dyn-panel { margin-top: 11px; border-top: 1px solid var(--border); padding-top: 12px; }
+.dyn-panel-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.dph-title { font-size: 12px; font-weight: 600; color: var(--text); }
+.dph-range { font-size: 11px; color: var(--text3); font-variant-numeric: tabular-nums; }
+.dph-reset { margin-left: auto; font-size: 11px; color: var(--text2); background: var(--bg3); border: 1px solid var(--border); border-radius: 7px; padding: 3px 9px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; font-family: inherit; }
+.dph-reset:hover { border-color: var(--border2); color: var(--text); }
+.dyn-delta { display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 8px; font-variant-numeric: tabular-nums; }
+.dd-side { min-width: 0; }
+.dd-side.a { text-align: right; }
+.dd-side.b { text-align: left; }
+.dd-val { font-size: 14px; color: var(--text); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dd-chg { font-size: 11.5px; font-weight: 700; display: inline-flex; gap: 3px; align-items: center; margin-top: 3px; white-space: nowrap; }
+.dd-side.a .dd-chg { justify-content: flex-end; }
+.dd-chg.up { color: var(--green); }
+.dd-chg.down { color: var(--red); }
+.dd-chg.flat { color: var(--text3); }
+.dd-mid { font-size: 10.5px; color: var(--text3); text-align: center; padding: 2px 4px 0; max-width: 120px; }
+.dyn-verdict { margin-top: 11px; font-size: 12px; color: var(--text2); text-align: center; }
+.dyn-verdict b { color: var(--text); font-weight: 600; }
+.dyn-loading { text-align: center; padding: 44px 0; color: var(--text3); font-size: 13px; }
 
 .cmp-loading { text-align: center; padding: 50px 0; color: var(--text3); font-size: 13px; }
 .skel { height: 14px; border-radius: 4px; background: var(--bg3); animation: loadpulse 1.4s ease-in-out infinite; }
@@ -128,6 +150,9 @@
   .mrow .mv.a, .mrow .mv.b { padding: 0 5px; }
   .slot.a, .slot.b { padding: 0 5px; }
   .mrow .mlabel { font-size: 10px; }
+  .dyn-svg { height: 180px; }
+  .dd-val { font-size: 13px; }
+  .dyn-legend .dl-nm { max-width: 120px; }
 }
 </style>
 </head>
@@ -369,45 +394,8 @@ function verdictHTML(winA, winB, scored) {
     '</span><span>'+txt+'</span></div>';
 }
 
-/* ── paired-bar chart: volume metrics, each bar normalised to the larger side ── */
-const CHART_METRICS = [
-  { key:'mrr',      label:()=>LS('startupPage','mrr','MRR'), val:s=>rev(s,'mrr'), fmt:money },
-  { key:'rev30',    gmv:true, label:isGmv=>isGmv?LS('startupPage','gmv30','GMV (30 days)'):LS('startupPage','rev30','Revenue (30 days)'), val:s=>rev(s,'last30Days'), fmt:money },
-  { key:'total',    gmv:true, label:isGmv=>isGmv?LS('startupPage','gmv','GMV'):LS('startupPage','totalRev','Total revenue'), val:s=>rev(s,'total'), fmt:money },
-  { key:'customers',label:()=>LS('startupPage','customers','Customers'), val:s=>Number(s.customers)||0, fmt:v=>Number(v).toLocaleString() },
-  { key:'subs',     label:()=>LS('startupPage','subs','Active subscriptions'), val:s=>Number(s.activeSubscriptions)||0, fmt:v=>Number(v).toLocaleString() },
-  { key:'visitors', label:()=>LS('startupPage','visitors','Visitors (30d)'), val:s=>Number(s.visitorsLast30Days)||0, fmt:v=>Number(v).toLocaleString() },
-  { key:'price',    label:()=>LS('startupPage','price','Asking price'), val:s=>s.onSale?(Number(s.askingPrice)||0):0, fmt:money },
-];
-function barRow(cls, v, fmt, tag) {
-  const pct = v.w, has = v.has;
-  return '<div class="cc-row"><div class="cc-track"><span class="cc-bar '+cls+'" style="width:'+(has?pct:0)+'%"></span></div>'+
-    '<span class="cc-num">'+(has?(fmt+tag):'-')+'</span></div>';
-}
-function chartHTML() {
-  const a = state.a.obj, b = state.b.obj;
-  const groups = [];
-  for (const m of CHART_METRICS) {
-    const va = m.val(a) || 0, vb = m.val(b) || 0;
-    if (va <= 0 && vb <= 0) continue;
-    const max = Math.max(va, vb) || 1;
-    const bothGmv = !!m.gmv && gmvNature(a) && gmvNature(b);
-    const label = m.label.length ? m.label(bothGmv) : m.label();
-    const tagA = (m.gmv && gmvNature(a) && va > 0) ? ' <span class="gmv-tag">GMV</span>' : '';
-    const tagB = (m.gmv && gmvNature(b) && vb > 0) ? ' <span class="gmv-tag">GMV</span>' : '';
-    groups.push('<div class="cc-group"><div class="cc-mlabel">'+esc(label)+'</div>'+
-      barRow('a', { w: Math.max(2, Math.round(va/max*100)), has: va > 0 }, m.fmt(va), tagA)+
-      barRow('b', { w: Math.max(2, Math.round(vb/max*100)), has: vb > 0 }, m.fmt(vb), tagB)+
-    '</div>');
-  }
-  if (!groups.length) return '';
-  return '<div class="cmp-chart">'+
-    '<div class="cc-head">'+
-      '<span class="cc-title">'+esc(L('chart','Metric comparison'))+'</span>'+
-      '<span class="cc-key"><span class="cc-dot" style="background:var(--accent)"></span><span class="cc-knm">'+esc(a.name)+'</span></span>'+
-      '<span class="cc-key"><span class="cc-dot" style="background:var(--green)"></span><span class="cc-knm">'+esc(b.name)+'</span></span>'+
-    '</div>'+groups.join('')+'</div>';
-}
+/* The daily-dynamics line chart (two startups over time + drag-to-select range)
+   lives further down, near loadDynamics(). It replaced the old paired-bar chart. */
 
 function render() {
   const body = document.getElementById('cmpBody');
@@ -425,15 +413,14 @@ function render() {
     const m = metricsHTML();
     html += '<div class="cmp-metrics">'+m.rows+'</div>';
     html += verdictHTML(m.winA, m.winB, m.scored);
-    html += chartHTML();
-    html += '<div class="cmp-spark" id="cmpSpark" style="display:none;"></div>';
+    html += '<div class="cmp-dyn" id="cmpDyn" style="display:none;"></div>';
   } else if (!state.a.slug && !state.b.slug) {
     html += '<div class="empty-hint">'+esc(L('emptyHint','Open the catalog and tap Compare on any two startups.'))+
       ' <a href="/catalog">'+esc(L('browseCatalog','Browse catalog'))+'</a></div>';
   }
 
   body.innerHTML = html;
-  if (bothPicked) loadSpark();
+  if (bothPicked) loadDynamics();
 }
 
 /* ── second-startup search - pages the public catalog API on demand ──────────── */
@@ -527,51 +514,362 @@ function cmpBack(e){
   return false;
 }
 
-/* ── MRR sparkline overlay (best-effort; hidden if no series) ────────────────── */
-function seriesOf(arr) {
-  if (!Array.isArray(arr)) return [];
-  return arr.map(p => {
-    const v = (p && (p.mrr ?? p.value ?? p.amount ?? p.revenue));
-    return Number(v);
-  }).filter(v => Number.isFinite(v));
+/* ── Daily dynamics: two lines over time + drag-to-select a date range ──────────
+   Both series come from /api/history (daily_snapshots). The user presses on the
+   plot and drags right to brush a window; the panel below reads out each startup's
+   change over exactly that span and says who grew faster. ──────────────────────── */
+const DYN_METRICS = [
+  { key:'mrr_cents',     kind:'money', label:()=>LS('startupPage','mrr','MRR') },
+  { key:'rev30d_cents',  kind:'money', label:()=>LS('startupPage','rev30','Revenue (30 days)') },
+  { key:'customers',     kind:'int',   label:()=>LS('startupPage','customers','Customers') },
+  { key:'subscriptions', kind:'int',   label:()=>LS('startupPage','subs','Active subscriptions') },
+];
+const DAY = 86400000;
+const dyn = { metric:'mrr_cents', sel:null, geom:null, dragging:false, anchorVbX:0, moved:false };
+let _dynRun = 0;
+
+function dynFmt(kind, v) {
+  if (v == null || !isFinite(v)) return '-';
+  if (kind === 'money') return money(v);
+  return Number(Math.round(v)).toLocaleString();
 }
-async function loadSpark() {
-  const host = document.getElementById('cmpSpark');
-  if (!host || !state.a.obj || !state.b.obj) return;
-  let A = [], B = [];
-  try {
-    const [ra, rb] = await Promise.all([
-      fetch('/api/history?slug=' + encodeURIComponent(state.a.slug) + '&days=180').then(r=>r.json()).catch(()=>null),
-      fetch('/api/history?slug=' + encodeURIComponent(state.b.slug) + '&days=180').then(r=>r.json()).catch(()=>null),
-    ]);
-    A = seriesOf(ra && ra.data); B = seriesOf(rb && rb.data);
-  } catch {}
-  if (A.length < 2 && B.length < 2) return; // nothing worth drawing
-  const W = 560, H = 64, pad = 6;
-  const allV = A.concat(B);
-  const lo = Math.min.apply(null, allV), hi = Math.max.apply(null, allV);
-  const span = (hi - lo) || 1;
-  const path = (arr, color) => {
-    if (arr.length < 2) return '';
-    const pts = arr.map((v, i) => {
-      const x = (arr.length === 1) ? 0 : (i / (arr.length - 1)) * W;
-      const y = H - pad - ((v - lo) / span) * (H - pad * 2);
-      return x.toFixed(1) + ',' + y.toFixed(1);
-    }).join(' ');
-    return '<polyline points="'+pts+'" fill="none" stroke="'+color+'" stroke-width="2" vector-effect="non-scaling-stroke"/>';
-  };
+function dynPoints(side, key, tMin) {
+  const rows = state[side] && state[side].hist;
+  if (!Array.isArray(rows)) return [];
+  const pts = [];
+  for (const r of rows) {
+    const t = Date.parse((r.snap_date || '') + 'T00:00:00Z');
+    const v = Number(r[key]);
+    if (Number.isFinite(t) && Number.isFinite(v)) pts.push({ t, date: r.snap_date, val: v });
+  }
+  pts.sort((a, b) => a.t - b.t);
+  return tMin != null ? pts.filter(p => p.t >= tMin) : pts;
+}
+
+// Catmull-Rom → cubic-bezier smoothing (borrowed from the detail-page chart).
+function smoothPath(pts) {
+  if (pts.length < 2) return '';
+  if (pts.length === 2) return 'M'+pts[0].x.toFixed(1)+','+pts[0].y.toFixed(1)+' L'+pts[1].x.toFixed(1)+','+pts[1].y.toFixed(1);
+  const k = 0.16;
+  let d = 'M'+pts[0].x.toFixed(1)+','+pts[0].y.toFixed(1);
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i-1] || pts[i], p1 = pts[i], p2 = pts[i+1], p3 = pts[i+2] || p2;
+    const c1x = p1.x + (p2.x - p0.x) * k, c1y = p1.y + (p2.y - p0.y) * k;
+    const c2x = p2.x - (p3.x - p1.x) * k, c2y = p2.y - (p3.y - p1.y) * k;
+    d += ' C'+c1x.toFixed(1)+','+c1y.toFixed(1)+' '+c2x.toFixed(1)+','+c2y.toFixed(1)+' '+p2.x.toFixed(1)+','+p2.y.toFixed(1);
+  }
+  return d;
+}
+// Round axis bounds to human-friendly tick values (1/2/5 × 10ⁿ).
+function niceTicks(min, max, count) {
+  if (!isFinite(min) || !isFinite(max)) return { ticks:[0,1], niceMin:0, niceMax:1 };
+  if (min === max) { if (min === 0) max = 1; else { min = Math.min(0, min); max = max * 1.1; } }
+  const range = (max - min) || 1;
+  const rawStep = range / Math.max(1, count);
+  const mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
+  const norm = rawStep / mag;
+  const step = (norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 5 ? 5 : 10) * mag;
+  const niceMin = Math.floor(min / step) * step;
+  const niceMax = Math.ceil(max / step) * step;
+  const ticks = [];
+  for (let v = niceMin; v <= niceMax + step * 0.5; v += step) ticks.push(Math.round(v * 1e6) / 1e6);
+  return { ticks, niceMin, niceMax };
+}
+
+// Fetch both histories (once per slug) then draw.
+async function loadDynamics() {
+  if (!state.a.obj || !state.b.obj) return;
+  const run = ++_dynRun;
+  const jobs = [];
+  for (const side of ['a','b']) {
+    const slot = state[side];
+    if (slot.histSlug !== slot.slug || !Array.isArray(slot.hist)) {
+      slot.histSlug = slot.slug;
+      jobs.push(
+        fetch('/api/history?slug=' + encodeURIComponent(slot.slug) + '&days=365')
+          .then(r => r.json()).then(j => { slot.hist = (j && Array.isArray(j.data)) ? j.data : []; })
+          .catch(() => { slot.hist = []; })
+      );
+    }
+  }
+  if (jobs.length) { dyn.sel = null; renderDyn(true); await Promise.all(jobs); }
+  if (run !== _dynRun || !state.a.obj || !state.b.obj) return; // superseded by a newer pick
+  renderDyn(false);
+}
+
+function dynHeadHTML() {
+  const has = m => dynPoints('a', m.key).length >= 2 || dynPoints('b', m.key).length >= 2;
+  const avail = DYN_METRICS.filter(has);
+  const list = avail.length ? avail : DYN_METRICS;
+  const opts = list.map(m => '<option value="'+m.key+'"'+(m.key===dyn.metric?' selected':'')+'>'+esc(m.label())+'</option>').join('');
+  return '<div class="dyn-head">'+
+      '<span class="dyn-title">'+esc(L('dynTitle','Daily dynamics'))+'</span>'+
+      '<div class="dyn-controls"><select class="dyn-sel" id="dynMetric" onchange="onDynMetric(this.value)">'+opts+'</select></div>'+
+    '</div>';
+}
+
+function renderDyn(loading) {
+  const host = document.getElementById('cmpDyn');
+  if (!host || !state.a.obj || !state.b.obj) { if (host) host.style.display = 'none'; return; }
+
+  if (loading) {
+    host.style.display = 'block';
+    host.innerHTML = dynHeadHTML() + '<div class="dyn-loading">'+esc(LS('cache','loading','Loading…'))+'</div>';
+    return;
+  }
+
+  const has = m => dynPoints('a', m.key).length >= 2 || dynPoints('b', m.key).length >= 2;
+  const avail = DYN_METRICS.filter(has);
+  if (!avail.length) { host.style.display = 'none'; return; } // no daily series yet - stay silent
+  if (!avail.some(m => m.key === dyn.metric)) dyn.metric = avail[0].key;
+  const M = DYN_METRICS.find(m => m.key === dyn.metric);
+
+  const pa = dynPoints('a', M.key), pb = dynPoints('b', M.key);
+  const all = pa.concat(pb);
+  const tMin = Math.min.apply(null, all.map(p => p.t));
+  const tMax = Math.max.apply(null, all.map(p => p.t));
+  const tSpan = (tMax - tMin) || DAY;
+  const vMax = Math.max.apply(null, all.map(p => p.val));
+  const { ticks: yTicks, niceMin, niceMax } = niceTicks(0, vMax > 0 ? vMax : 1, 4);
+  const yLo = niceMin, yHi = niceMax > niceMin ? niceMax : niceMin + 1;
+
+  const W = 720, H = 210, PAD_L = 46, PAD_R = 12, PAD_T = 12, PAD_B = 24;
+  const plotW = W - PAD_L - PAD_R, plotH = H - PAD_T - PAD_B;
+  const X = t => PAD_L + ((t - tMin) / tSpan) * plotW;
+  const Y = v => H - PAD_B - ((v - yLo) / ((yHi - yLo) || 1)) * plotH;
+  const map = pts => pts.map(p => ({ t:p.t, date:p.date, val:p.val, x:X(p.t), y:Y(p.val) }));
+  const mA = map(pa), mB = map(pb);
   const cA = 'var(--accent)', cB = 'var(--green)';
-  host.innerHTML =
-    '<div class="sl-legend">'+
-      '<span class="sl-ttl">'+esc(L('mrrTrend','MRR trend'))+'</span>'+
-      '<span class="sl-key"><span class="sl-dash" style="background:'+cA+'"></span>'+esc(state.a.obj.name)+'</span>'+
-      '<span class="sl-key"><span class="sl-dash" style="background:'+cB+'"></span>'+esc(state.b.obj.name)+'</span>'+
-    '</div>'+
-    '<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="'+H+'" preserveAspectRatio="none" role="img" aria-label="'+esc(L('mrrTrend','MRR trend'))+'">'+
-      path(A, cA) + path(B, cB) +
-    '</svg>';
+  const fmt = v => dynFmt(M.kind, v);
+
+  const grid = yTicks.filter(v => v >= yLo - 1e-6 && v <= yHi + 1e-6).map(v => {
+    const yy = Y(v).toFixed(1);
+    return '<line x1="'+PAD_L+'" x2="'+(W-PAD_R)+'" y1="'+yy+'" y2="'+yy+'" stroke="var(--border)" stroke-dasharray="2 4"/>'+
+      '<text x="'+(PAD_L-6)+'" y="'+(Y(v)+3).toFixed(1)+'" text-anchor="end" font-size="10" fill="var(--text3)">'+esc(fmt(v))+'</text>';
+  }).join('');
+
+  const dlbl = t => new Date(t).toLocaleDateString(getLang(), { month:'short', day:'numeric' });
+  const xticks = [tMin, tMin + tSpan/2, tMax].map(t =>
+    '<text x="'+X(t).toFixed(1)+'" y="'+(H-7)+'" text-anchor="middle" font-size="10" fill="var(--text3)">'+esc(dlbl(t))+'</text>'
+  ).join('');
+
+  const baseY = (H - PAD_B).toFixed(1);
+  const lineOf = (m, color, grad) => {
+    if (m.length >= 2) {
+      const d = smoothPath(m);
+      return '<path d="'+d+' L'+m[m.length-1].x.toFixed(1)+','+baseY+' L'+m[0].x.toFixed(1)+','+baseY+' Z" fill="url(#'+grad+')"/>'+
+        '<path d="'+d+'" fill="none" stroke="'+color+'" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>';
+    }
+    if (m.length === 1) return '<circle cx="'+m[0].x.toFixed(1)+'" cy="'+m[0].y.toFixed(1)+'" r="3" fill="'+color+'"/>';
+    return '';
+  };
+
+  const topPct = (PAD_T/H*100).toFixed(2), hPct = (plotH/H*100).toFixed(2);
   host.style.display = 'block';
+  host.innerHTML =
+    dynHeadHTML() +
+    '<div class="dyn-legend">'+
+      '<span class="dl-key"><span class="dl-dot" style="background:'+cA+'"></span><span class="dl-nm">'+esc(state.a.obj.name)+'</span></span>'+
+      '<span class="dl-key"><span class="dl-dot" style="background:'+cB+'"></span><span class="dl-nm">'+esc(state.b.obj.name)+'</span></span>'+
+    '</div>'+
+    '<div class="dyn-plot" id="dynPlot">'+
+      '<svg class="dyn-svg" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'+
+        '<defs>'+
+          '<linearGradient id="dgA" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="var(--accent)" stop-opacity="0.16"/><stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/></linearGradient>'+
+          '<linearGradient id="dgB" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="var(--green)" stop-opacity="0.13"/><stop offset="100%" stop-color="var(--green)" stop-opacity="0"/></linearGradient>'+
+        '</defs>'+
+        grid + lineOf(mA, cA, 'dgA') + lineOf(mB, cB, 'dgB') + xticks +
+      '</svg>'+
+      '<div class="dyn-band" id="dynBand" style="top:'+topPct+'%;height:'+hPct+'%;"></div>'+
+      '<div class="dyn-cross" id="dynCross" style="top:'+topPct+'%;height:'+hPct+'%;"></div>'+
+      '<div class="dyn-dot" id="dynDotA"></div>'+
+      '<div class="dyn-dot" id="dynDotB"></div>'+
+      '<div class="dyn-tip" id="dynTip"></div>'+
+    '</div>'+
+    '<div class="dyn-hint" id="dynHint"></div>'+
+    '<div class="dyn-panel" id="dynPanel"></div>';
+
+  dyn.geom = {
+    W, H, PAD_L, PAD_R, PAD_T, PAD_B, plotW, tMin, tMax, tSpan, mA, mB, cA, cB, M, fmt,
+    X, invX: vx => tMin + ((vx - PAD_L) / plotW) * tSpan,
+  };
+  bindDynPointer();
+  updateDynBand();
+  updateDynPanel();
 }
+
+/* ── pointer: drag to brush a range, click to clear ────────────────────────────*/
+function bindDynPointer() {
+  const plot = document.getElementById('dynPlot');
+  if (!plot) return;
+  plot.onpointerdown  = onDynDown;
+  plot.onpointermove  = onDynMove;
+  plot.onpointerup    = onDynUp;
+  plot.onpointercancel= onDynUp;
+  plot.onpointerleave = () => { if (!dyn.dragging) hideDynHover(); };
+}
+function dynVbX(e) {
+  const plot = document.getElementById('dynPlot'), g = dyn.geom;
+  if (!plot || !g) return null;
+  const r = plot.getBoundingClientRect();
+  if (!r.width) return null;
+  let vx = ((e.clientX - r.left) / r.width) * g.W;
+  return Math.max(g.PAD_L, Math.min(g.W - g.PAD_R, vx));
+}
+function onDynDown(e) {
+  const g = dyn.geom, vx = dynVbX(e);
+  if (!g || vx == null) return;
+  dyn.dragging = true; dyn.moved = false; dyn.anchorVbX = vx;
+  try { document.getElementById('dynPlot').setPointerCapture(e.pointerId); } catch (_) {}
+  hideDynHover();
+  dyn.sel = { tLo: g.invX(vx), tHi: g.invX(vx) };
+  updateDynBand();
+  e.preventDefault();
+}
+function onDynMove(e) {
+  const g = dyn.geom; if (!g) return;
+  if (dyn.dragging) {
+    const vx = dynVbX(e); if (vx == null) return;
+    if (Math.abs(vx - dyn.anchorVbX) > 4) dyn.moved = true;
+    const lo = Math.min(vx, dyn.anchorVbX), hi = Math.max(vx, dyn.anchorVbX);
+    dyn.sel = { tLo: g.invX(lo), tHi: g.invX(hi) };
+    updateDynBand(); updateDynPanel();
+    e.preventDefault();
+  } else {
+    onDynHover(e);
+  }
+}
+function onDynUp() {
+  if (!dyn.dragging) return;
+  dyn.dragging = false;
+  if (!dyn.moved) dyn.sel = null; // a tap with no drag clears the selection
+  updateDynBand(); updateDynPanel();
+}
+
+function nearestPt(m, t) {
+  if (!m.length) return null;
+  let best = m[0], bd = Math.abs(m[0].t - t);
+  for (const p of m) { const d = Math.abs(p.t - t); if (d < bd) { bd = d; best = p; } }
+  return { p: best, d: bd };
+}
+function onDynHover(e) {
+  const g = dyn.geom; if (!g) return;
+  const vx = dynVbX(e); if (vx == null) return;
+  const t = g.invX(vx);
+  const nA = nearestPt(g.mA, t), nB = nearestPt(g.mB, t);
+  let snapT = t;
+  if (nA && nB) snapT = (nA.d <= nB.d ? nA.p.t : nB.p.t);
+  else if (nA) snapT = nA.p.t; else if (nB) snapT = nB.p.t;
+  const sx = g.X(snapT);
+
+  const cross = document.getElementById('dynCross');
+  if (cross) { cross.style.left = (sx / g.W * 100) + '%'; cross.style.opacity = '1'; }
+
+  const tol = 2 * DAY;
+  const setDot = (id, m, color) => {
+    const dot = document.getElementById(id); if (!dot) return null;
+    const n = nearestPt(m, snapT);
+    if (n && n.d <= tol) {
+      dot.style.left = (n.p.x / g.W * 100) + '%'; dot.style.top = (n.p.y / g.H * 100) + '%';
+      dot.style.background = color; dot.style.opacity = '1'; return n.p;
+    }
+    dot.style.opacity = '0'; return null;
+  };
+  const da = setDot('dynDotA', g.mA, g.cA), db = setDot('dynDotB', g.mB, g.cB);
+
+  const tip = document.getElementById('dynTip');
+  if (tip) {
+    const dstr = new Date(snapT).toLocaleDateString(getLang(), { day:'numeric', month:'short', year:'numeric' });
+    const row = (color, name, p) => '<span class="tt-r"><span class="tt-sw" style="background:'+color+'"></span>'+esc(name)+': <b>'+esc(p ? g.fmt(p.val) : '-')+'</b></span>';
+    tip.innerHTML = '<span class="tt-d">'+esc(dstr)+'</span>'+row(g.cA, state.a.obj.name, da)+row(g.cB, state.b.obj.name, db);
+    tip.style.left = Math.max(9, Math.min(91, sx / g.W * 100)) + '%';
+    const topY = Math.min(da ? da.y : 1e9, db ? db.y : 1e9);
+    tip.style.top = ((isFinite(topY) ? topY : g.PAD_T) / g.H * 100) + '%';
+    tip.style.opacity = '1';
+  }
+}
+function hideDynHover() {
+  ['dynCross','dynDotA','dynDotB','dynTip'].forEach(id => { const el = document.getElementById(id); if (el) el.style.opacity = '0'; });
+}
+
+function updateDynBand() {
+  const band = document.getElementById('dynBand'), g = dyn.geom;
+  if (!band || !g) return;
+  if (!dyn.sel) { band.style.opacity = '0'; return; }
+  const x0 = g.X(Math.max(dyn.sel.tLo, g.tMin)), x1 = g.X(Math.min(dyn.sel.tHi, g.tMax));
+  band.style.left = (Math.min(x0, x1) / g.W * 100) + '%';
+  band.style.width = (Math.abs(x1 - x0) / g.W * 100) + '%';
+  band.style.opacity = '1';
+}
+
+// Change of one series across [tLo,tHi]: first vs last point inside the window.
+function windowDelta(m, tLo, tHi) {
+  const w = m.filter(p => p.t >= tLo - 1 && p.t <= tHi + 1);
+  if (!w.length) return null;
+  const s = w[0].val, e = w[w.length-1].val, abs = e - s;
+  const pct = s !== 0 ? (abs / Math.abs(s)) * 100 : (abs !== 0 ? null : 0);
+  return { s, e, abs, pct, n: w.length };
+}
+function fmtPct(p) {
+  if (p == null) return '';
+  return (p >= 0 ? '+' : '') + p.toFixed(Math.abs(p) < 10 && p !== 0 ? 1 : 0) + '%';
+}
+function chgHTML(kind, d) {
+  if (!d) return '<span class="dd-chg flat">-</span>';
+  if (d.abs === 0) return '<span class="dd-chg flat">'+esc(L('dynNoChange','no change'))+'</span>';
+  const up = d.abs > 0, cls = up ? 'up' : 'down', arrow = up ? '▲' : '▼';
+  const absTxt = (d.abs > 0 ? '+' : '-') + (kind === 'money' ? money(Math.abs(d.abs)) : Math.round(Math.abs(d.abs)).toLocaleString());
+  const pctTxt = fmtPct(d.pct);
+  return '<span class="dd-chg '+cls+'">'+arrow+' '+esc((pctTxt ? pctTxt + ' · ' : '') + absTxt)+'</span>';
+}
+function dynVerdictHTML(da, db) {
+  if (!da || !db) return '';
+  const va = da.pct == null ? da.abs : da.pct;
+  const vb = db.pct == null ? db.abs : db.pct;
+  if ((da.abs === 0 && db.abs === 0) || Math.abs(va - vb) < 1e-6)
+    return '<div class="dyn-verdict">'+esc(L('dynEven','Both moved evenly'))+'</div>';
+  const aWins = va > vb, win = aWins ? state.a.obj : state.b.obj, wd = aWins ? da : db, ld = aWins ? db : da;
+  const tail = (wd.pct != null && ld.pct != null) ? ' (' + fmtPct(wd.pct) + ' vs ' + fmtPct(ld.pct) + ')' : '';
+  return '<div class="dyn-verdict">'+
+    L('dynGrewFaster','{name} grew faster').replace('{name}', '<b>'+esc(win.name)+'</b>') + esc(tail) +
+  '</div>';
+}
+function updateDynPanel() {
+  const panel = document.getElementById('dynPanel'), hint = document.getElementById('dynHint'), g = dyn.geom;
+  if (!panel || !g) return;
+  const win = dyn.sel
+    ? { tLo: Math.max(dyn.sel.tLo, g.tMin), tHi: Math.min(dyn.sel.tHi, g.tMax), selected: true }
+    : { tLo: g.tMin, tHi: g.tMax, selected: false };
+  const da = windowDelta(g.mA, win.tLo, win.tHi), db = windowDelta(g.mB, win.tLo, win.tHi);
+
+  const days = Math.max(0, Math.round((win.tHi - win.tLo) / DAY));
+  const dFrom = new Date(win.tLo).toLocaleDateString(getLang(), { day:'numeric', month:'short' });
+  const dTo   = new Date(win.tHi).toLocaleDateString(getLang(), { day:'numeric', month:'short' });
+  const daysTxt = L('dynDays','{n} d').replace('{n}', days);
+  const title = win.selected ? L('dynSelected','Selected period') : L('dynWhole','Whole period');
+  const reset = win.selected
+    ? '<button class="dph-reset" onclick="resetDynSel()"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'+esc(L('dynReset','Reset'))+'</button>'
+    : '';
+  const sideVal = d => d ? (esc(g.fmt(d.s)) + ' → ' + esc(g.fmt(d.e))) : '-';
+
+  panel.innerHTML =
+    '<div class="dyn-panel-head">'+
+      '<span class="dph-title">'+esc(title)+'</span>'+
+      '<span class="dph-range">'+esc(dFrom + ' – ' + dTo + ' · ' + daysTxt)+'</span>'+ reset +
+    '</div>'+
+    '<div class="dyn-delta">'+
+      '<div class="dd-side a"><div class="dd-val">'+sideVal(da)+'</div><div>'+chgHTML(g.M.kind, da)+'</div></div>'+
+      '<div class="dd-mid">'+esc(g.M.label())+'</div>'+
+      '<div class="dd-side b"><div class="dd-val">'+sideVal(db)+'</div><div>'+chgHTML(g.M.kind, db)+'</div></div>'+
+    '</div>'+
+    dynVerdictHTML(da, db);
+
+  if (hint) hint.innerHTML =
+    '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 8l-4 4 4 4M17 8l4 4-4 4"/></svg>'+
+    esc(L('dynDrag','Drag across the chart to compare changes over a span'));
+}
+function resetDynSel() { dyn.sel = null; updateDynBand(); updateDynPanel(); }
+function onDynMetric(key) { dyn.metric = key; renderDyn(false); }
 
 /* ── boot ───────────────────────────────────────────────────────────────────── */
 (async function init() {
