@@ -98,6 +98,23 @@
 .cmp-spark .sl-legend .sl-key { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); }
 .cmp-spark .sl-key .sl-dash { width: 14px; height: 2px; display: inline-block; border-radius: 2px; }
 
+/* ── bar chart (paired bars per metric, normalised to the larger of the two) ── */
+.cmp-chart { margin-top: 12px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
+.cc-head { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; }
+.cc-title { font-size: 12px; color: var(--text3); }
+.cc-key { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); min-width: 0; }
+.cc-key .cc-dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; flex-shrink: 0; }
+.cc-key .cc-knm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px; }
+.cc-group { margin-bottom: 13px; }
+.cc-group:last-child { margin-bottom: 0; }
+.cc-mlabel { font-size: 11px; color: var(--text3); margin-bottom: 6px; }
+.cc-row { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
+.cc-track { flex: 1; height: 14px; background: var(--bg3); border-radius: 4px; overflow: hidden; min-width: 0; }
+.cc-bar { display: block; height: 100%; border-radius: 4px; min-width: 2px; }
+.cc-bar.a { background: var(--accent); }
+.cc-bar.b { background: var(--green); }
+.cc-num { font-size: 12px; color: var(--text2); white-space: nowrap; min-width: 56px; text-align: right; font-variant-numeric: tabular-nums; }
+
 .cmp-loading { text-align: center; padding: 50px 0; color: var(--text3); font-size: 13px; }
 .skel { height: 14px; border-radius: 4px; background: var(--bg3); animation: loadpulse 1.4s ease-in-out infinite; }
 
@@ -169,7 +186,10 @@ const state = {
   a: { slug: null, obj: null, loading: false, err: false },
   b: { slug: null, obj: null, loading: false, err: false },
 };
-let _allCache = null; // catalog snapshot from IndexedDB, for the second-startup search
+// Dataset for the second-startup search. The IndexedDB store is never populated
+// (catalog caches to localStorage, not IDB), so we page through the public
+// /api/startups (on-sale listings — the same source the catalog uses) on demand.
+const _ds = { started:false, loading:false, items:[] };
 
 function readUrl() {
   const p = new URLSearchParams(location.search);
@@ -349,6 +369,46 @@ function verdictHTML(winA, winB, scored) {
     '</span><span>'+txt+'</span></div>';
 }
 
+/* ── paired-bar chart: volume metrics, each bar normalised to the larger side ── */
+const CHART_METRICS = [
+  { key:'mrr',      label:()=>LS('startupPage','mrr','MRR'), val:s=>rev(s,'mrr'), fmt:money },
+  { key:'rev30',    gmv:true, label:isGmv=>isGmv?LS('startupPage','gmv30','GMV (30 days)'):LS('startupPage','rev30','Revenue (30 days)'), val:s=>rev(s,'last30Days'), fmt:money },
+  { key:'total',    gmv:true, label:isGmv=>isGmv?LS('startupPage','gmv','GMV'):LS('startupPage','totalRev','Total revenue'), val:s=>rev(s,'total'), fmt:money },
+  { key:'customers',label:()=>LS('startupPage','customers','Customers'), val:s=>Number(s.customers)||0, fmt:v=>Number(v).toLocaleString() },
+  { key:'subs',     label:()=>LS('startupPage','subs','Active subscriptions'), val:s=>Number(s.activeSubscriptions)||0, fmt:v=>Number(v).toLocaleString() },
+  { key:'visitors', label:()=>LS('startupPage','visitors','Visitors (30d)'), val:s=>Number(s.visitorsLast30Days)||0, fmt:v=>Number(v).toLocaleString() },
+  { key:'price',    label:()=>LS('startupPage','price','Asking price'), val:s=>s.onSale?(Number(s.askingPrice)||0):0, fmt:money },
+];
+function barRow(cls, v, fmt, tag) {
+  const pct = v.w, has = v.has;
+  return '<div class="cc-row"><div class="cc-track"><span class="cc-bar '+cls+'" style="width:'+(has?pct:0)+'%"></span></div>'+
+    '<span class="cc-num">'+(has?(fmt+tag):'—')+'</span></div>';
+}
+function chartHTML() {
+  const a = state.a.obj, b = state.b.obj;
+  const groups = [];
+  for (const m of CHART_METRICS) {
+    const va = m.val(a) || 0, vb = m.val(b) || 0;
+    if (va <= 0 && vb <= 0) continue;
+    const max = Math.max(va, vb) || 1;
+    const bothGmv = !!m.gmv && gmvNature(a) && gmvNature(b);
+    const label = m.label.length ? m.label(bothGmv) : m.label();
+    const tagA = (m.gmv && gmvNature(a) && va > 0) ? ' <span class="gmv-tag">GMV</span>' : '';
+    const tagB = (m.gmv && gmvNature(b) && vb > 0) ? ' <span class="gmv-tag">GMV</span>' : '';
+    groups.push('<div class="cc-group"><div class="cc-mlabel">'+esc(label)+'</div>'+
+      barRow('a', { w: Math.max(2, Math.round(va/max*100)), has: va > 0 }, m.fmt(va), tagA)+
+      barRow('b', { w: Math.max(2, Math.round(vb/max*100)), has: vb > 0 }, m.fmt(vb), tagB)+
+    '</div>');
+  }
+  if (!groups.length) return '';
+  return '<div class="cmp-chart">'+
+    '<div class="cc-head">'+
+      '<span class="cc-title">'+esc(L('chart','Metric comparison'))+'</span>'+
+      '<span class="cc-key"><span class="cc-dot" style="background:var(--accent)"></span><span class="cc-knm">'+esc(a.name)+'</span></span>'+
+      '<span class="cc-key"><span class="cc-dot" style="background:var(--green)"></span><span class="cc-knm">'+esc(b.name)+'</span></span>'+
+    '</div>'+groups.join('')+'</div>';
+}
+
 function render() {
   const body = document.getElementById('cmpBody');
   const bothPicked = state.a.obj && state.b.obj;
@@ -365,8 +425,9 @@ function render() {
     const m = metricsHTML();
     html += '<div class="cmp-metrics">'+m.rows+'</div>';
     html += verdictHTML(m.winA, m.winB, m.scored);
+    html += chartHTML();
     html += '<div class="cmp-spark" id="cmpSpark" style="display:none;"></div>';
-  } else if (!state.a.slug && !state.b.slug && (!_allCache || !_allCache.length)) {
+  } else if (!state.a.slug && !state.b.slug) {
     html += '<div class="empty-hint">'+esc(L('emptyHint','Open the catalog and tap Compare on any two startups.'))+
       ' <a href="/catalog">'+esc(L('browseCatalog','Browse catalog'))+'</a></div>';
   }
@@ -375,27 +436,55 @@ function render() {
   if (bothPicked) loadSpark();
 }
 
-/* ── second-startup search (local catalog cache) ────────────────────────────── */
-async function ensureAll() {
-  if (_allCache) return _allCache;
-  try { _allCache = (typeof idbGetAll === 'function') ? (await idbGetAll()) : []; }
-  catch { _allCache = []; }
-  return _allCache;
+/* ── second-startup search — pages the public catalog API on demand ──────────── */
+function dsMerge(items) {
+  const have = new Set(_ds.items.map(s => s.slug));
+  for (const s of items) if (s && s.slug && !have.has(s.slug)) { _ds.items.push(s); have.add(s.slug); }
 }
-let _searchTimer = null;
-async function onSearch(input) {
+async function ensureDataset() {
+  if (_ds.started) return;
+  _ds.started = true; _ds.loading = true; refreshOpenSearch();
+  // Instant seed if the IDB store ever gets populated; harmless when it's empty.
+  try { if (typeof idbGetAll === 'function') { const a = await idbGetAll(); if (a && a.length) { dsMerge(a); refreshOpenSearch(); } } } catch {}
+  // Page through on-sale listings (a few hundred) — enough to find any sellable
+  // startup to compare. Same endpoint/shape the catalog uses; no API key needed.
+  let page = 1, guard = 0;
+  while (guard++ < 40) {
+    let j = null;
+    try {
+      const p = new URLSearchParams({ page, limit:50, sort:'revenue-desc', onSale:'true', lang:getLang() });
+      const r = await fetch('/api/startups?' + p);
+      if (r.ok) j = await r.json();
+    } catch {}
+    const data = (j && Array.isArray(j.data)) ? j.data.filter(s => s && s.slug) : [];
+    if (!data.length) break;
+    dsMerge(data); refreshOpenSearch();
+    if (!(j.meta && j.meta.hasMore)) break;
+    page++;
+  }
+  _ds.loading = false; refreshOpenSearch();
+}
+// Re-run the search for any open/focused box as more pages stream in.
+function refreshOpenSearch() {
+  document.querySelectorAll('.search-box').forEach(b => {
+    if (b === document.activeElement || b.value.trim()) onSearch(b);
+  });
+}
+function onSearch(input) {
+  ensureDataset();
   const side = input.getAttribute('data-side');
   const box = document.querySelector('.search-results[data-for="'+side+'"]');
   if (!box) return;
-  const all = await ensureAll();
   const q = input.value.trim().toLowerCase();
   const other = side === 'a' ? state.b.slug : state.a.slug;
-  let list = all.filter(s => s && s.slug && s.slug !== other);
+  let list = _ds.items.filter(s => s && s.slug && s.slug !== other);
   if (q) list = list.filter(s => (s.name||'').toLowerCase().includes(q) || (s.slug||'').toLowerCase().includes(q));
   list.sort((x, y) => (Number(y.onSale)||0) - (Number(x.onSale)||0) || rev(y,'last30Days') - rev(x,'last30Days'));
   list = list.slice(0, 8);
-  if (!all.length) { box.style.display = 'none'; return; }
-  if (!list.length) { box.innerHTML = '<div class="search-empty">'+esc(L('noMatch','No matches found'))+'</div>'; box.style.display = 'block'; return; }
+  if (!list.length) {
+    const msg = (_ds.loading && !_ds.items.length) ? LS('cache','loading','Loading…') : L('noMatch','No matches found');
+    box.innerHTML = '<div class="search-empty">'+esc(msg)+'</div>'; box.style.display = 'block'; return;
+  }
   box.innerHTML = list.map(s =>
     '<div class="search-row" onclick="pickSide(\''+side+'\',\''+esc(s.slug)+'\')">'+
       logoHTML(s, 'sr-logo')+
@@ -471,7 +560,7 @@ async function loadSpark() {
     }).join(' ');
     return '<polyline points="'+pts+'" fill="none" stroke="'+color+'" stroke-width="2" vector-effect="non-scaling-stroke"/>';
   };
-  const cA = 'var(--accent)', cB = 'var(--text2)';
+  const cA = 'var(--accent)', cB = 'var(--green)';
   host.innerHTML =
     '<div class="sl-legend">'+
       '<span class="sl-ttl">'+esc(L('mrrTrend','MRR trend'))+'</span>'+
@@ -487,10 +576,11 @@ async function loadSpark() {
 /* ── boot ───────────────────────────────────────────────────────────────────── */
 (async function init() {
   readUrl();
-  await ensureAll();
   render();
   if (state.a.slug) loadSlot('a');
   if (state.b.slug) loadSlot('b');
+  // Warm the search dataset in the background only when a slot still needs filling.
+  if (!state.a.slug || !state.b.slug) ensureDataset();
 })();
 </script>
 </body>
