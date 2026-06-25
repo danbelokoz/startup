@@ -81,9 +81,15 @@
   /* Fav button on detail page */
   .fav-detail { background: none; border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 16px; color: var(--text3); transition: all 0.15s; font-family: 'Manrope', sans-serif; }
   .fav-detail:hover, .fav-detail.active { color: var(--red); border-color: var(--red); }
-  .detail-actions { display: flex; align-items: center; gap: 8px; }
-  .cmp-detail { display: inline-flex; align-items: center; gap: 6px; background: none; border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 13px; color: var(--text2); transition: all 0.15s; font-family: inherit; }
+  .detail-topbar { display: flex; align-items: center; gap: 8px 10px; margin-bottom: 4px; flex-wrap: wrap; }
+  .detail-topbar .back-link { margin-right: auto; }
+  .detail-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+  @media (max-width: 640px) { .cmp-go, .cmp-detail { padding: 6px 10px; font-size: 12px; } }
+  .cmp-detail { display: inline-flex; align-items: center; gap: 6px; background: none; border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 13px; color: var(--text2); transition: all 0.15s; font-family: inherit; white-space: nowrap; }
   .cmp-detail:hover { border-color: var(--accent); color: var(--accent); }
+  .cmp-detail.active { border-color: var(--accent); color: var(--accent); }
+  .cmp-go { display: inline-flex; align-items: center; gap: 6px; background: var(--accent); color: #0B0E11; border: 1px solid var(--accent); border-radius: 8px; padding: 6px 12px; font-size: 13px; font-weight: 600; text-decoration: none; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+  .cmp-go:hover { background: var(--accent2); border-color: var(--accent2); }
   .badge-green { background: rgba(0,194,122,0.1); color: var(--green); border: 1px solid rgba(0,194,122,0.2); }
   /* Sale box — 2-column layout: price on left, contact reveal on right */
   .sale-box-row { display: flex; gap: 20px; align-items: stretch; flex-wrap: wrap; }
@@ -227,13 +233,11 @@
 <div id="navPlaceholder"></div>
 <div id="modalPlaceholder"></div>
 <div class="page-wrap">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+  <div class="detail-topbar">
     <a href="/catalog" class="back-link" id="backLink">← Back</a>
     <div class="detail-actions">
-      <button class="cmp-detail" id="cmpBtn" onclick="compareThis()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="14"/></svg>
-        <span data-i18n="compare.compareBtn">Compare</span>
-      </button>
+      <a class="cmp-go" id="cmpGoBtn" href="/compare" style="display:none;"></a>
+      <button class="cmp-detail" id="cmpBtn" onclick="toggleCompareDetail()"></button>
       <button class="fav-detail" id="favBtn" onclick="toggleDetailFav()" title="Добавить в избранное"></button>
     </div>
   </div>
@@ -277,6 +281,7 @@ function applyUI() {
 window.addEventListener('DOMContentLoaded', async () => {
   applyUI();
   initNavAuth();
+  renderCmpBtns();   // reflect any existing compare queue immediately (slug from URL)
   const slug = location.pathname.replace('/startup/','').replace('.html','');
 
   // 1. Try sessionStorage first (instant when navigating from catalog)
@@ -431,18 +436,45 @@ function toggleDetailFav(){
   const btn=document.getElementById('favBtn');
   if(btn){const on=favs.includes(s.slug);btn.innerHTML=icon(on?'heartFill':'heart',{size:16});btn.classList.toggle('active',on);}
 }
-// Compare: if another startup is already queued (catalog tray / another page), jump
-// straight to the head-to-head; otherwise open /compare with this one as side A and
-// let the user pick the second there.
-function compareThis(){
+// Compare queue (shared with the catalog tray via localStorage sm_compare, max 2).
+// The button toggles THIS startup in/out of the queue and shows "To compare {n}/2";
+// once two are queued, the separate go-button links to the head-to-head.
+function cmpCurrentSlug(){
   let slug = (_startup && _startup.slug) || '';
   if(!slug){ slug = location.pathname.replace('/startup/','').replace(/\.html$/,''); try{ slug=decodeURIComponent(slug); }catch{} }
-  if(!slug) return;
-  let other=null;
-  try{ other=((JSON.parse(localStorage.getItem('sm_compare')||'[]'))||[]).find(x=>x&&x!==slug)||null; }catch{}
-  location.href = other
-    ? '/compare?a='+encodeURIComponent(other)+'&b='+encodeURIComponent(slug)
-    : '/compare?a='+encodeURIComponent(slug);
+  return slug;
+}
+function cmpGetList(){ try{ return ((JSON.parse(localStorage.getItem('sm_compare')||'[]'))||[]).slice(0,2); }catch{ return []; } }
+function cmpSetList(a){ try{ localStorage.setItem('sm_compare', JSON.stringify(a.slice(0,2))); }catch{} }
+function toggleCompareDetail(){
+  const slug=cmpCurrentSlug(); if(!slug) return;
+  let arr=cmpGetList(); const i=arr.indexOf(slug);
+  if(i>=0) arr.splice(i,1);
+  else { arr.push(slug); if(arr.length>2) arr.shift(); } // keep the 2 most recent
+  cmpSetList(arr); renderCmpBtns();
+}
+function goToCompare(){ const arr=cmpGetList(); if(arr.length<2) return; location.href='/compare?a='+encodeURIComponent(arr[0])+'&b='+encodeURIComponent(arr[1]); }
+function renderCmpBtns(){
+  const btn=document.getElementById('cmpBtn'); if(!btn) return;
+  const go=document.getElementById('cmpGoBtn');
+  const slug=cmpCurrentSlug(), arr=cmpGetList(), added=arr.includes(slug);
+  const barIcon='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="14"/></svg>';
+  const okIcon='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+  if(added){
+    btn.classList.add('active');
+    btn.innerHTML = okIcon+'<span>'+((t('compare','queued')||'To compare {n}/2').replace('{n}', arr.length))+'</span>';
+  } else {
+    btn.classList.remove('active');
+    btn.innerHTML = barIcon+'<span>'+(t('compare','compareBtn')||'Compare')+'</span>';
+  }
+  if(go){
+    if(arr.length>=2){
+      go.setAttribute('href', '/compare?a='+encodeURIComponent(arr[0])+'&b='+encodeURIComponent(arr[1]));
+      go.innerHTML = '<span>'+(t('compare','view')||'View comparison')+'</span>'+
+        '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+      go.style.display='inline-flex';
+    } else { go.style.display='none'; }
+  }
 }
 function updateFavBtn(slug){
   const btn=document.getElementById('favBtn');if(!btn)return;
@@ -479,6 +511,7 @@ function renderStartup(s) {
   // If user revealed in this session, persist across re-renders (enrichment merge).
   try { if (sessionStorage.getItem('revealed_'+s.slug) || isRevealed(s.slug)) _revealed = true; } catch {}
   updateFavBtn(s.slug);
+  renderCmpBtns();   // now we have the exact slug — reflect queued state on the button
 
   const fb = escHtml(s.name.charAt(0));
   const logoMarkup = s.icon ? `<img src="${escHtml(s.icon)}" data-fb="${fb}" onerror="this.parentElement.textContent=this.getAttribute('data-fb')"/>` : `<span>${fb}</span>`;
