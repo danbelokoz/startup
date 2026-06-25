@@ -81,6 +81,9 @@
   /* Fav button on detail page */
   .fav-detail { background: none; border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 16px; color: var(--text3); transition: all 0.15s; font-family: 'Manrope', sans-serif; }
   .fav-detail:hover, .fav-detail.active { color: var(--red); border-color: var(--red); }
+  .detail-actions { display: flex; align-items: center; gap: 8px; }
+  .cmp-detail { display: inline-flex; align-items: center; gap: 6px; background: none; border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 13px; color: var(--text2); transition: all 0.15s; font-family: inherit; }
+  .cmp-detail:hover { border-color: var(--accent); color: var(--accent); }
   .badge-green { background: rgba(0,194,122,0.1); color: var(--green); border: 1px solid rgba(0,194,122,0.2); }
   /* Sale box — 2-column layout: price on left, contact reveal on right */
   .sale-box-row { display: flex; gap: 20px; align-items: stretch; flex-wrap: wrap; }
@@ -226,7 +229,13 @@
 <div class="page-wrap">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
     <a href="/catalog" class="back-link" id="backLink">← Back</a>
-    <button class="fav-detail" id="favBtn" onclick="toggleDetailFav()" title="Добавить в избранное"></button>
+    <div class="detail-actions">
+      <button class="cmp-detail" id="cmpBtn" onclick="compareThis()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="14"/></svg>
+        <span data-i18n="compare.compareBtn">Compare</span>
+      </button>
+      <button class="fav-detail" id="favBtn" onclick="toggleDetailFav()" title="Добавить в избранное"></button>
+    </div>
   </div>
   <div id="archiveBanner"></div>
   <div id="content"><div class="loading-state"><h3>Loading...</h3></div></div>
@@ -421,6 +430,19 @@ function toggleDetailFav(){
   try{localStorage.setItem(LS_FAVS,JSON.stringify(favs));}catch{}
   const btn=document.getElementById('favBtn');
   if(btn){const on=favs.includes(s.slug);btn.innerHTML=icon(on?'heartFill':'heart',{size:16});btn.classList.toggle('active',on);}
+}
+// Compare: if another startup is already queued (catalog tray / another page), jump
+// straight to the head-to-head; otherwise open /compare with this one as side A and
+// let the user pick the second there.
+function compareThis(){
+  let slug = (_startup && _startup.slug) || '';
+  if(!slug){ slug = location.pathname.replace('/startup/','').replace(/\.html$/,''); try{ slug=decodeURIComponent(slug); }catch{} }
+  if(!slug) return;
+  let other=null;
+  try{ other=((JSON.parse(localStorage.getItem('sm_compare')||'[]'))||[]).find(x=>x&&x!==slug)||null; }catch{}
+  location.href = other
+    ? '/compare?a='+encodeURIComponent(other)+'&b='+encodeURIComponent(slug)
+    : '/compare?a='+encodeURIComponent(slug);
 }
 function updateFavBtn(slug){
   const btn=document.getElementById('favBtn');if(!btn)return;

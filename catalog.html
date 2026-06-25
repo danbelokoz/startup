@@ -115,6 +115,25 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
 .fav-btn { background: none; border: none; cursor: pointer; font-size: 15px; color: var(--text3); padding: 2px; line-height: 1; transition: color 0.1s, transform 0.1s; }
 .fav-btn:hover { color: var(--red); transform: scale(1.2); }
 .fav-btn.active { color: var(--red); }
+.cmp-btn { background: none; border: 1px solid transparent; cursor: pointer; color: var(--text3); padding: 2px 3px; line-height: 1; border-radius: 5px; transition: color 0.12s, background 0.12s, border-color 0.12s; display: inline-flex; }
+.cmp-btn:hover { color: var(--accent); }
+.cmp-btn.active { color: #0B0E11; background: var(--accent); border-color: var(--accent); }
+/* Floating compare tray — collects up to two startups across catalog pages */
+.compare-tray { position: fixed; left: 50%; transform: translateX(-50%); bottom: 18px; z-index: 120; background: var(--bg2); border: 1px solid var(--border2); border-radius: 14px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); padding: 10px 12px; display: none; align-items: center; gap: 12px; max-width: calc(100vw - 24px); }
+.compare-tray.show { display: flex; }
+.ct-slots { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.ct-chip { display: flex; align-items: center; gap: 7px; background: var(--bg3); border: 1px solid var(--border); border-radius: 9px; padding: 5px 8px; max-width: 170px; }
+.ct-chip .ct-logo { width: 22px; height: 22px; border-radius: 5px; background: var(--bg); border: 1px solid var(--border); display: inline-flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: var(--text2); overflow: hidden; flex-shrink: 0; }
+.ct-chip .ct-logo img { width: 100%; height: 100%; object-fit: cover; }
+.ct-chip .ct-nm { font-size: 12px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ct-chip .ct-x { background: none; border: none; color: var(--text3); cursor: pointer; padding: 0; display: inline-flex; flex-shrink: 0; }
+.ct-chip .ct-x:hover { color: var(--red); }
+.ct-empty { font-size: 12px; color: var(--text3); border: 1px dashed var(--border2); border-radius: 9px; padding: 6px 12px; white-space: nowrap; }
+.ct-go { font-size: 13px; font-weight: 600; color: #0B0E11; background: var(--accent); border: none; border-radius: 9px; padding: 8px 16px; cursor: pointer; white-space: nowrap; }
+.ct-go:disabled { opacity: 0.4; cursor: default; }
+.ct-clear { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 12px; white-space: nowrap; }
+.ct-clear:hover { color: var(--text); }
+@media (max-width: 600px) { .ct-chip { max-width: 100px; } .compare-tray { gap: 8px; padding: 8px; } .ct-empty { padding: 6px 8px; } }
 .card-desc { font-size: 12px; color: var(--text3); line-height: 1.45; margin-bottom: 10px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; flex: 1; min-height: 32px; }
 .card-metrics { display: flex; border-top: 1px solid var(--border); padding-top: 10px; margin-top: auto; align-items: stretch; }
 .cm { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: space-between; gap: 4px; }
@@ -278,10 +297,13 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
 
 <footer>© 2026 Startup Market</footer>
 
+<div class="compare-tray" id="compareTray"></div>
+
 <script>
 applyLangToDoc();
 document.getElementById('navPlaceholder').innerHTML = buildNavHTML('catalog');
 initNavAuth();
+renderTray();   // restore any compare selection from a previous visit (names fill in after load)
 
 // Stale-cache guard (see shared.js): a returning user may still have an old cached
 // shared.js without isGmvLike — install a local fallback so card labels and the
@@ -358,6 +380,46 @@ function toggleFav(e, slug) {
   try{localStorage.setItem(LS_FAVS,JSON.stringify(favs));}catch{}
   const btn=document.querySelector('.fav-btn[data-slug="'+slug+'"]');
   if(btn){const on=favs.includes(slug);btn.innerHTML=icon(on?'heartFill':'heart',{size:15});btn.classList.toggle('active',on);}
+}
+
+/* ── COMPARE TRAY ──────────────────────────────────────────────────────────────
+   Up to two slugs in localStorage (survives paging/Back). The card buttons toggle
+   membership; the floating tray sends both to /compare. _cs() passes an English
+   default so a stale cached shared.js (no ?v=) still shows readable labels. */
+const LS_COMPARE = 'sm_compare';
+function _cs(k, fb){ try { return t('compare', k) || fb; } catch { return fb; } }
+function getCompare(){ try{ return (JSON.parse(localStorage.getItem(LS_COMPARE)||'[]')||[]).slice(0,2); }catch{ return []; } }
+function setCompare(a){ try{ localStorage.setItem(LS_COMPARE, JSON.stringify(a.slice(0,2))); }catch{} }
+function isCompared(slug){ return getCompare().includes(slug); }
+function syncCompareBtns(){ const arr=getCompare(); document.querySelectorAll('.cmp-btn').forEach(b=>b.classList.toggle('active', arr.includes(b.getAttribute('data-slug')))); }
+function toggleCompare(e, slug){
+  if(e){ e.preventDefault(); e.stopPropagation(); }
+  let arr=getCompare(); const i=arr.indexOf(slug);
+  if(i>=0) arr.splice(i,1);
+  else { arr.push(slug); if(arr.length>2) arr.shift(); } // keep the 2 most recent
+  setCompare(arr); syncCompareBtns(); renderTray();
+}
+function removeCompare(slug){ let arr=getCompare(); const i=arr.indexOf(slug); if(i>=0)arr.splice(i,1); setCompare(arr); syncCompareBtns(); renderTray(); }
+function clearCompare(){ setCompare([]); syncCompareBtns(); renderTray(); }
+function goCompare(){ const arr=getCompare(); if(arr.length<2)return; location.href='/compare?a='+encodeURIComponent(arr[0])+'&b='+encodeURIComponent(arr[1]); }
+function ctChip(slug){
+  const s=(typeof loadedItems!=='undefined'?loadedItems:[]).find(x=>x.slug===slug);
+  const nm = s ? s.name : slug;
+  const init=(String(nm).split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase())||'?';
+  const logo = s&&s.icon ? '<img src="'+escHtml(s.icon)+'" onerror="this.parentElement.textContent=\''+init+'\'"/>' : init;
+  return '<span class="ct-chip"><span class="ct-logo">'+logo+'</span><span class="ct-nm">'+escHtml(nm)+'</span>'+
+    '<button class="ct-x" title="'+_cs('removeTip','Remove')+'" onclick="removeCompare(\''+escHtml(slug)+'\')">'+icon('x',{size:13})+'</button></span>';
+}
+function renderTray(){
+  const tray=document.getElementById('compareTray'); if(!tray) return;
+  const arr=getCompare();
+  if(!arr.length){ tray.classList.remove('show'); tray.innerHTML=''; return; }
+  const slots=arr.map(ctChip).join('');
+  const placeholder=arr.length<2 ? '<span class="ct-empty">'+_cs('trayPick2','Pick 2 startups to compare')+'</span>' : '';
+  const go='<button class="ct-go"'+(arr.length<2?' disabled':'')+' onclick="goCompare()">'+_cs('trayCompare','Compare')+'</button>';
+  const clr='<button class="ct-clear" onclick="clearCompare()">'+_cs('trayClear','Clear')+'</button>';
+  tray.innerHTML='<div class="ct-slots">'+slots+placeholder+'</div>'+go+clr;
+  tray.classList.add('show');
 }
 
 /* ── LOAD ──────────────────────────────────────────────────────────────────── */
@@ -575,6 +637,7 @@ function renderCards() {
   }
   displayItems.slice(0, renderLimit).forEach(s => grid.insertAdjacentHTML('beforeend', cardHTML(s)));
   setupScroll();
+  syncCompareBtns(); renderTray();   // re-sync compare state + refresh chip names once data is loaded
 }
 
 // Append-only top-up: bring the grid up to renderLimit cards from the current
@@ -716,6 +779,7 @@ function cardHTML(s) {
         '</div>'+
       '</div>'+
       '<div class="card-actions">'+views+
+        '<button class="cmp-btn'+(isCompared(s.slug)?' active':'')+'" data-slug="'+escHtml(s.slug)+'" onclick="toggleCompare(event,\''+escHtml(s.slug)+'\')" title="'+_cs('compareBtn','Compare')+'">'+icon('barChart',{size:14})+'</button>'+
         '<button class="fav-btn'+(favOn?' active':'')+'" data-slug="'+escHtml(s.slug)+'" onclick="toggleFav(event,\''+escHtml(s.slug)+'\')" title="'+(t('idx','favorites')||'Favorites')+'">'+icon(favOn?'heartFill':'heart',{size:15})+'</button>'+
       '</div>'+
     '</div>'+
