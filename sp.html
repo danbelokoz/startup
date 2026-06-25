@@ -207,8 +207,12 @@
   .chart-select:hover { border-color: var(--border2); }
   .chart-select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,0,0,0.04); }
   /* Interactive hover layer */
-  .chart-wrap { position: relative; }
+  .chart-wrap { position: relative; touch-action: pan-y; cursor: crosshair; -webkit-user-select: none; user-select: none; }
+  .chart-band { position: absolute; top: 0; bottom: 0; background: rgba(255,255,255,0.06); border-left: 1px solid var(--accent); border-right: 1px solid var(--accent); pointer-events: none; opacity: 0; }
   .chart-cross { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--border2); pointer-events: none; opacity: 0; transition: opacity 0.08s; }
+  .chart-reset { margin-left: 7px; font-size: 11px; line-height: 1; color: var(--text2); background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; padding: 2px 7px; cursor: pointer; font-family: inherit; vertical-align: 1px; }
+  .chart-reset:hover { color: var(--text); border-color: var(--border2); }
+  .chart-selrange { color: var(--text2); font-weight: 500; }
   .chart-dot   { position: absolute; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); border: 2px solid var(--bg2); pointer-events: none; opacity: 0; transform: translate(-50%, -50%); box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
   .chart-tooltip { position: absolute; z-index: 5; background: var(--text); color: var(--bg2); font-size: 11px; line-height: 1.4; padding: 6px 9px; border-radius: 6px; pointer-events: none; transform: translate(-50%, calc(-100% - 12px)); white-space: nowrap; opacity: 0; transition: opacity 0.08s; box-shadow: 0 4px 14px rgba(0,0,0,0.18); }
   .chart-tooltip b { font-size: 12px; }
@@ -728,6 +732,7 @@ function renderStartup(s) {
       </div>
       <div class="chart-wrap" id="chartWrap">
         <div id="chartBody"><div class="chart-empty"><span>···</span></div></div>
+        <div class="chart-band" id="chartBand"></div>
         <div class="chart-cross" id="chartCross"></div>
         <div class="chart-dot" id="chartDot"></div>
         <div class="chart-tooltip" id="chartTip"></div>
@@ -982,6 +987,8 @@ let _chartPeriod       = 30;      // default view: revenue, last 30 days ('all' 
 let _chartInitialized  = false;   // guard: fetch only once per page load
 let _chartGeom         = null;    // geometry cache for hover tooltip
 let _chartHoverBound   = false;
+let _chartSel          = null;    // {lo,hi} point-index range selected by dragging across the plot
+let _chartDragging     = false, _chartMoved = false, _chartAnchor = 0;
 const CHART_PERIODS    = [30, 60, 90, 180];
 
 async function initChart(s) {
@@ -1239,6 +1246,9 @@ function renderChart() {
   const rangeLabel = document.getElementById('chartRangeLabel');
   const legendEl = document.getElementById('chartLegend');
   if (!body) return;
+  // A full re-render (metric/period switch, enrichment, auth) resets any brush.
+  _chartSel = null; _chartDragging = false;
+  { const _b = document.getElementById('chartBand'); if (_b) _b.style.opacity = '0'; }
   const metric = _chartMetrics.find(m => m.key === _chartMetric) || _chartMetrics[0];
   if (!metric) return;
 
@@ -1381,8 +1391,11 @@ function setupChartHover() {
   const wrap = document.getElementById('chartWrap');
   if (!wrap || wrap._hoverBound) return;
   wrap._hoverBound = true;
-  wrap.addEventListener('mousemove', onChartMove);
-  wrap.addEventListener('mouseleave', hideChartHover);
+  wrap.addEventListener('pointermove', onChartPointerMove);
+  wrap.addEventListener('pointerleave', () => { if (!_chartDragging) hideChartHover(); });
+  wrap.addEventListener('pointerdown', onChartDown);
+  wrap.addEventListener('pointerup', onChartUp);
+  wrap.addEventListener('pointercancel', onChartUp);
 }
 
 function onChartMove(e) {
@@ -1429,6 +1442,103 @@ function hideChartHover() {
     const el = document.getElementById(id);
     if (el) el.style.opacity = '0';
   });
+}
+
+// ── Chart range brush: press on a date and drag to select a span, then read the
+//    change in the numbers over exactly that span (header total + % + days). ────
+function chartNearestIdx(e) {
+  const geom = _chartGeom, body = document.getElementById('chartBody');
+  if (!geom || !geom.pts.length || !body) return -1;
+  const rect = body.getBoundingClientRect();
+  if (!rect.width) return -1;
+  const fx = (e.clientX - rect.left) / rect.width;
+  let best = 0, bd = Infinity;
+  for (let i = 0; i < geom.pts.length; i++) { const d = Math.abs(geom.pts[i].cx - fx); if (d < bd) { bd = d; best = i; } }
+  return best;
+}
+function onChartPointerMove(e) {
+  if (_chartDragging) {
+    const idx = chartNearestIdx(e); if (idx < 0) return;
+    if (idx !== _chartAnchor) _chartMoved = true;
+    _chartSel = { lo: Math.min(idx, _chartAnchor), hi: Math.max(idx, _chartAnchor) };
+    updateChartBand(); refreshChartSummary();
+    e.preventDefault();
+  } else {
+    onChartMove(e);   // plain hover: crosshair + per-day tooltip
+  }
+}
+function onChartDown(e) {
+  const idx = chartNearestIdx(e); if (idx < 0) return;
+  _chartDragging = true; _chartMoved = false; _chartAnchor = idx;
+  try { document.getElementById('chartWrap').setPointerCapture(e.pointerId); } catch (_) {}
+  hideChartHover();
+  _chartSel = { lo: idx, hi: idx };
+  updateChartBand();
+  e.preventDefault();
+}
+function onChartUp() {
+  if (!_chartDragging) return;
+  _chartDragging = false;
+  // A tap with no drag (or a zero-width range) clears back to the period view.
+  if (!_chartMoved || !_chartSel || _chartSel.hi === _chartSel.lo) { clearChartSel(); return; }
+  refreshChartSummary();
+}
+function updateChartBand() {
+  const band = document.getElementById('chartBand'), geom = _chartGeom;
+  if (!band) return;
+  if (!geom || !_chartSel) { band.style.opacity = '0'; return; }
+  const lo = geom.pts[_chartSel.lo], hi = geom.pts[_chartSel.hi];
+  if (!lo || !hi) { band.style.opacity = '0'; return; }
+  band.style.left = (lo.cx * 100) + '%';
+  band.style.width = ((hi.cx - lo.cx) * 100) + '%';
+  band.style.opacity = '1';
+}
+// Value + change over the brushed window. Flow metrics (daily revenue) sum the
+// window and compare to the previous equal-length window; snapshot metrics show
+// the end value and its change vs the window's start.
+function computeSelSummary() {
+  const geom = _chartGeom; if (!geom || !_chartSel) return null;
+  const pts = geom.pts, lo = _chartSel.lo, hi = _chartSel.hi;
+  const cur = pts.slice(lo, hi + 1); if (!cur.length) return null;
+  const isFlow = !!geom.flow, sum = a => a.reduce((s, p) => s + (Number(p.val) || 0), 0);
+  let value, prev;
+  if (isFlow) {
+    value = sum(cur);
+    const prevArr = pts.slice(Math.max(0, lo - cur.length), lo);
+    prev = prevArr.length ? sum(prevArr) : null;
+  } else {
+    value = Number(cur[cur.length - 1].val) || 0;
+    prev  = Number(cur[0].val) || 0;
+  }
+  let change = null;
+  if (prev != null && prev !== 0 && value != null) change = (value - prev) / Math.abs(prev) * 100;
+  const days = Math.max(0, Math.round((Date.parse(cur[cur.length-1].date) - Date.parse(cur[0].date)) / 86400000));
+  return { value, change, days, from: cur[0].date, to: cur[cur.length - 1].date };
+}
+function refreshChartSummary() {
+  const geom = _chartGeom; if (!geom) return;
+  const sum = computeSelSummary(); if (!sum) return;
+  const totalEl  = document.getElementById('chartTotal');
+  const changeEl = document.getElementById('chartChange');
+  const rangeEl  = document.getElementById('chartRangeLabel');
+  if (totalEl) totalEl.textContent = geom.fmtFull(sum.value);
+  if (changeEl) {
+    if (sum.change == null || !isFinite(sum.change)) { changeEl.textContent = ''; changeEl.className = 'chart-change'; }
+    else {
+      const up = sum.change >= 0;
+      changeEl.textContent = `${up ? '↑' : '↓'} ${Math.abs(sum.change).toFixed(0)}% · ${sum.days} дн.`;
+      changeEl.className = 'chart-change ' + (up ? 'up' : 'down');
+    }
+  }
+  if (rangeEl) {
+    const f = d => new Date(d).toLocaleDateString(getLang(), { day: 'numeric', month: 'short' });
+    rangeEl.innerHTML = `<span class="chart-selrange">${f(sum.from)} – ${f(sum.to)}</span>`
+      + `<button class="chart-reset" type="button" onclick="clearChartSel()" title="Сбросить">✕</button>`;
+  }
+}
+function clearChartSel() {
+  _chartDragging = false; _chartMoved = false;
+  renderChart();   // resets header/range to the dropdown period and hides the band
 }
 
 // ── Contact CTA - lives on the right side of the sale box ────────────────────
