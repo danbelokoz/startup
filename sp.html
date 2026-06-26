@@ -28,13 +28,32 @@
     .desc-skeleton span { height: 13px; border-radius: 6px; background: linear-gradient(90deg, var(--bg3) 25%, var(--bg2) 50%, var(--bg3) 75%); background-size: 200% 100%; animation: descShimmer 1.2s ease-in-out infinite; }
     .desc-skeleton span:nth-child(1) { width: 96%; } .desc-skeleton span:nth-child(2) { width: 88%; } .desc-skeleton span:nth-child(3) { width: 62%; }
     @keyframes descShimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-    .metrics-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; margin-bottom: 32px; }
-    .metric-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow); }
+    /* Asymmetric metrics grid: MRR is a featured 2x2 block, the rest tile around it */
+    .metrics-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 32px; }
+    .metric-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow); display: flex; flex-direction: column; min-width: 0; }
     .metric-card-label { font-size: 12px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
-    .metric-card-value { font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif; font-size: 26px; font-weight: 700; }
+    .metric-card-value { font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif; font-size: 26px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
     .metric-card-sub { font-size: 12px; color: var(--text3); margin-top: 3px; }
+    .metric-card-context { color: var(--text3); font-weight: 500; font-size: 0.6em; margin-left: 3px; }
     .growth-positive { color: var(--trading-up); }
     .growth-negative { color: var(--trading-down); }
+    /* Featured MRR card */
+    .metric-card.featured { grid-column: span 2; grid-row: span 2; position: relative; padding: 20px 22px; }
+    .metric-card.featured .metric-card-value { font-size: 40px; line-height: 1.04; letter-spacing: -1px; margin-top: 2px; }
+    /* scoped under .featured so it beats the .has-tip { position: relative } helper */
+    .metric-card.featured .metric-card-source { position: absolute; top: 14px; right: 14px; display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 600; letter-spacing: 0.03em; color: var(--green); background: var(--green-bg); border: 1px solid rgba(14,203,129,0.22); border-radius: 999px; padding: 3px 9px; max-width: 60%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; z-index: 1; }
+    .metric-card-source .src-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+    .metric-cmp { display: inline-flex; align-items: baseline; gap: 5px; font-size: 13px; font-weight: 700; margin-top: 9px; }
+    .metric-cmp.up { color: var(--trading-up); } .metric-cmp.down { color: var(--trading-down); }
+    .metric-cmp.flat { color: var(--text3); font-weight: 600; }
+    .metric-cmp .cmp-base { color: var(--text3); font-weight: 500; font-size: 11px; }
+    .metric-spark { width: 100%; height: 42px; margin-top: auto; padding-top: 14px; display: block; }
+    @media (max-width: 900px) {
+      .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .metric-card.featured { grid-column: 1 / -1; grid-row: auto; }
+      .metric-card.featured .metric-card-value { font-size: 34px; }
+      .metric-spark { height: 38px; }
+    }
     .section-title { font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif; font-size: 18px; font-weight: 600; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
     .info-table { width: 100%; border-collapse: collapse; margin-bottom: 32px; background: var(--bg2); border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); box-shadow: var(--shadow); }
     .info-table tr { border-bottom: 1px solid var(--border); }
@@ -62,7 +81,7 @@
     .archive-banner .ab-body { flex: 1; min-width: 0; }
     .archive-banner .ab-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
     .archive-banner .ab-note { font-size: 13px; color: var(--text2); line-height: 1.5; }
-    @media (max-width: 640px) { .page-wrap { padding: 16px 16px 60px; } .startup-header { flex-direction: column; } .startup-header-meta h1 { font-size: 24px; } .metrics-grid { grid-template-columns: 1fr 1fr; } .price-chip b { font-size: 17px; } }
+    @media (max-width: 640px) { .page-wrap { padding: 16px 16px 60px; } .startup-header { flex-direction: column; } .startup-header-meta h1 { font-size: 24px; } .metrics-grid { grid-template-columns: 1fr; } .price-chip b { font-size: 17px; } }
   .contact-locked { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; }
   .contact-locked svg { flex-shrink: 0; color: var(--text3); }
   .contact-locked span { flex: 1; font-size: 13px; color: var(--text2); }
@@ -202,6 +221,11 @@
   .chart-select  { appearance: none; -webkit-appearance: none; background: var(--bg2); border: 1px solid var(--border); color: var(--text); font-size: 12px; font-weight: 500; padding: 6px 28px 6px 10px; border-radius: 8px; cursor: pointer; transition: border-color 0.12s, box-shadow 0.12s; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23999' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; }
   .chart-select:hover { border-color: var(--border2); }
   .chart-select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,0,0,0.04); }
+  /* Period switcher: pill buttons (active = amber fill) */
+  .chart-pills { display: inline-flex; gap: 3px; background: var(--bg3); border: 1px solid var(--border); border-radius: 9px; padding: 3px; }
+  .chart-pill { font-size: 12px; font-weight: 600; color: var(--text3); background: transparent; border: none; border-radius: 6px; padding: 5px 11px; cursor: pointer; font-family: inherit; line-height: 1; transition: color 0.12s, background 0.12s; white-space: nowrap; }
+  .chart-pill:hover { color: var(--text); }
+  .chart-pill.active { background: var(--accent); color: #181A20; }
   /* Interactive hover layer */
   .chart-wrap { position: relative; touch-action: pan-y; cursor: crosshair; -webkit-user-select: none; user-select: none; }
   .chart-band { position: absolute; top: 0; bottom: 0; background: rgba(255,255,255,0.06); border-left: 1px solid var(--accent); border-right: 1px solid var(--accent); pointer-events: none; opacity: 0; }
@@ -218,6 +242,7 @@
   .chart-legend-item { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text2); }
   .chart-legend-swatch { width: 14px; height: 3px; border-radius: 2px; background: var(--accent); flex-shrink: 0; }
   .chart-legend-swatch.muted { background: var(--text3); }
+  .chart-legend-swatch.dashed { background: repeating-linear-gradient(90deg, var(--text3) 0 4px, transparent 4px 7px); }
   .chart-legend-item b { color: var(--text); font-weight: 600; }
   /* Summary header (period total + change) */
   .chart-summary { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
@@ -248,7 +273,7 @@
 
 <script src="/auth-config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="/shared.js"></script>
+<script src="/shared.js?v=20260626"></script>
 <script>
 // Resilience guard: loadSimilar() (the "More … for sale" rail) calls isRecommendable()
 // and shuffle() from shared.js. If a browser serves a STALE cached shared.js right
@@ -518,7 +543,18 @@ function renderStartup(s) {
   const g    = s.growth30d != null ? s.growth30d : s.cachedGrowth30d;
   const gStr = g!=null?`<span class="${g>0?'growth-positive':g<0?'growth-negative':''}">${g>0?'+':''}${parseFloat(g).toFixed(1)}%</span>`:'-';
   const gMrrRaw = s.growthMRR30d != null ? s.growthMRR30d : s.cachedGrowthMRR30d;
-  const gMrr = gMrrRaw!=null?`<span class="${gMrrRaw>0?'growth-positive':gMrrRaw<0?'growth-negative':''}">${gMrrRaw>0?'+':''}${parseFloat(gMrrRaw).toFixed(1)}%</span>`:'-';
+  // Featured MRR card: data-source badge (e.g. "Verified · RevenueCat") + a
+  // previous-period comparison line. growthMRR30d already IS the change vs the
+  // prior 30 days, so we just reframe it as flat / ↑ / ↓ instead of "growth: 0%".
+  const provLabel = s.paymentProvider ? s.paymentProvider.charAt(0).toUpperCase() + s.paymentProvider.slice(1) : '';
+  const mrrSource = s.paymentProvider
+    ? `<span class="metric-card-source has-tip" data-tip="${escHtml(t('startupPage','tipProvider'))}"><span class="src-dot"></span>${escHtml(t('startupPage','verified'))} · ${escHtml(provLabel)}</span>`
+    : '';
+  const mrrCmpV = gMrrRaw != null ? parseFloat(gMrrRaw) : null;
+  const mrrCmp = (mrrCmpV == null || !isFinite(mrrCmpV)) ? ''
+    : (mrrCmpV === 0
+        ? `<div class="metric-cmp flat">${t('startupPage','flat')} <span class="cmp-base">${t('startupPage','mrrVsPrev')}</span></div>`
+        : `<div class="metric-cmp ${mrrCmpV > 0 ? 'up' : 'down'}">${mrrCmpV > 0 ? '↑' : '↓'} ${Math.abs(mrrCmpV).toFixed(1)}% <span class="cmp-base">${t('startupPage','mrrVsPrev')}</span></div>`);
   const website = s.website?`<a href="${escHtml(s.website)}" target="_blank" style="color:var(--accent)">${s.website.replace(/^https?:\/\//,'')}</a>`:'-';
 
   const isAnon = (s.name||'').toLowerCase().includes('anonymous');
@@ -594,7 +630,8 @@ function renderStartup(s) {
   const stealthBadge   = s.stealthMode ? `<span class="badge badge-stealth has-tip" data-tip="${escHtml(t('startupPage','tipStealth'))}">${icon('ghost',{size:10})} Stealth</span>` : '';
   const cofounderBadge = s.lookingForCofounder ? `<span class="badge badge-cofounder has-tip" data-tip="${escHtml(t('startupPage','tipCofounder'))}">${icon('handshake',{size:10})} Hiring cofounder</span>` : '';
   const fundingBadge   = ai.fundingStatus && ai.fundingStatus !== 'Unknown' ? `<span class="badge badge-funding has-tip" data-tip="${escHtml(t('startupPage','tipFunding'))}">${escHtml(ai.fundingStatus)}</span>` : '';
-  const scoreBadge     = s.acquireScore != null ? `<span class="badge badge-score has-tip" data-tip="${escHtml(t('startupPage','tipScore'))}">${icon('trophy',{size:10})} Score ${(s.acquireScore * 100).toFixed(0)}</span>` : '';
+  // acquireScore is 0..1 upstream; ×100 gives the 0-100 scale (see tipScore). Show the /100 denominator so "40" reads as "40 / 100".
+  const scoreBadge     = s.acquireScore != null ? `<span class="badge badge-score has-tip" data-tip="${escHtml(t('startupPage','tipScore'))}">${icon('trophy',{size:10})} Score ${(s.acquireScore * 100).toFixed(0)}<span style="color:var(--text3);font-weight:500;"> / 100</span></span>` : '';
   // Tags are now clickable - link home filter by tag as a search keyword
   const tagBadges      = tags.slice(0, 6).map(tg => `<a class="ai-tag has-tip" href="/catalog?search=${encodeURIComponent(tg)}" data-tip="${escHtml('Показать стартапы с тегом «' + tg + '»')}">${icon('tag',{size:10})} ${escHtml(tg)}</a>`).join('');
   const tagsRow        = tagBadges ? `<div class="ai-tags" style="margin-top:8px;">${tagBadges}</div>` : '';
@@ -658,7 +695,7 @@ function renderStartup(s) {
     insightCard('megaphone', 'Marketing channels',channelsBody),
   ].filter(Boolean);
   const insightsHtml = cards.length
-    ? `<div class="section-title">Startup insights</div><div class="insights-grid">${cards.join('')}</div>`
+    ? `<div class="section-title">${t('startupPage','insights')}</div><div class="insights-grid">${cards.join('')}</div>`
     : '';
 
   document.getElementById('content').innerHTML = `
@@ -689,20 +726,20 @@ function renderStartup(s) {
 
     ${saleBlock}
 
-    <div class="section-title">Revenue metrics</div>
+    <div class="section-title">${t('startupPage','revenueMetrics')}</div>
     <div class="metrics-grid">
-      <div class="metric-card"><div class="metric-card-label">${t('startupPage','mrr')}</div><div class="metric-card-value">${formatMoney(s.revenue&&s.revenue.mrr)}</div><div class="metric-card-sub">MRR growth: ${gMrr}</div></div>
+      <div class="metric-card featured">${mrrSource}<div class="metric-card-label">${t('startupPage','mrr')}</div><div class="metric-card-value">${formatMoney(s.revenue&&s.revenue.mrr)}</div>${mrrCmp}<svg class="metric-spark" id="mrrSpark" viewBox="0 0 300 42" preserveAspectRatio="none" aria-hidden="true"></svg></div>
       <div class="metric-card"><div class="metric-card-label">${s.isMerchantOfRecord?t('startupPage','gmv30'):t('startupPage','rev30')}</div><div class="metric-card-value">${formatMoney(s.revenue&&s.revenue.last30Days)}</div><div class="metric-card-sub">${t('startupPage','growth')}: ${gStr}</div></div>
-      <div class="metric-card"><div class="metric-card-label">${s.isMerchantOfRecord?t('startupPage','gmv'):t('startupPage','totalRev')}</div><div class="metric-card-value">${formatMoney(s.revenue&&s.revenue.total)}</div><div class="metric-card-sub">all time</div></div>
+      <div class="metric-card"><div class="metric-card-label">${s.isMerchantOfRecord?t('startupPage','gmv'):t('startupPage','totalRev')}</div><div class="metric-card-value">${formatMoney(s.revenue&&s.revenue.total)}</div><div class="metric-card-sub">${t('startupPage','allTime')}</div></div>
       ${s.profitMarginLast30Days!=null?`<div class="metric-card"><div class="metric-card-label">${t('startupPage','margin')}</div><div class="metric-card-value">${Math.round(s.profitMarginLast30Days)}%</div></div>`:''}
-      <div class="metric-card"><div class="metric-card-label">${t('startupPage','customers')}</div><div class="metric-card-value">${(s.customers||0).toLocaleString()}</div></div>
       <div class="metric-card"><div class="metric-card-label">${t('startupPage','subs')}</div><div class="metric-card-value">${(s.activeSubscriptions||0).toLocaleString()}</div></div>
+      ${s.customers>0?`<div class="metric-card"><div class="metric-card-label">${t('startupPage','customers')}</div><div class="metric-card-value">${s.customers.toLocaleString()}</div></div>`:''/* Customers comes straight from TrustMRR; many RevenueCat listings report 0 here while activeSubscriptions is non-zero, so a 0 is "not reported", not a real zero - hide it instead of showing a misleading "0". */}
       ${s.visitorsLast30Days!=null?`<div class="metric-card"><div class="metric-card-label">${t('startupPage','visitors')}</div><div class="metric-card-value">${s.visitorsLast30Days.toLocaleString()}</div></div>`:''}
-      ${s.googleSearchImpressionsLast30Days!=null?`<div class="metric-card"><div class="metric-card-label">Google impressions (30d)</div><div class="metric-card-value">${s.googleSearchImpressionsLast30Days.toLocaleString()}</div></div>`:''}
-      ${s.revenuePerVisitor!=null?`<div class="metric-card"><div class="metric-card-label">Revenue / visitor</div><div class="metric-card-value">${formatMoney(s.revenuePerVisitor)}</div></div>`:''}
-      ${s.xFollowerCount!=null?`<div class="metric-card"><div class="metric-card-label">𝕏 followers</div><div class="metric-card-value">${s.xFollowerCount.toLocaleString()}</div></div>`:''}
-      ${ai.estimatedUserCount!=null?`<div class="metric-card"><div class="metric-card-label">Est. users</div><div class="metric-card-value">${Number(ai.estimatedUserCount).toLocaleString()}</div></div>`:''}
-      ${s.rank?`<div class="metric-card"><div class="metric-card-label">${t('startupPage','rank')}</div><div class="metric-card-value">#${s.rank}</div></div>`:''}
+      ${s.googleSearchImpressionsLast30Days!=null?`<div class="metric-card"><div class="metric-card-label">${t('startupPage','googleImpr')}</div><div class="metric-card-value">${s.googleSearchImpressionsLast30Days.toLocaleString()}</div></div>`:''}
+      ${s.revenuePerVisitor!=null?`<div class="metric-card"><div class="metric-card-label">${t('startupPage','revPerVisitor')}</div><div class="metric-card-value">${formatMoney(s.revenuePerVisitor)}</div></div>`:''}
+      ${s.xFollowerCount!=null?`<div class="metric-card"><div class="metric-card-label">${t('startupPage','xFollowers')}</div><div class="metric-card-value">${s.xFollowerCount.toLocaleString()}</div></div>`:''}
+      ${ai.estimatedUserCount!=null?`<div class="metric-card"><div class="metric-card-label">${t('startupPage','estUsers')}</div><div class="metric-card-value">${Number(ai.estimatedUserCount).toLocaleString()}</div></div>`:''}
+      ${s.rank?`<div class="metric-card"><div class="metric-card-label">${t('startupPage','rank')}</div><div class="metric-card-value">#${s.rank}</div><div class="metric-card-sub">${t('startupPage','rankBasis')}</div></div>`:''}
     </div>
     ${(s.hasGA || s.hasGSC || s.hasDatafast) ? `
     <div class="analytics-row">
@@ -711,7 +748,7 @@ function renderStartup(s) {
       ${s.hasDatafast ? `<span class="analytics-pill">${icon('zap',{size:11})} Datafast</span>` : ''}
     </div>` : ''}
 
-    <div class="section-title" data-i18n="startupPage.dailyChart">Динамика по дням</div>
+    <div class="section-title">${t('startupPage','dailyChart')}</div>
     <div class="chart-card" id="chartCard">
       <div class="chart-head">
         <div class="chart-summary">
@@ -723,7 +760,7 @@ function renderStartup(s) {
         </div>
         <div class="chart-filters">
           <select id="chartMetricSel" class="chart-select" onchange="onMetricChange(this.value)" aria-label="Metric"></select>
-          <select id="chartPeriodSel" class="chart-select" onchange="onPeriodChange(this.value)" aria-label="Period"></select>
+          <div id="chartPeriodPills" class="chart-pills" role="tablist" aria-label="Period"></div>
         </div>
       </div>
       <div class="chart-wrap" id="chartWrap">
@@ -738,7 +775,7 @@ function renderStartup(s) {
 
     <div id="siteSection"></div>
 
-    <div class="section-title">Info</div>
+    <div class="section-title">${t('startupPage','info')}</div>
     <table class="info-table">
       ${s.foundedDate?`<tr><td>${t('startupPage','founded')}</td><td>${new Date(s.foundedDate).getFullYear()}</td></tr>`:''}
       ${s.country?`<tr><td>${t('startupPage','country')}</td><td>${flagBadge(s.country)}</td></tr>`:''}
@@ -757,12 +794,34 @@ function renderStartup(s) {
 
     <div class="similar-section" id="similarSection"></div>`;
 
+  renderMrrSparkline();   // fills #mrrSpark once daily-revenue history is loaded (no-op before then)
   if (s.onSale) renderContactSection(s);
   initChart(s);
   fetchEnrichment(s.slug);
   loadSimilar(s);
   renderSiteSection();
   fetchSiteData(s.website);
+}
+
+// ── Featured-card sparkline ───────────────────────────────────────────────────
+// Tiny no-axis line of the last ~30 daily-revenue points under the MRR figure.
+// Uses the same _revenueHistory the chart loads (async), so it's called from both
+// renderStartup (a no-op until data lands) and initChart (after the fetch resolves).
+function renderMrrSparkline() {
+  const el = document.getElementById('mrrSpark');
+  if (!el) return;
+  const pts = (_revenueHistory || []).map(p => Number(p.rev_usd)).filter(v => isFinite(v)).slice(-30);
+  if (pts.length < 2) { el.innerHTML = ''; return; }
+  const W = 300, H = 42, P = 3;
+  const min = Math.min(...pts), max = Math.max(...pts), span = (max - min) || 1;
+  const x = i => P + (i / (pts.length - 1)) * (W - 2 * P);
+  const y = v => H - P - ((v - min) / span) * (H - 2 * P);
+  const d = pts.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  const areaD = `${d} L${x(pts.length - 1).toFixed(1)},${H} L${x(0).toFixed(1)},${H} Z`;
+  el.innerHTML =
+      `<defs><linearGradient id="sparkGrad" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="var(--accent)" stop-opacity="0.22"/><stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>`
+    + `<path d="${areaD}" fill="url(#sparkGrad)"/>`
+    + `<path d="${d}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`;
 }
 
 // ── Live website preview, tech stack, pricing, social ───────────────────────
@@ -959,15 +1018,18 @@ async function fetchEnrichment(slug) {
 // synthesised/estimated curve (see renderChart's empty state).
 // Asking price comes from a separate scrape of trustmrr.com (asking-price changes
 // don't make it into the TrustMRR API).
+// label = English fallback; labelKey routes through i18n (metricLabel) so the
+// selector reads in the active UI language.
 const CHART_METRICS_ALL = [
-  { key: 'daily_rev',    label: 'Daily Revenue', kind: 'money', source: 'revenue-history', flow: true },
-  { key: 'mrr_cents',    label: 'MRR',           kind: 'money' },
-  { key: 'customers',    label: 'Customers',     kind: 'int'   },
-  { key: 'subscriptions',label: 'Subscriptions', kind: 'int'   },
-  { key: 'growth30d',    label: 'Growth %',      kind: 'pct'   },
-  { key: 'visitors_30d', label: 'Visitors',      kind: 'int'   },
-  { key: 'asking_price', label: 'Asking price',  kind: 'money', source: 'price-history', requiresOnSale: true },
+  { key: 'daily_rev',    labelKey: 'cmDailyRev',  label: 'Daily revenue', kind: 'money', source: 'revenue-history', flow: true },
+  { key: 'mrr_cents',    labelKey: 'cmMrr',       label: 'MRR',           kind: 'money' },
+  { key: 'customers',    labelKey: 'cmCustomers', label: 'Customers',     kind: 'int'   },
+  { key: 'subscriptions',labelKey: 'cmSubs',      label: 'Subscriptions', kind: 'int'   },
+  { key: 'growth30d',    labelKey: 'cmGrowth',    label: 'Growth %',      kind: 'pct'   },
+  { key: 'visitors_30d', labelKey: 'cmVisitors',  label: 'Visitors',      kind: 'int'   },
+  { key: 'asking_price', labelKey: 'cmPrice',     label: 'Asking price',  kind: 'money', source: 'price-history', requiresOnSale: true },
 ];
+function metricLabel(m) { return (m && m.labelKey && t('startupPage', m.labelKey)) || (m && m.label) || ''; }
 let _chartMetrics      = CHART_METRICS_ALL;
 let _chartData         = [];
 let _priceHistory      = [];
@@ -1015,6 +1077,7 @@ async function initChart(s) {
   if (_isArchived) renderArchiveBanner();
   buildChartControls();
   renderChart();
+  renderMrrSparkline();   // daily-revenue history is in now - draw the featured-card sparkline
 }
 
 // A metric is worth charting only if it has ≥2 points AND at least one non-zero
@@ -1026,55 +1089,60 @@ function seriesHasSignal(metric) {
   return pts.length >= 2 && pts.some(p => Number(p.val) !== 0);
 }
 
-// ── Chart controls (metric + period dropdowns) ────────────────────────────────
-// Only metrics with real (non-zero) data are offered. Period options are limited
+// ── Chart controls (metric dropdown + period pills) ───────────────────────────
+// Only metrics with real (non-zero) data are offered. Period pills are limited
 // to windows that are smaller than the available data span.
 function buildChartControls() {
   const metricSel = document.getElementById('chartMetricSel');
-  const periodSel = document.getElementById('chartPeriodSel');
+  const pills     = document.getElementById('chartPeriodPills');
   const filters   = document.querySelector('.chart-filters');
-  if (!metricSel || !periodSel) return;
+  if (!metricSel || !pills) return;
 
   const avail = _chartMetrics.filter(seriesHasSignal);
-  if (!avail.length) { if (filters) filters.style.display = 'none'; metricSel.innerHTML = ''; periodSel.innerHTML = ''; return; }
+  if (!avail.length) { if (filters) filters.style.display = 'none'; metricSel.innerHTML = ''; pills.innerHTML = ''; return; }
   if (filters) filters.style.display = '';
 
   if (!avail.some(m => m.key === _chartMetric)) _chartMetric = avail[0].key;
 
   metricSel.innerHTML = avail.map(m =>
-    `<option value="${m.key}"${m.key===_chartMetric?' selected':''}>${m.label}</option>`
+    `<option value="${m.key}"${m.key===_chartMetric?' selected':''}>${escHtml(metricLabel(m))}</option>`
   ).join('');
 
-  buildPeriodOptions();
+  buildPeriodPills();
 }
 
-function buildPeriodOptions() {
-  const periodSel = document.getElementById('chartPeriodSel');
+// Render the period switcher as pill buttons (active = amber). Same data-driven
+// option set as before; only windows shorter than the series span are offered.
+function buildPeriodPills() {
+  const pills  = document.getElementById('chartPeriodPills');
   const metric = _chartMetrics.find(m => m.key === _chartMetric);
-  if (!periodSel || !metric) return;
+  if (!pills || !metric) return;
   const { points } = computePoints(metric, 'all');
   let spanDays = 0;
   if (points.length >= 2) spanDays = Math.round((new Date(points[points.length-1].date) - new Date(points[0].date)) / 86400000);
 
-  const opts = CHART_PERIODS.filter(p => p < spanDays).map(p => ({ value: String(p), label: p + ' дней' }));
+  const suffix = t('startupPage','perDaySuffix') || 'd';
+  const opts = CHART_PERIODS.filter(p => p < spanDays).map(p => ({ value: String(p), label: p + suffix }));
   // Always offer a 30-day view (the product default), even when the series is ~30d
   // or shorter - it then simply shows everything available.
-  if (points.length && !opts.some(o => o.value === '30')) opts.unshift({ value: '30', label: '30 дней' });
-  opts.push({ value: 'all', label: spanDays ? `Всё (${spanDays}д)` : 'Всё' });
+  if (points.length && !opts.some(o => o.value === '30')) opts.unshift({ value: '30', label: '30' + suffix });
+  opts.push({ value: 'all', label: t('startupPage','perAll') || 'All' });
 
   if (_chartPeriod !== 'all' && !opts.some(o => o.value === String(_chartPeriod))) _chartPeriod = 'all';
-  periodSel.innerHTML = opts.map(o =>
-    `<option value="${o.value}"${String(_chartPeriod)===o.value?' selected':''}>${o.label}</option>`
-  ).join('');
+  pills.innerHTML = opts.map(o => {
+    const active = String(_chartPeriod) === o.value;
+    return `<button type="button" class="chart-pill${active?' active':''}" role="tab" aria-selected="${active}" onclick="onPeriodChange('${o.value}')">${escHtml(o.label)}</button>`;
+  }).join('');
 }
 
 function onMetricChange(key) {
   _chartMetric = key;
-  buildPeriodOptions();   // available periods depend on the metric's data span
+  buildPeriodPills();   // available periods depend on the metric's data span
   renderChart();
 }
 function onPeriodChange(val) {
   _chartPeriod = (val === 'all') ? 'all' : parseInt(val, 10);
+  buildPeriodPills();   // reflect the new active pill
   renderChart();
 }
 
@@ -1137,11 +1205,13 @@ function computeSummary(metric, period) {
   const isFlow = !!metric.flow;   // revenue accumulates → show the total
   const sum = arr => arr.reduce((a, p) => a + (Number(p.val) || 0), 0);
 
-  let curArr, prevArr, basis;
+  // basisDays: the window length to label the comparison with (e.g. "vs prev. 30d").
+  // null = generic "vs prev. period" (used for the 'all' view and stale/widened windows).
+  let curArr, prevArr, basisDays;
   if (period === 'all') {
     const mid = Math.floor(all.length / 2);
     curArr = all.slice(mid); prevArr = all.slice(0, mid);
-    basis = 'пред. период';
+    basisDays = null;
   } else {
     // Mirror the points the chart actually draws. computePoints applies the same
     // period window but falls back to the last N snapshots when the series is stale
@@ -1154,9 +1224,9 @@ function computeSummary(metric, period) {
     const firstDrawn = n ? curArr[0].date : null;
     const idx = firstDrawn ? all.findIndex(p => p.date >= firstDrawn) : all.length;
     prevArr = idx > 0 ? all.slice(Math.max(0, idx - n), idx) : [];
-    // When the window was widened past the requested period, "пред. N дн." would be
+    // When the window was widened past the requested period, "prev. N days" would be
     // misleading - the drawn window isn't N days. Label it generically instead.
-    basis = cp.widenedFrom ? 'пред. период' : `пред. ${period} дн.`;
+    basisDays = cp.widenedFrom ? null : period;
   }
 
   let value, prev;
@@ -1170,13 +1240,34 @@ function computeSummary(metric, period) {
 
   let change = null;
   if (prev != null && prev !== 0 && value != null) change = (value - prev) / Math.abs(prev) * 100;
-  return { value, isSum: isFlow, change, basis };
+  return { value, isSum: isFlow, change, basisDays };
 }
 
-function pluralPayments(n) {
-  return n % 10 === 1 && n % 100 !== 11 ? 'платёж'
-       : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) ? 'платежа'
-       : 'платежей';
+// The equal-length window immediately BEFORE the drawn window, as raw {date,val}
+// points - used to overlay the "previous period" comparison line. Mirrors the
+// prevArr logic in computeSummary. Returns [] when there's no clean prior window
+// (the 'all' view, a stepped/stale series, or not enough earlier history).
+function computePrevWindow(metric, period, curPoints, stepped, widenedFrom) {
+  if (period === 'all' || stepped || widenedFrom || !curPoints || curPoints.length < 2) return [];
+  const all = computePoints(metric, 'all').points;
+  const n = curPoints.length;
+  if (all.length < n + 2) return [];
+  const idx = all.findIndex(p => p.date >= curPoints[0].date);
+  if (idx <= 1) return [];
+  const prev = all.slice(Math.max(0, idx - n), idx);
+  return prev.length >= 2 ? prev : [];
+}
+
+// Localized "N payments" phrase. Russian keeps its 3-form plural; other languages
+// use the single translated template "{n} payments".
+function paymentsLine(n) {
+  if (getLang() === 'ru') {
+    const w = n % 10 === 1 && n % 100 !== 11 ? 'платёж'
+            : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) ? 'платежа'
+            : 'платежей';
+    return n + ' ' + w;
+  }
+  return (t('startupPage','ttPayments') || '{n} payments').replace('{n}', n);
 }
 
 function renderChartHeader(metric, fmtFull) {
@@ -1195,7 +1286,10 @@ function renderChartHeader(metric, fmtFull) {
       changeEl.textContent = ''; changeEl.className = 'chart-change';
     } else {
       const up = summary.change >= 0;
-      changeEl.textContent = `${up ? '↑' : '↓'} ${Math.abs(summary.change).toFixed(0)}% vs ${summary.basis}`;
+      const basis = summary.basisDays
+        ? (t('startupPage','vsPrevNDays') || 'vs prev. {n}d').replace('{n}', summary.basisDays)
+        : (t('startupPage','vsPrevPeriod') || 'vs prev. period');
+      changeEl.textContent = `${up ? '↑' : '↓'} ${Math.abs(summary.change).toFixed(0)}% ${basis}`;
       changeEl.className = 'chart-change ' + (up ? 'up' : 'down');
     }
   }
@@ -1282,18 +1376,33 @@ function renderChart() {
     return;
   }
 
+  // Previous equal-length window, overlaid as a faint dashed line for "this period
+  // vs last period" context (index-aligned: day i of this window vs day i of the
+  // prior one). Empty for the 'all' view, stepped price, or stale/short series.
+  const prevPts = computePrevWindow(metric, _chartPeriod, points, stepped, widenedFrom);
+  const hasPrev = prevPts.length >= 2;
+
   const W = 720, H = 220, PAD_L = 50, PAD_R = 12, PAD_T = 12, PAD_B = 26;
   const ys = points.map(p => Number(p.val) || 0);
-  const yMinRaw = Math.min(...ys);
+  const prevYs = prevPts.map(p => Number(p.val) || 0);
+  const yMinRaw = Math.min(...ys);   // current window only - drives the legend Min/Max
   const yMaxRaw = Math.max(...ys);
-  // Round the y-axis to "nice" tick values (0, 1K, 2K…) instead of the raw data
-  // range. Flow metrics (revenue) anchor at a 0 baseline; snapshots keep their
-  // range so a high-floor trend (e.g. MRR ~$300-500) isn't flattened.
-  const { ticks: yTicks, niceMin, niceMax } = niceTicks(metric.flow ? Math.min(0, yMinRaw) : yMinRaw, yMaxRaw, 4);
+  // Axis must fit BOTH lines so the comparison is honest (a bigger prior period
+  // shouldn't clip). Round to "nice" tick values; flow metrics anchor at 0.
+  const yMinAll = hasPrev ? Math.min(yMinRaw, ...prevYs) : yMinRaw;
+  const yMaxAll = hasPrev ? Math.max(yMaxRaw, ...prevYs) : yMaxRaw;
+  const { ticks: yTicks, niceMin, niceMax } = niceTicks(metric.flow ? Math.min(0, yMinAll) : yMinAll, yMaxAll, 4);
   const yLo = niceMin;
   const yHi = niceMax > niceMin ? niceMax : niceMin + 1;
   const x = i => PAD_L + (i / Math.max(1, points.length - 1)) * (W - PAD_L - PAD_R);
   const y = v => H - PAD_B - ((v - yLo) / (yHi - yLo || 1)) * (H - PAD_T - PAD_B);
+  // Previous line maps over its own length so it spans the full width and aligns
+  // progress-wise with the current line.
+  let prevLineD = '';
+  if (hasPrev) {
+    const xPrev = i => PAD_L + (i / Math.max(1, prevPts.length - 1)) * (W - PAD_L - PAD_R);
+    prevLineD = smoothPath(prevPts.map((p, i) => ({ x: xPrev(i), y: y(Number(p.val) || 0) })));
+  }
 
   // Build the line path: stepped for asking-price, smooth bezier for everything else
   const xy = points.map((p, i) => ({ x: x(i), y: y(ys[i]) }));
@@ -1338,6 +1447,7 @@ function renderChart() {
       </defs>
       ${gridLines}
       <path d="${areaD}" fill="${fillGrad}"/>
+      ${prevLineD ? `<path d="${prevLineD}" fill="none" stroke="var(--text3)" stroke-width="1.4" stroke-dasharray="5 4" stroke-linejoin="round" stroke-linecap="round" opacity="0.9"/>` : ''}
       <path d="${lineD}" fill="none" stroke="${stroke}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" ${dash}/>
       ${xLabels}
     </svg>`;
@@ -1364,13 +1474,16 @@ function renderChart() {
 
   if (legendEl) {
     const last = ys[ys.length - 1];
-    const ptWord = points.length === 1 ? 'точка' : points.length < 5 ? 'точки' : 'точек';
+    const prevItem = hasPrev
+      ? `<span class="chart-legend-item"><span class="chart-legend-swatch dashed"></span>${escHtml(t('startupPage','legPrevious'))}</span>`
+      : '';
     legendEl.innerHTML =
-      `<span class="chart-legend-item"><span class="chart-legend-swatch"></span>${metric.label}</span>`
-    + `<span class="chart-legend-item">Сейчас: <b>${fmt(last)}</b></span>`
-    + `<span class="chart-legend-item">Макс: <b>${fmt(yMaxRaw)}</b></span>`
-    + `<span class="chart-legend-item">Мин: <b>${fmt(yMinRaw)}</b></span>`
-    + `<span class="chart-legend-item" style="color:var(--text3)">${points.length} ${ptWord}</span>`;
+      `<span class="chart-legend-item"><span class="chart-legend-swatch"></span>${escHtml(t('startupPage','legCurrent'))}</span>`
+    + prevItem
+    + `<span class="chart-legend-item">${escHtml(t('startupPage','legNow'))}: <b>${fmt(last)}</b></span>`
+    + `<span class="chart-legend-item">${escHtml(t('startupPage','legMax'))}: <b>${fmt(yMaxRaw)}</b></span>`
+    + `<span class="chart-legend-item">${escHtml(t('startupPage','legMin'))}: <b>${fmt(yMinRaw)}</b></span>`
+    + `<span class="chart-legend-item" style="color:var(--text3)">${(t('startupPage','legPoints')||'{n} points').replace('{n}', points.length)}</span>`;
   }
 }
 
@@ -1415,10 +1528,12 @@ function onChartMove(e) {
     const dlbl = new Date(p.date).toLocaleDateString(getLang(), { day: 'numeric', month: 'short', year: 'numeric' });
     let rows = '';
     if (p.charges != null && p.charges > 0) {
-      rows += `<span class="tt-row">${p.charges} ${pluralPayments(p.charges)}</span>`;
+      rows += `<span class="tt-row">${paymentsLine(p.charges)}</span>`;
       if (geom.flow) {
-        const per = p.val / p.charges;   // average payment size in USD → formatMoney
-        rows += `<span class="tt-row">≈ ${formatMoney(per)} / платёж</span>`;
+        // Average payment size (avg ticket) - a real signal for a buyer, so we keep
+        // it but label it clearly instead of the cryptic "≈ $19 / платёж".
+        const per = p.val / p.charges;
+        rows += `<span class="tt-row">${(t('startupPage','ttAvgPayment') || 'Avg. payment: {v}').replace('{v}', formatMoney(per))}</span>`;
       }
     }
     tip.innerHTML = `<b>${geom.fmtFull(p.val)}</b>${rows}<span class="tt-date">${dlbl}</span>`;
@@ -1512,14 +1627,14 @@ function refreshChartSummary() {
     else {
       const up = sum.change >= 0;
       const dec = Math.abs(sum.change) < 10 && sum.change !== 0 ? 1 : 0;
-      changeEl.textContent = `${up ? '↑' : '↓'} ${Math.abs(sum.change).toFixed(dec)}% · ${sum.days} дн.`;
+      changeEl.textContent = `${up ? '↑' : '↓'} ${Math.abs(sum.change).toFixed(dec)}% · ${sum.days}${t('startupPage','perDaySuffix') || 'd'}`;
       changeEl.className = 'chart-change ' + (up ? 'up' : 'down');
     }
   }
   if (rangeEl) {
     const f = d => new Date(d).toLocaleDateString(getLang(), { day: 'numeric', month: 'short' });
     rangeEl.innerHTML = `<span class="chart-selrange">${f(sum.from)} – ${f(sum.to)}</span>`
-      + `<button class="chart-reset" type="button" onclick="clearChartSel()" title="Сбросить">✕</button>`;
+      + `<button class="chart-reset" type="button" onclick="clearChartSel()" title="${escHtml(t('startupPage','reset') || 'Reset')}">✕</button>`;
   }
 }
 function clearChartSel() {
