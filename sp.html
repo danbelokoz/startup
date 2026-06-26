@@ -809,13 +809,14 @@ function renderStartup(s) {
 }
 
 // ── Featured-card sparkline ───────────────────────────────────────────────────
-// Tiny no-axis line of the last ~30 daily-revenue points under the MRR figure.
-// Uses the same _revenueHistory the chart loads (async), so it's called from both
+// Tiny no-axis MRR trend under the MRR figure - the SAME mrr_cents snapshot series
+// the big chart draws when "MRR" is selected, so the mini and full charts agree.
+// Reads _chartData (loaded async in initChart), so it's called from both
 // renderStartup (a no-op until data lands) and initChart (after the fetch resolves).
 function renderMrrSparkline() {
   const el = document.getElementById('mrrSpark');
   if (!el) return;
-  const pts = (_revenueHistory || []).map(p => Number(p.rev_usd)).filter(v => isFinite(v)).slice(-30);
+  const pts = (_chartData || []).filter(r => r.mrr_cents != null).map(r => Number(r.mrr_cents)).filter(v => Number.isFinite(v)).slice(-30);
   if (pts.length < 2) { el.innerHTML = ''; return; }
   const W = 300, H = 42, P = 3;
   const min = Math.min(...pts), max = Math.max(...pts), span = (max - min) || 1;
