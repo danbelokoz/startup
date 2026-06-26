@@ -803,12 +803,14 @@ function updateDynBand() {
 }
 
 // Change of one series across [tLo,tHi]: first vs last point inside the window.
+// Change of one series across the window = last vs first ACTUAL data point inside
+// it. tFrom/tTo report the real measured span so the label can match the %.
 function windowDelta(m, tLo, tHi) {
   const w = m.filter(p => p.t >= tLo - 1 && p.t <= tHi + 1);
   if (!w.length) return null;
   const s = w[0].val, e = w[w.length-1].val, abs = e - s;
   const pct = s !== 0 ? (abs / Math.abs(s)) * 100 : (abs !== 0 ? null : 0);
-  return { s, e, abs, pct, n: w.length };
+  return { s, e, abs, pct, n: w.length, tFrom: w[0].t, tTo: w[w.length-1].t };
 }
 function fmtPct(p) {
   if (p == null) return '';
@@ -824,8 +826,11 @@ function chgHTML(kind, d) {
 }
 function dynVerdictHTML(da, db) {
   if (!da || !db) return '';
-  const va = da.pct == null ? da.abs : da.pct;
-  const vb = db.pct == null ? db.abs : db.pct;
+  // Rank by % growth when both sides have a defined % (start != 0); otherwise
+  // fall back to absolute change for BOTH - never compare a % against a $ amount.
+  const bothPct = da.pct != null && db.pct != null;
+  const va = bothPct ? da.pct : da.abs;
+  const vb = bothPct ? db.pct : db.abs;
   if ((da.abs === 0 && db.abs === 0) || Math.abs(va - vb) < 1e-6)
     return '<div class="dyn-verdict">'+esc(L('dynEven','Both moved evenly'))+'</div>';
   const aWins = va > vb, win = aWins ? state.a.obj : state.b.obj, wd = aWins ? da : db, ld = aWins ? db : da;
@@ -842,9 +847,15 @@ function updateDynPanel() {
     : { tLo: g.tMin, tHi: g.tMax, selected: false };
   const da = windowDelta(g.mA, win.tLo, win.tHi), db = windowDelta(g.mB, win.tLo, win.tHi);
 
-  const days = Math.max(0, Math.round((win.tHi - win.tLo) / DAY));
-  const dFrom = new Date(win.tLo).toLocaleDateString(getLang(), { day:'numeric', month:'short' });
-  const dTo   = new Date(win.tHi).toLocaleDateString(getLang(), { day:'numeric', month:'short' });
+  // Label the period by the data points actually measured (snapped), not the raw
+  // cursor edges - otherwise the dates/day-count drift a day off the real % window.
+  const froms = [da, db].filter(Boolean).map(d => d.tFrom);
+  const tos   = [da, db].filter(Boolean).map(d => d.tTo);
+  const wFrom = froms.length ? Math.min.apply(null, froms) : win.tLo;
+  const wTo   = tos.length   ? Math.max.apply(null, tos)   : win.tHi;
+  const days = Math.max(0, Math.round((wTo - wFrom) / DAY));
+  const dFrom = new Date(wFrom).toLocaleDateString(getLang(), { day:'numeric', month:'short' });
+  const dTo   = new Date(wTo).toLocaleDateString(getLang(), { day:'numeric', month:'short' });
   const daysTxt = L('dynDays','{n} d').replace('{n}', days);
   const title = win.selected ? L('dynSelected','Selected period') : L('dynWhole','Whole period');
   const reset = win.selected
