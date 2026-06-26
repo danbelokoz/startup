@@ -40,8 +40,9 @@
     /* Featured MRR card */
     .metric-card.featured { grid-column: span 2; grid-row: span 2; position: relative; padding: 20px 22px; }
     .metric-card.featured .metric-card-value { font-size: 40px; line-height: 1.04; letter-spacing: -1px; margin-top: 2px; }
-    /* scoped under .featured so it beats the .has-tip { position: relative } helper */
-    .metric-card.featured .metric-card-source { position: absolute; top: 14px; right: 14px; display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 600; letter-spacing: 0.03em; color: var(--green); background: var(--green-bg); border: 1px solid rgba(14,203,129,0.22); border-radius: 999px; padding: 3px 9px; max-width: 60%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; z-index: 1; }
+    /* scoped under .featured so it beats the .has-tip { position: relative } helper.
+       No overflow:hidden - it would clip the .has-tip tooltip pseudo-element. */
+    .metric-card.featured .metric-card-source { position: absolute; top: 14px; right: 14px; display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 600; letter-spacing: 0.03em; color: var(--green); background: var(--green-bg); border: 1px solid rgba(14,203,129,0.22); border-radius: 999px; padding: 3px 9px; white-space: nowrap; cursor: help; z-index: 1; }
     .metric-card-source .src-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
     .metric-cmp { display: inline-flex; align-items: baseline; gap: 5px; font-size: 13px; font-weight: 700; margin-top: 9px; }
     .metric-cmp.up { color: var(--trading-up); } .metric-cmp.down { color: var(--trading-down); }
@@ -553,7 +554,7 @@ function renderStartup(s) {
   // prior 30 days, so we just reframe it as flat / ↑ / ↓ instead of "growth: 0%".
   const provLabel = s.paymentProvider ? s.paymentProvider.charAt(0).toUpperCase() + s.paymentProvider.slice(1) : '';
   const mrrSource = s.paymentProvider
-    ? `<span class="metric-card-source has-tip" data-tip="${escHtml(t('startupPage','tipProvider'))}"><span class="src-dot"></span>${escHtml(t('startupPage','verified'))} · ${escHtml(provLabel)}</span>`
+    ? `<span class="metric-card-source has-tip" data-tip="${escHtml(t('startupPage','tipVerified'))}"><span class="src-dot"></span>${escHtml(t('startupPage','verified'))} · ${escHtml(provLabel)}</span>`
     : '';
   const mrrCmpV = gMrrRaw != null ? parseFloat(gMrrRaw) : null;
   const mrrCmp = (mrrCmpV == null || !isFinite(mrrCmpV)) ? ''
@@ -733,7 +734,7 @@ function renderStartup(s) {
 
     <div class="section-title">${t('startupPage','revenueMetrics')}</div>
     <div class="metrics-grid">
-      <div class="metric-card featured">${mrrSource}<div class="metric-card-label">${t('startupPage','mrr')}</div><div class="metric-card-value">${formatMoney(s.revenue&&s.revenue.mrr)}</div>${mrrCmp}<svg class="metric-spark" id="mrrSpark" viewBox="0 0 300 42" preserveAspectRatio="none" aria-hidden="true"></svg></div>
+      <div class="metric-card featured">${mrrSource}<div class="metric-card-label"><span class="has-tip" data-tip="${escHtml(t('startupPage','tipMrr'))}" style="cursor:help;border-bottom:1px dotted var(--text3);">${t('startupPage','mrr')}</span></div><div class="metric-card-value">${formatMoney(s.revenue&&s.revenue.mrr)}</div>${mrrCmp}<svg class="metric-spark" id="mrrSpark" viewBox="0 0 300 42" preserveAspectRatio="none" aria-hidden="true"></svg></div>
       <div class="metric-card wide"><div class="metric-card-label">${s.isMerchantOfRecord?t('startupPage','gmv30'):t('startupPage','rev30')}</div><div class="metric-card-value">${formatMoney(s.revenue&&s.revenue.last30Days)}</div><div class="metric-card-sub">${t('startupPage','growth')}: ${gStr}</div></div>
       <div class="metric-card wide"><div class="metric-card-label">${s.isMerchantOfRecord?t('startupPage','gmv'):t('startupPage','totalRev')}</div><div class="metric-card-value">${formatMoney(s.revenue&&s.revenue.total)}</div><div class="metric-card-sub">${t('startupPage','allTime')}</div></div>
       ${s.profitMarginLast30Days!=null?`<div class="metric-card"><div class="metric-card-label">${t('startupPage','margin')}</div><div class="metric-card-value">${Math.round(s.profitMarginLast30Days)}%</div></div>`:''}
@@ -1171,6 +1172,24 @@ function computePoints(metric, period) {
     stepped = true;
   } else {
     points = _chartData.map(r => ({ date: r.snap_date, val: r[metric.key] })).filter(p => p.val != null);
+    // Pin the latest point to the LIVE API value so the chart's "now" matches the
+    // headline card. Snapshots are the SAME numbers (api/cron-refresh.js writes
+    // Math.round(s.revenue.mrr) etc.) but captured only once a day by cron, so the
+    // last snapshot can lag the live value. The API is the source of truth; the
+    // snapshots only exist to give the chart a history (TrustMRR has no history API).
+    const live = {
+      mrr_cents:     s.revenue ? s.revenue.mrr : null,
+      customers:     s.customers,
+      subscriptions: s.activeSubscriptions,
+      growth30d:     s.growth30d,
+      visitors_30d:  s.visitorsLast30Days,
+    }[metric.key];
+    if (live != null && points.length) {
+      const today = new Date().toISOString().slice(0, 10);
+      const last = points[points.length - 1];
+      if (last.date === today) last.val = live;        // refresh today's snapshot in place
+      else points.push({ date: today, val: live });    // or append live as today's point
+    }
   }
 
   // No projection fallback: when real data is missing (<2 points) we leave the
