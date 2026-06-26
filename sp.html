@@ -81,7 +81,7 @@
     .archive-banner .ab-body { flex: 1; min-width: 0; }
     .archive-banner .ab-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
     .archive-banner .ab-note { font-size: 13px; color: var(--text2); line-height: 1.5; }
-    @media (max-width: 640px) { .page-wrap { padding: 16px 16px 60px; } .startup-header { flex-direction: column; } .startup-header-meta h1 { font-size: 24px; } .metrics-grid { grid-template-columns: 1fr; } .price-chip b { font-size: 17px; } }
+    @media (max-width: 640px) { .page-wrap { padding: 16px 16px 60px; } .startup-header { flex-direction: column; } .startup-header-meta h1 { font-size: 24px; } .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .metric-card.wide { grid-column: 1 / -1; } .price-chip b { font-size: 17px; } }
   .contact-locked { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; }
   .contact-locked svg { flex-shrink: 0; color: var(--text3); }
   .contact-locked span { flex: 1; font-size: 13px; color: var(--text2); }
@@ -251,7 +251,12 @@
   .chart-change  { font-weight: 700; display: inline-flex; align-items: center; gap: 2px; }
   .chart-change.up   { color: var(--trading-up); }
   .chart-change.down { color: var(--trading-down); }
-  .chart-tooltip .tt-row  { display: block; font-size: 10.5px; color: rgba(255,255,255,0.72); margin-top: 1px; }
+  .chart-tooltip .tt-row  { display: block; font-size: 10.5px; color: rgba(30,35,41,0.66); margin-top: 1px; }
+  /* previous-period row: grey, echoing the muted dashed line */
+  .chart-tooltip .tt-prev { color: var(--text3); margin-top: 3px; }
+  .chart-tooltip .tt-prev b { font-weight: 700; }
+  .chart-tooltip .tt-delta.up   { color: var(--trading-up); font-weight: 700; }
+  .chart-tooltip .tt-delta.down { color: var(--trading-down); font-weight: 700; }
   </style>
 </head>
 <body>
@@ -729,8 +734,8 @@ function renderStartup(s) {
     <div class="section-title">${t('startupPage','revenueMetrics')}</div>
     <div class="metrics-grid">
       <div class="metric-card featured">${mrrSource}<div class="metric-card-label">${t('startupPage','mrr')}</div><div class="metric-card-value">${formatMoney(s.revenue&&s.revenue.mrr)}</div>${mrrCmp}<svg class="metric-spark" id="mrrSpark" viewBox="0 0 300 42" preserveAspectRatio="none" aria-hidden="true"></svg></div>
-      <div class="metric-card"><div class="metric-card-label">${s.isMerchantOfRecord?t('startupPage','gmv30'):t('startupPage','rev30')}</div><div class="metric-card-value">${formatMoney(s.revenue&&s.revenue.last30Days)}</div><div class="metric-card-sub">${t('startupPage','growth')}: ${gStr}</div></div>
-      <div class="metric-card"><div class="metric-card-label">${s.isMerchantOfRecord?t('startupPage','gmv'):t('startupPage','totalRev')}</div><div class="metric-card-value">${formatMoney(s.revenue&&s.revenue.total)}</div><div class="metric-card-sub">${t('startupPage','allTime')}</div></div>
+      <div class="metric-card wide"><div class="metric-card-label">${s.isMerchantOfRecord?t('startupPage','gmv30'):t('startupPage','rev30')}</div><div class="metric-card-value">${formatMoney(s.revenue&&s.revenue.last30Days)}</div><div class="metric-card-sub">${t('startupPage','growth')}: ${gStr}</div></div>
+      <div class="metric-card wide"><div class="metric-card-label">${s.isMerchantOfRecord?t('startupPage','gmv'):t('startupPage','totalRev')}</div><div class="metric-card-value">${formatMoney(s.revenue&&s.revenue.total)}</div><div class="metric-card-sub">${t('startupPage','allTime')}</div></div>
       ${s.profitMarginLast30Days!=null?`<div class="metric-card"><div class="metric-card-label">${t('startupPage','margin')}</div><div class="metric-card-value">${Math.round(s.profitMarginLast30Days)}%</div></div>`:''}
       <div class="metric-card"><div class="metric-card-label">${t('startupPage','subs')}</div><div class="metric-card-value">${(s.activeSubscriptions||0).toLocaleString()}</div></div>
       ${s.customers>0?`<div class="metric-card"><div class="metric-card-label">${t('startupPage','customers')}</div><div class="metric-card-value">${s.customers.toLocaleString()}</div></div>`:''/* Customers comes straight from TrustMRR; many RevenueCat listings report 0 here while activeSubscriptions is non-zero, so a 0 is "not reported", not a real zero - hide it instead of showing a misleading "0". */}
@@ -1452,9 +1457,13 @@ function renderChart() {
       ${xLabels}
     </svg>`;
 
-  // Cache geometry as container fractions (0..1) for the hover tooltip
+  // Cache geometry as container fractions (0..1) for the hover tooltip.
+  // prev/prevDates carry the previous-period series so the tooltip can show the
+  // matching figure for the hovered day (aligned by horizontal fraction).
   _chartGeom = {
     fmt, fmtFull, flow: !!metric.flow,
+    prev: prevPts.map(p => Number(p.val) || 0),
+    prevDates: prevPts.map(p => p.date),
     pts: points.map((p, i) => ({
       date: p.date, val: ys[i], charges: p.charges,
       cx: x(i) / W, cy: y(ys[i]) / H,
@@ -1536,7 +1545,23 @@ function onChartMove(e) {
         rows += `<span class="tt-row">${(t('startupPage','ttAvgPayment') || 'Avg. payment: {v}').replace('{v}', formatMoney(per))}</span>`;
       }
     }
-    tip.innerHTML = `<b>${geom.fmtFull(p.val)}</b>${rows}<span class="tt-date">${dlbl}</span>`;
+    // Matching previous-period value for this day (aligned by horizontal fraction,
+    // mirroring how the dashed line is drawn) + the delta vs it.
+    let prevRow = '';
+    if (geom.prev && geom.prev.length) {
+      const n = geom.pts.length;
+      const pi = n > 1 ? Math.round(best / (n - 1) * (geom.prev.length - 1)) : 0;
+      const pv = geom.prev[pi];
+      if (pv != null) {
+        let delta = '';
+        if (pv !== 0 && p.val != null) {
+          const dp = (p.val - pv) / Math.abs(pv) * 100;
+          delta = ` <span class="tt-delta ${dp >= 0 ? 'up' : 'down'}">${dp >= 0 ? '↑' : '↓'} ${Math.abs(dp).toFixed(0)}%</span>`;
+        }
+        prevRow = `<span class="tt-row tt-prev">${t('startupPage','ttPrev') || 'Prev.'}: <b>${geom.fmtFull(pv)}</b>${delta}</span>`;
+      }
+    }
+    tip.innerHTML = `<b>${geom.fmtFull(p.val)}</b>${rows}${prevRow}<span class="tt-date">${dlbl}</span>`;
     tip.style.left = Math.max(50, Math.min(w - 50, leftPx)) + 'px';
     tip.style.top = topPx + 'px';
     tip.style.opacity = '1';
