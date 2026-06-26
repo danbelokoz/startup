@@ -1,7 +1,7 @@
 // Scrapes a startup's own website for buyer-relevant signals that TrustMRR
-// doesn't expose: hero screenshot via thum.io, OG image/title/description,
-// detected tech stack from HTML + HTTP headers, pricing tier hints, social
-// presence (GitHub/X/LinkedIn), iOS/Android app store IDs.
+// doesn't expose: OG image/title/description, detected tech stack from HTML +
+// HTTP headers, pricing tier hints, social presence (GitHub/X/LinkedIn),
+// iOS/Android app store IDs.
 //
 // One call per detail page view. Results are cached in Redis for 7 days
 // since startup websites change much less than their revenue metrics.
@@ -208,8 +208,6 @@ export default async function handler(req, res) {
       hasAPI:       /\/(api|docs|developers)\b/i.test(html) || /API documentation/i.test(html),
       socials:      findSocials(html),
       apps:         findApps(html),
-      // thum.io takes the target URL RAW in the path — encodeURIComponent here makes it 400.
-      screenshotUrl:`https://image.thum.io/get/width/1200/${rawUrl}`,
     };
 
     await redisSet(cacheKey, data, CACHE_TTL);

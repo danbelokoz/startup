@@ -157,10 +157,6 @@
   .site-status.up .dot { background: var(--trading-up); box-shadow: 0 0 0 4px rgba(14,203,129,0.18); }
   .site-status.down .dot { background: var(--trading-down); }
   .site-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
-  .site-shot-wrap { aspect-ratio: 16 / 9; background: var(--bg3); position: relative; overflow: hidden; border-bottom: 1px solid var(--border); }
-  .site-shot { width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; }
-  .site-shot.blurred { filter: blur(12px); transform: scale(1.05); transition: filter 0.3s; }
-  .site-shot-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: rgba(0,0,0,0.5); font-size: 12px; pointer-events: none; }
   .site-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
   .site-pills { display: flex; flex-wrap: wrap; gap: 6px; }
   .site-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; padding: 4px 9px; background: var(--bg3); border: 1px solid var(--border); border-radius: 999px; color: var(--text2); }
@@ -852,8 +848,6 @@ function renderSiteSection() {
     socials.discord     ? `<a class="${bClass.trim()}" href="https://discord.gg/${escHtml(socials.discord)}" target="_blank">Discord</a>` : '',
   ].filter(Boolean).join('');
 
-  // Blur the screenshot while the seller's identity is still paywalled
-  const shotBlur = (!_revealed && !((s.name||'').toLowerCase().includes('anonymous'))) ? ' blurred' : '';
   const statusCls = d.ok ? 'up' : 'down';
   const statusText = d.ok ? `Live · ${d.latencyMs || '-'}ms` : 'Down';
 
@@ -864,9 +858,6 @@ function renderSiteSection() {
         <span class="site-status ${statusCls}"><span class="dot"></span>${escHtml(statusText)}</span>
       </div>
       <div class="site-card">
-        ${d.screenshotUrl ? `<div class="site-shot-wrap">
-          <img class="site-shot${shotBlur}" src="${escHtml(d.screenshotUrl)}" alt="Site preview" loading="lazy" onerror="this.parentElement.style.display='none'"/>
-        </div>` : ''}
         <div class="site-body">
           ${(d.ogDescription || d.description) ? `<p style="font-size:13px;color:var(--text2);line-height:1.55;margin:0;">${maskBrand((d.ogDescription || d.description).slice(0,280), s.name)}</p>` : ''}
           ${featurePills ? `<div class="site-pills">${featurePills}</div>` : ''}
@@ -1493,27 +1484,20 @@ function updateChartBand() {
   band.style.width = ((hi.cx - lo.cx) * 100) + '%';
   band.style.opacity = '1';
 }
-// Value + change over the brushed window. Flow metrics (daily revenue) sum the
-// window and compare to the previous equal-length window; snapshot metrics show
-// the end value and its change vs the window's start.
+// Change over the brushed span = the LEFT-edge day vs the RIGHT-edge day. We
+// compare the two endpoints of the selection (not a running sum), so a spike
+// that falls back reads as a drop - matching what the two highlighted days
+// actually did. Same rule for every metric, incl. daily revenue.
 function computeSelSummary() {
   const geom = _chartGeom; if (!geom || !_chartSel) return null;
   const pts = geom.pts, lo = _chartSel.lo, hi = _chartSel.hi;
   const cur = pts.slice(lo, hi + 1); if (!cur.length) return null;
-  const isFlow = !!geom.flow, sum = a => a.reduce((s, p) => s + (Number(p.val) || 0), 0);
-  let value, prev;
-  if (isFlow) {
-    value = sum(cur);
-    const prevArr = pts.slice(Math.max(0, lo - cur.length), lo);
-    prev = prevArr.length ? sum(prevArr) : null;
-  } else {
-    value = Number(cur[cur.length - 1].val) || 0;
-    prev  = Number(cur[0].val) || 0;
-  }
+  const start = Number(cur[0].val) || 0;
+  const end   = Number(cur[cur.length - 1].val) || 0;
   let change = null;
-  if (prev != null && prev !== 0 && value != null) change = (value - prev) / Math.abs(prev) * 100;
+  if (start !== 0) change = (end - start) / Math.abs(start) * 100;
   const days = Math.max(0, Math.round((Date.parse(cur[cur.length-1].date) - Date.parse(cur[0].date)) / 86400000));
-  return { value, change, days, from: cur[0].date, to: cur[cur.length - 1].date };
+  return { start, end, value: end, change, days, from: cur[0].date, to: cur[cur.length - 1].date };
 }
 function refreshChartSummary() {
   const geom = _chartGeom; if (!geom) return;
@@ -1521,12 +1505,14 @@ function refreshChartSummary() {
   const totalEl  = document.getElementById('chartTotal');
   const changeEl = document.getElementById('chartChange');
   const rangeEl  = document.getElementById('chartRangeLabel');
-  if (totalEl) totalEl.textContent = geom.fmtFull(sum.value);
+  // Show the two endpoint values explicitly so it's clear we compare left vs right.
+  if (totalEl) totalEl.textContent = `${geom.fmt(sum.start)} → ${geom.fmt(sum.end)}`;
   if (changeEl) {
     if (sum.change == null || !isFinite(sum.change)) { changeEl.textContent = ''; changeEl.className = 'chart-change'; }
     else {
       const up = sum.change >= 0;
-      changeEl.textContent = `${up ? '↑' : '↓'} ${Math.abs(sum.change).toFixed(0)}% · ${sum.days} дн.`;
+      const dec = Math.abs(sum.change) < 10 && sum.change !== 0 ? 1 : 0;
+      changeEl.textContent = `${up ? '↑' : '↓'} ${Math.abs(sum.change).toFixed(dec)}% · ${sum.days} дн.`;
       changeEl.className = 'chart-change ' + (up ? 'up' : 'down');
     }
   }
