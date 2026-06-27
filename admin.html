@@ -24,9 +24,11 @@
 .adm-user a:hover { color: var(--text); }
 
 .adm-tabs { display: flex; gap: 6px; margin-bottom: 18px; flex-wrap: wrap; }
-.adm-tab { border: 1px solid var(--border2); background: var(--bg2); color: var(--text2); font-family: inherit; font-size: 13px; font-weight: 600; padding: 8px 16px; border-radius: 999px; cursor: pointer; transition: all 0.12s; }
+.adm-tab { position: relative; border: 1px solid var(--border2); background: var(--bg2); color: var(--text2); font-family: inherit; font-size: 13px; font-weight: 600; padding: 8px 16px; border-radius: 999px; cursor: pointer; transition: all 0.12s; }
 .adm-tab:hover { border-color: var(--text); color: var(--text); }
 .adm-tab.sel { background: var(--text); border-color: var(--text); color: var(--bg2); }
+/* Красный кружок-счётчик непросмотренных регистраций/заявок на вкладке. */
+.adm-badge { position: absolute; top: -7px; right: -7px; min-width: 19px; height: 19px; padding: 0 5px; box-sizing: border-box; border-radius: 999px; background: #f6465d; color: #fff; font-size: 11px; font-weight: 700; line-height: 19px; text-align: center; box-shadow: 0 0 0 2px var(--bg); }
 
 .adm-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 16px; }
 .adm-kpi { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; }
@@ -88,6 +90,43 @@
 const sbc = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON || '');
 let token = null;
 let topDays = 30;
+
+/* ── Бейджи непросмотренного (новые регистрации / заявки) ───────────────────────
+ * На вкладках «Обзор» (регистрации) и «Заявки» висит красный кружок с числом
+ * непросмотренных. «Непросмотренные» = текущее количество минус то, что было при
+ * последнем открытии этой вкладки (high-water-mark в localStorage). Открыл вкладку →
+ * отметка обновляется, кружок гаснет. */
+const SEEN_USERS = 'sm_adm_seen_users';
+const SEEN_LISTINGS = 'sm_adm_seen_listings';
+const lsGet = k => { const v = parseInt(localStorage.getItem(k) || '', 10); return Number.isNaN(v) ? null : v; };
+const lsSet = (k, v) => { try { localStorage.setItem(k, String(v)); } catch {} };
+
+function setBadge(tab, n) {
+  const btn = document.querySelector('.adm-tab[data-tab="' + tab + '"]');
+  if (!btn) return;
+  let b = btn.querySelector('.adm-badge');
+  if (n > 0) {
+    if (!b) { b = document.createElement('span'); b.className = 'adm-badge'; btn.appendChild(b); }
+    b.textContent = n > 99 ? '99+' : String(n);
+  } else if (b) { b.remove(); }
+}
+
+// Пересчитать оба бейджа из данных секции overview (там есть и totalUsers, и
+// listingCounts по статусам — их сумма = всего заявок).
+function updateBadges(o) {
+  const users = o.totalUsers;
+  const listingsTotal = Object.values(o.listingCounts || {}).reduce((a, b) => a + b, 0);
+  // Первый визит: не показывать «всё сразу» — фиксируем текущее как просмотренное.
+  if (lsGet(SEEN_USERS) == null && users != null) lsSet(SEEN_USERS, users);
+  if (lsGet(SEEN_LISTINGS) == null) lsSet(SEEN_LISTINGS, listingsTotal);
+  setBadge('overview', users != null ? Math.max(0, users - lsGet(SEEN_USERS)) : 0);
+  setBadge('listings', Math.max(0, listingsTotal - lsGet(SEEN_LISTINGS)));
+}
+
+// Догрузить бейджи, когда стартовая вкладка — не «Обзор» (renderOverview сам их ставит).
+async function refreshBadges() {
+  try { updateBadges(await api('/api/admin?section=overview&days=30')); } catch {}
+}
 
 async function api(path, opts = {}) {
   const r = await fetch(path, {
@@ -219,11 +258,16 @@ async function renderOverview() {
         : '<div class="adm-mini">Пока нет регистраций за период.</div>'}
     </div>`;
   attachChartTips();
+  updateBadges(o);                                       // выставит бейдж «Заявки»
+  if (o.totalUsers != null) lsSet(SEEN_USERS, o.totalUsers);
+  setBadge('overview', 0);                               // вкладку открыли → регистрации просмотрены
 }
 
 /* ── Заявки ────────────────────────────────────────────────────────────────── */
 async function renderListings() {
   const { listings } = await api('/api/admin?section=listings');
+  lsSet(SEEN_LISTINGS, listings.length);   // вкладку открыли → заявки просмотрены
+  setBadge('listings', 0);
   if (!listings.length) { $('admContent').innerHTML = '<div class="adm-msg">Заявок пока нет.</div>'; return; }
   $('admContent').innerHTML = `<div class="adm-card" style="overflow-x:auto;">
     <h3>Заявки на размещение <span class="adm-mini">${listings.length} шт.</span></h3>
@@ -495,6 +539,7 @@ async function renderParsers() {
   try {
     await TAB_RENDERERS[initial]();
     document.getElementById('admTabs').style.display = 'flex';
+    if (initial !== 'overview') refreshBadges();   // «Обзор» сам ставит бейджи; иначе догрузить
   } catch (e) {
     $('admContent').innerHTML = e.message === 'forbidden'
       ? '<div class="adm-msg">Нет доступа: у аккаунта <b>' + esc(session.user.email) + '</b> нет роли admin.<br/><span class="adm-mini">Выполни в Supabase SQL Editor шаг 6 из supabase-admin-migration.sql.</span></div>'
