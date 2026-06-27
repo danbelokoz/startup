@@ -531,7 +531,7 @@ async function loadLanding() {
   // Only real recurring businesses: MRR > $1000 and ≥ $300 trailing-30-day revenue,
   // so a one-off payment on a near-zero base (tiny MRR, huge %) never headlines.
   // High-growth skews to low MRR, so scan several growth pages to build the pool, then
-  // sample 4 from the top growers so the row varies each load (we have hundreds).
+  // show the true top 4 growers in descending-growth order (stable across reloads).
   try {
     const pages = await Promise.all([1,2,3].map(pg =>
       fetch(API+'/startups?onSale=true&page='+pg+'&limit=50&sort=growth-desc').then(r=>r.json()).catch(()=>null)));
@@ -544,7 +544,7 @@ async function loadLanding() {
     }
     const byGrowth = (a,b)=>(parseFloat(b.growth30d)||0)-(parseFloat(a.growth30d)||0);
     pool.sort(byGrowth);
-    const items = shuffle(pool.slice(0,24)).slice(0,4).sort(byGrowth);
+    const items = pool.slice(0,4);
     renderCards(items);
   } catch { renderCards([]); }
 }
