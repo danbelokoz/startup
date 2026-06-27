@@ -455,6 +455,19 @@ window.shuffle = window.shuffle || function (arr) {
   return a;
 };
 
+// Guest gate: unregistered visitors see only the first 3 characters of a name.
+// isGuest() falls back to the last-known auth state cached in localStorage so a
+// logged-in user doesn't get a one-frame name blur before /api/auth resolves.
+function isGuest() {
+  if (window._access) return !window._access.authenticated;
+  try { return localStorage.getItem('sm_authed') === '0'; } catch { return false; }
+}
+function gatedNameHtml(name) {
+  const n = String(name == null ? '' : name);
+  if (n.length <= 3) return escHtml(n);
+  return escHtml(n.slice(0, 3)) + '<span class="name-blur">' + escHtml(n.slice(3)) + '</span>';
+}
+
 applyLangToDoc();
 document.getElementById('navPlaceholder').innerHTML = buildNavHTML('home');
 initNavAuth();
@@ -481,8 +494,9 @@ function avatarHTML(s, size) {
   return '<span class="lav'+(blur?' logo-blur':'')+'" style="width:'+size+'px;height:'+size+'px;background:'+(s.icon?'var(--bg3)':col)+';font-size:'+Math.round(size*0.42)+'px">'+inner+'</span>';
 }
 function nameHTML(s) {
-  const blur = false;   // paywall removed - names public to all visitors
-  return '<b'+(blur?' class="name-blur"':'')+'>'+escHtml(s.name||'')+'</b>';
+  // Guests see only the first 3 chars of the name (anon listings are left as-is).
+  if (isGuest() && !isAnonStartup(s)) return '<b>'+gatedNameHtml(s.name||'')+'</b>';
+  return '<b>'+escHtml(s.name||'')+'</b>';
 }
 function growthPill(g) {
   if (g == null) return '';
@@ -490,7 +504,9 @@ function growthPill(g) {
   return '<span class="g '+(up?'up':'down')+'">'+(up?'↑':'↓')+Math.abs(parseFloat(g)).toFixed(1)+'%</span>';
 }
 
+let _leaders = [], _topCards = [];
 function renderWidget(items) {
+  _leaders = items || [];
   const el = document.getElementById('list');
   if (!el) return;
   if (!items.length) { el.innerHTML = '<div style="padding:24px 14px;text-align:center;color:var(--text3);font-size:13px">'+t('landing','leadersEmpty')+'</div>'; return; }
@@ -504,6 +520,7 @@ function renderWidget(items) {
 }
 
 function renderCards(items) {
+  _topCards = items || [];
   const el = document.getElementById('cards');
   if (!el) return;
   if (!items.length) { el.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px 0;color:var(--text3);font-size:13px">'+t('landing','cardsEmpty')+'</div>'; return; }
@@ -569,6 +586,14 @@ async function loadLanding() {
   } catch { renderCards([]); }
 }
 loadLanding();
+
+// Once /api/auth resolves, cache the auth state and re-render the rails so the
+// guest name gate reflects the real login state (no blur flash for logged-in users).
+window.addEventListener('navAuthUpdated', () => {
+  try { localStorage.setItem('sm_authed', (window._access && window._access.authenticated) ? '1' : '0'); } catch {}
+  if (_leaders.length) renderWidget(_leaders);
+  if (_topCards.length) renderCards(_topCards);
+});
 
 // "Live market" feel: briefly highlight a random growth value every few seconds.
 setInterval(() => {

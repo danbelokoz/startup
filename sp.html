@@ -520,7 +520,12 @@ async function renderArchived(slug) {
 let _startup = null;
 let _revealed = false;  // gated: site / founder / startup name are shown only to registered users
 // Registered users (free or paid) see everything for free; guests get a blur + register CTA.
-function isAuthed() { return !!(window._access && window._access.authenticated); }
+// Falls back to the last-known auth state cached in localStorage so a logged-in
+// user never sees a one-frame blur (name/site/founder) before /api/auth resolves.
+function isAuthed() {
+  if (window._access) return !!window._access.authenticated;
+  try { return localStorage.getItem('sm_authed') !== '0'; } catch { return true; }
+}
 // Small inline "register for free" call-to-action reused under the gated blocks.
 function regCtaHtml() {
   const from = encodeURIComponent(location.pathname);
@@ -1864,6 +1869,7 @@ function addGuestViewedSlug(slug) {
 // a logged-in user who first saw the blurred guest view now gets the full content
 // (fetch guards in initChart/fetchEnrichment/fetchSiteData prevent duplicate requests).
 window.addEventListener('navAuthUpdated', () => {
+  try { localStorage.setItem('sm_authed', (window._access && window._access.authenticated) ? '1' : '0'); } catch {}
   if (_startup) renderStartup(_startup);
   updateFavBtn(_startup&&_startup.slug);
 });

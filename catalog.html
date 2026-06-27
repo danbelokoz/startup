@@ -335,7 +335,12 @@ window.isGmvLike = window.isGmvLike || function (s) {
    and blur the brand name where it appears inside the description (the description
    text itself stays visible). Site / founder aren't shown on cards at all.
    Defined locally (not in shared.js) so a stale cached shared.js can't break them. */
-function isGuest() { return !(window._access && window._access.authenticated); }
+// Falls back to the last-known auth state cached in localStorage so a logged-in
+// user never sees a one-frame name blur before /api/auth resolves.
+function isGuest() {
+  if (window._access) return !window._access.authenticated;
+  try { return localStorage.getItem('sm_authed') === '0'; } catch { return false; }
+}
 function gatedNameHtml(name) {
   const n = String(name == null ? '' : name);
   if (n.length <= 3) return escHtml(n);
@@ -1009,6 +1014,7 @@ window.addEventListener('popstate', restoreFromUrl);
 // Re-paint once /api/auth resolves so the guest gate (name + brand-in-description)
 // reflects the real login state - the first cards may render before auth comes back.
 window.addEventListener('navAuthUpdated', () => {
+  try { localStorage.setItem('sm_authed', (window._access && window._access.authenticated) ? '1' : '0'); } catch {}
   if (document.querySelector('#cards .card')) renderCards();
 });
 
