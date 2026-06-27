@@ -33,7 +33,7 @@
     @keyframes skFadeIn { from { opacity: 0; } to { opacity: 1; } }
     .sk { position: relative; overflow: hidden; background: var(--bg3); border-radius: 6px; }
     .sk::after { content: ''; position: absolute; top: 0; left: 0; height: 100%; width: 100%;
-      background: linear-gradient(100deg, transparent 20%, rgba(255,255,255,0.85) 50%, transparent 80%);
+      background: linear-gradient(100deg, transparent 25%, rgba(255,255,255,0.32) 50%, transparent 75%);
       transform: translateX(-100%); animation: skSweep 1.5s ease-in-out infinite; }
     @keyframes skSweep { 0% { transform: translateX(-100%); } 60%, 100% { transform: translateX(100%); } }
     /* slight cascade so the light reads as one wave travelling down the page */

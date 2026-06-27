@@ -115,7 +115,7 @@
 .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
 /* ── Loading skeleton: placeholders with a sweeping white-light shimmer ── */
 .sk{position:relative;overflow:hidden;background:var(--bg3);border-radius:6px}
-.sk::after{content:'';position:absolute;top:0;left:0;height:100%;width:100%;background:linear-gradient(100deg,transparent 20%,rgba(255,255,255,.85) 50%,transparent 80%);transform:translateX(-100%);animation:skSweep 1.5s ease-in-out infinite}
+.sk::after{content:'';position:absolute;top:0;left:0;height:100%;width:100%;background:linear-gradient(100deg,transparent 25%,rgba(255,255,255,.32) 50%,transparent 75%);transform:translateX(-100%);animation:skSweep 1.5s ease-in-out infinite}
 @keyframes skSweep{0%{transform:translateX(-100%)}60%,100%{transform:translateX(100%)}}
 .sk-fill{animation:skFadeIn .25s ease both}@keyframes skFadeIn{from{opacity:0}to{opacity:1}}
 .sk-meta{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
