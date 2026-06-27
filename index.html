@@ -113,6 +113,19 @@
 .feedhead .all{margin-left:auto;color:var(--text2);font-weight:500;font-size:14px;display:inline-flex;align-items:center;gap:6px;text-decoration:none}
 .feedhead .all:hover{color:var(--accent)}
 .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+/* ── Loading skeleton: placeholders with a sweeping white-light shimmer ── */
+.sk{position:relative;overflow:hidden;background:var(--bg3);border-radius:6px}
+.sk::after{content:'';position:absolute;top:0;left:0;height:100%;width:100%;background:linear-gradient(100deg,transparent 20%,rgba(255,255,255,.85) 50%,transparent 80%);transform:translateX(-100%);animation:skSweep 1.5s ease-in-out infinite}
+@keyframes skSweep{0%{transform:translateX(-100%)}60%,100%{transform:translateX(100%)}}
+.sk-fill{animation:skFadeIn .25s ease both}@keyframes skFadeIn{from{opacity:0}to{opacity:1}}
+.sk-meta{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.sk-leaders .lrow:nth-child(2) .sk::after{animation-delay:.07s}
+.sk-leaders .lrow:nth-child(3) .sk::after{animation-delay:.14s}
+.sk-leaders .lrow:nth-child(4) .sk::after{animation-delay:.21s}
+.sk-leaders .lrow:nth-child(5) .sk::after{animation-delay:.28s}
+.cards .lcard.sk-card:nth-child(2) .sk::after{animation-delay:.07s}
+.cards .lcard.sk-card:nth-child(3) .sk::after{animation-delay:.14s}
+.cards .lcard.sk-card:nth-child(4) .sk::after{animation-delay:.21s}
 .lcard{background:var(--bg2);border:1px solid var(--bg3);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px;text-decoration:none;color:inherit;transition:border-color .15s,transform .15s}
 .lcard:hover{border-color:var(--border2);transform:translateY(-2px)}
 .chead{display:flex;align-items:center;gap:10px}
@@ -265,8 +278,12 @@
     <div class="herocol">
       <div class="panel2">
         <div class="p2head"><span class="tt"><span class="live"></span><span data-i18n="landing.leadersTitle">Лидеры по выручке</span></span><span class="upd" data-i18n="landing.leadersPeriod">за 30 дней</span></div>
-        <div id="list">
-          <div style="padding:28px 14px;text-align:center;color:var(--text3);font-size:13px" data-i18n="landing.loadingListings">Загрузка листингов…</div>
+        <div id="list" class="sk-leaders sk-fill" aria-busy="true">
+          <div class="lrow"><span class="sk" style="width:34px;height:34px;border-radius:50%;flex:none"></span><div class="sk-meta"><div class="sk" style="height:13px;width:55%"></div><div class="sk" style="height:10px;width:34%"></div></div><div class="sk-meta" style="align-items:flex-end;flex:none"><div class="sk" style="height:13px;width:52px"></div><div class="sk" style="height:10px;width:38px"></div></div></div>
+          <div class="lrow"><span class="sk" style="width:34px;height:34px;border-radius:50%;flex:none"></span><div class="sk-meta"><div class="sk" style="height:13px;width:48%"></div><div class="sk" style="height:10px;width:30%"></div></div><div class="sk-meta" style="align-items:flex-end;flex:none"><div class="sk" style="height:13px;width:46px"></div><div class="sk" style="height:10px;width:38px"></div></div></div>
+          <div class="lrow"><span class="sk" style="width:34px;height:34px;border-radius:50%;flex:none"></span><div class="sk-meta"><div class="sk" style="height:13px;width:60%"></div><div class="sk" style="height:10px;width:38px"></div></div><div class="sk-meta" style="align-items:flex-end;flex:none"><div class="sk" style="height:13px;width:50px"></div><div class="sk" style="height:10px;width:38px"></div></div></div>
+          <div class="lrow"><span class="sk" style="width:34px;height:34px;border-radius:50%;flex:none"></span><div class="sk-meta"><div class="sk" style="height:13px;width:44%"></div><div class="sk" style="height:10px;width:33%"></div></div><div class="sk-meta" style="align-items:flex-end;flex:none"><div class="sk" style="height:13px;width:48px"></div><div class="sk" style="height:10px;width:38px"></div></div></div>
+          <div class="lrow"><span class="sk" style="width:34px;height:34px;border-radius:50%;flex:none"></span><div class="sk-meta"><div class="sk" style="height:13px;width:52%"></div><div class="sk" style="height:10px;width:28%"></div></div><div class="sk-meta" style="align-items:flex-end;flex:none"><div class="sk" style="height:13px;width:54px"></div><div class="sk" style="height:10px;width:38px"></div></div></div>
         </div>
         <div class="unlock"><span data-i18n="landing.listingsApi">Данные листингов - из API провайдеров</span><a href="/catalog?status=sale" data-i18n="landing.fullCatalog">Весь каталог ›</a></div>
       </div>
@@ -291,8 +308,11 @@
     <h2 data-i18n="landing.feedTitle">Топ растущих стартапов</h2>
     <a class="all" href="/catalog?status=sale"><span data-i18n="landing.viewAllCatalog">Смотреть весь каталог</span> <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
   </div>
-  <div class="cards" id="cards">
-    <div style="grid-column:1/-1;text-align:center;padding:40px 0;color:var(--text3);font-size:13px" data-i18n="landing.loadingStartups">Загрузка стартапов…</div>
+  <div class="cards sk-fill" id="cards">
+    <div class="lcard sk-card"><div class="chead"><span class="sk" style="width:40px;height:40px;border-radius:50%;flex:none"></span><div class="sk-meta"><div class="sk" style="height:14px;width:62%"></div><div class="sk" style="height:10px;width:40%"></div></div></div><div class="cmrr"><div class="sk" style="height:23px;width:52%;border-radius:7px"></div></div><div class="cfoot"><div class="sk" style="height:12px;width:46%"></div><div class="sk" style="height:12px;width:24%"></div></div></div>
+    <div class="lcard sk-card"><div class="chead"><span class="sk" style="width:40px;height:40px;border-radius:50%;flex:none"></span><div class="sk-meta"><div class="sk" style="height:14px;width:54%"></div><div class="sk" style="height:10px;width:46%"></div></div></div><div class="cmrr"><div class="sk" style="height:23px;width:44%;border-radius:7px"></div></div><div class="cfoot"><div class="sk" style="height:12px;width:40%"></div><div class="sk" style="height:12px;width:24%"></div></div></div>
+    <div class="lcard sk-card"><div class="chead"><span class="sk" style="width:40px;height:40px;border-radius:50%;flex:none"></span><div class="sk-meta"><div class="sk" style="height:14px;width:66%"></div><div class="sk" style="height:10px;width:38%"></div></div></div><div class="cmrr"><div class="sk" style="height:23px;width:58%;border-radius:7px"></div></div><div class="cfoot"><div class="sk" style="height:12px;width:50%"></div><div class="sk" style="height:12px;width:24%"></div></div></div>
+    <div class="lcard sk-card"><div class="chead"><span class="sk" style="width:40px;height:40px;border-radius:50%;flex:none"></span><div class="sk-meta"><div class="sk" style="height:14px;width:50%"></div><div class="sk" style="height:10px;width:42%"></div></div></div><div class="cmrr"><div class="sk" style="height:23px;width:48%;border-radius:7px"></div></div><div class="cfoot"><div class="sk" style="height:12px;width:44%"></div><div class="sk" style="height:12px;width:24%"></div></div></div>
   </div>
 </section>
 

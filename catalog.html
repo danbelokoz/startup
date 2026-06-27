@@ -142,6 +142,15 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
 .cm-label { font-size: 9px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cm-val { font-size: 14px; font-weight: 700; letter-spacing: -0.2px; color: var(--text); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cm-sub { font-size: 10px; font-weight: 600; margin-left: 2px; }
+/* ── Loading skeleton: card placeholders with a sweeping white-light shimmer ── */
+.sk { position: relative; overflow: hidden; background: var(--bg3); border-radius: 6px; }
+.sk::after { content: ''; position: absolute; top: 0; left: 0; height: 100%; width: 100%; background: linear-gradient(100deg, transparent 20%, rgba(255,255,255,0.85) 50%, transparent 80%); transform: translateX(-100%); animation: skSweep 1.5s ease-in-out infinite; }
+@keyframes skSweep { 0% { transform: translateX(-100%); } 60%, 100% { transform: translateX(100%); } }
+.sk-card { cursor: default; animation: skFadeIn 0.25s ease both; }
+@keyframes skFadeIn { from { opacity: 0; } to { opacity: 1; } }
+.sk-card:nth-child(3n+2) .sk::after { animation-delay: 0.08s; }
+.sk-card:nth-child(3n) .sk::after { animation-delay: 0.16s; }
+.sk-desc { margin: 8px 0 10px; min-height: 32px; }
 .badge-link { cursor: pointer; transition: background .12s, color .12s, border-color .12s; }
 .badge-link:hover { background: var(--accent); color: #181A20; border-color: var(--accent); }
 /* Warm hover highlight + on-hover description bubble for card badges (mirrors the detail page) */
@@ -286,10 +295,12 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
       </div>
     </div>
     <div class="cards" id="cards">
-      <div style="grid-column:1/-1;text-align:center;padding:60px 0;">
-        <div style="font-size:14px;color:var(--text2);margin-bottom:16px;" data-i18n="idx.loading">Загружаем стартапы...</div>
-        <div style="width:160px;height:3px;background:var(--border);border-radius:2px;margin:0 auto;overflow:hidden;"><div style="height:100%;width:40%;background:var(--accent);border-radius:2px;animation:loadpulse 1.5s ease-in-out infinite;"></div></div>
-      </div>
+      <div class="card sk-card" aria-hidden="true"><div class="card-head"><span class="sk" style="width:36px;height:36px;border-radius:8px;flex:none"></span><div style="flex:1;min-width:0;margin-top:1px"><div class="sk" style="height:13px;width:58%;margin-bottom:7px"></div><div style="display:flex;gap:5px"><span class="sk" style="height:15px;width:46px;border-radius:6px"></span><span class="sk" style="height:15px;width:54px;border-radius:6px"></span></div></div></div><div class="sk-desc"><div class="sk" style="height:10px;width:100%;margin-bottom:6px"></div><div class="sk" style="height:10px;width:78%"></div></div><div class="card-metrics"><div class="cm"><div class="sk" style="height:8px;width:62%;margin-bottom:7px"></div><div class="sk" style="height:14px;width:72%"></div></div><div class="cm"><div class="sk" style="height:8px;width:58%;margin-bottom:7px"></div><div class="sk" style="height:14px;width:54%"></div></div></div></div>
+      <div class="card sk-card" aria-hidden="true"><div class="card-head"><span class="sk" style="width:36px;height:36px;border-radius:8px;flex:none"></span><div style="flex:1;min-width:0;margin-top:1px"><div class="sk" style="height:13px;width:50%;margin-bottom:7px"></div><div style="display:flex;gap:5px"><span class="sk" style="height:15px;width:46px;border-radius:6px"></span><span class="sk" style="height:15px;width:54px;border-radius:6px"></span></div></div></div><div class="sk-desc"><div class="sk" style="height:10px;width:100%;margin-bottom:6px"></div><div class="sk" style="height:10px;width:72%"></div></div><div class="card-metrics"><div class="cm"><div class="sk" style="height:8px;width:62%;margin-bottom:7px"></div><div class="sk" style="height:14px;width:64%"></div></div><div class="cm"><div class="sk" style="height:8px;width:58%;margin-bottom:7px"></div><div class="sk" style="height:14px;width:54%"></div></div></div></div>
+      <div class="card sk-card" aria-hidden="true"><div class="card-head"><span class="sk" style="width:36px;height:36px;border-radius:8px;flex:none"></span><div style="flex:1;min-width:0;margin-top:1px"><div class="sk" style="height:13px;width:64%;margin-bottom:7px"></div><div style="display:flex;gap:5px"><span class="sk" style="height:15px;width:46px;border-radius:6px"></span><span class="sk" style="height:15px;width:54px;border-radius:6px"></span></div></div></div><div class="sk-desc"><div class="sk" style="height:10px;width:100%;margin-bottom:6px"></div><div class="sk" style="height:10px;width:80%"></div></div><div class="card-metrics"><div class="cm"><div class="sk" style="height:8px;width:62%;margin-bottom:7px"></div><div class="sk" style="height:14px;width:72%"></div></div><div class="cm"><div class="sk" style="height:8px;width:58%;margin-bottom:7px"></div><div class="sk" style="height:14px;width:54%"></div></div></div></div>
+      <div class="card sk-card" aria-hidden="true"><div class="card-head"><span class="sk" style="width:36px;height:36px;border-radius:8px;flex:none"></span><div style="flex:1;min-width:0;margin-top:1px"><div class="sk" style="height:13px;width:52%;margin-bottom:7px"></div><div style="display:flex;gap:5px"><span class="sk" style="height:15px;width:46px;border-radius:6px"></span><span class="sk" style="height:15px;width:54px;border-radius:6px"></span></div></div></div><div class="sk-desc"><div class="sk" style="height:10px;width:100%;margin-bottom:6px"></div><div class="sk" style="height:10px;width:74%"></div></div><div class="card-metrics"><div class="cm"><div class="sk" style="height:8px;width:62%;margin-bottom:7px"></div><div class="sk" style="height:14px;width:68%"></div></div><div class="cm"><div class="sk" style="height:8px;width:58%;margin-bottom:7px"></div><div class="sk" style="height:14px;width:54%"></div></div></div></div>
+      <div class="card sk-card" aria-hidden="true"><div class="card-head"><span class="sk" style="width:36px;height:36px;border-radius:8px;flex:none"></span><div style="flex:1;min-width:0;margin-top:1px"><div class="sk" style="height:13px;width:60%;margin-bottom:7px"></div><div style="display:flex;gap:5px"><span class="sk" style="height:15px;width:46px;border-radius:6px"></span><span class="sk" style="height:15px;width:54px;border-radius:6px"></span></div></div></div><div class="sk-desc"><div class="sk" style="height:10px;width:100%;margin-bottom:6px"></div><div class="sk" style="height:10px;width:76%"></div></div><div class="card-metrics"><div class="cm"><div class="sk" style="height:8px;width:62%;margin-bottom:7px"></div><div class="sk" style="height:14px;width:70%"></div></div><div class="cm"><div class="sk" style="height:8px;width:58%;margin-bottom:7px"></div><div class="sk" style="height:14px;width:54%"></div></div></div></div>
+      <div class="card sk-card" aria-hidden="true"><div class="card-head"><span class="sk" style="width:36px;height:36px;border-radius:8px;flex:none"></span><div style="flex:1;min-width:0;margin-top:1px"><div class="sk" style="height:13px;width:48%;margin-bottom:7px"></div><div style="display:flex;gap:5px"><span class="sk" style="height:15px;width:46px;border-radius:6px"></span><span class="sk" style="height:15px;width:54px;border-radius:6px"></span></div></div></div><div class="sk-desc"><div class="sk" style="height:10px;width:100%;margin-bottom:6px"></div><div class="sk" style="height:10px;width:70%"></div></div><div class="card-metrics"><div class="cm"><div class="sk" style="height:8px;width:62%;margin-bottom:7px"></div><div class="sk" style="height:14px;width:66%"></div></div><div class="cm"><div class="sk" style="height:8px;width:58%;margin-bottom:7px"></div><div class="sk" style="height:14px;width:54%"></div></div></div></div>
     </div>
     <div id="scroll-sentinel" style="height:1px;margin-top:24px;"></div>
   </main>
@@ -903,8 +914,27 @@ function updateCount() {
   gc.textContent=n.toLocaleString()+plus+' '+word+suffix;
 }
 
+// One skeleton card mirroring the real .card layout; the white-light sweep (CSS)
+// plays across the placeholders while the catalog fetch is in flight.
+function skCardHTML() {
+  const w1 = 46 + Math.floor(Math.random()*22);   // vary name width so the grid feels organic
+  return '<div class="card sk-card" aria-hidden="true">'+
+    '<div class="card-head">'+
+      '<span class="sk" style="width:36px;height:36px;border-radius:8px;flex:none"></span>'+
+      '<div style="flex:1;min-width:0;margin-top:1px">'+
+        '<div class="sk" style="height:13px;width:'+w1+'%;margin-bottom:7px"></div>'+
+        '<div style="display:flex;gap:5px"><span class="sk" style="height:15px;width:46px;border-radius:6px"></span><span class="sk" style="height:15px;width:54px;border-radius:6px"></span></div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="sk-desc"><div class="sk" style="height:10px;width:100%;margin-bottom:6px"></div><div class="sk" style="height:10px;width:78%"></div></div>'+
+    '<div class="card-metrics">'+
+      '<div class="cm"><div class="sk" style="height:8px;width:62%;margin-bottom:7px"></div><div class="sk" style="height:14px;width:72%"></div></div>'+
+      '<div class="cm"><div class="sk" style="height:8px;width:58%;margin-bottom:7px"></div><div class="sk" style="height:14px;width:54%"></div></div>'+
+    '</div>'+
+  '</div>';
+}
 function showLoading() {
-  document.getElementById('cards').innerHTML='<div style="grid-column:1/-1;text-align:center;padding:60px 0;"><div style="font-size:14px;color:var(--text2);margin-bottom:16px;">'+t('idx','loading')+'</div><div style="width:160px;height:3px;background:var(--border);border-radius:2px;margin:0 auto;overflow:hidden;"><div style="height:100%;width:40%;background:var(--accent);border-radius:2px;animation:loadpulse 1.5s ease-in-out infinite;"></div></div></div>';
+  document.getElementById('cards').innerHTML = Array.from({length:9}, skCardHTML).join('');
 }
 function showError() {
   document.getElementById('cards').innerHTML='<div style="grid-column:1/-1;text-align:center;padding:60px 0;color:var(--text3);"><div style="font-size:24px;margin-bottom:8px;">⚠️</div><div>'+t('idx','error')+'</div></div>';
