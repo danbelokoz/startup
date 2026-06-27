@@ -330,6 +330,26 @@ window.isGmvLike = window.isGmvLike || function (s) {
   return false;
 };
 
+/* ── GUEST GATE HELPERS ───────────────────────────────────────────────────────
+   For unregistered visitors we hide everything past the 3rd character of the name
+   and blur the brand name where it appears inside the description (the description
+   text itself stays visible). Site / founder aren't shown on cards at all.
+   Defined locally (not in shared.js) so a stale cached shared.js can't break them. */
+function isGuest() { return !(window._access && window._access.authenticated); }
+function gatedNameHtml(name) {
+  const n = String(name == null ? '' : name);
+  if (n.length <= 3) return escHtml(n);
+  return escHtml(n.slice(0, 3)) + '<span class="name-blur">' + escHtml(n.slice(3)) + '</span>';
+}
+function maskBrandHtml(text, brand) {
+  if (text == null) return '';
+  if (!brand) return escHtml(text);
+  const safe = String(brand).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const marker = '';
+  const marked = String(text).replace(new RegExp('\\b' + safe + '\\b', 'gi'), marker);
+  return escHtml(marked).split(marker).join('<span class="name-blur">' + escHtml(brand) + '</span>');
+}
+
 /* ── CONSTANTS ─────────────────────────────────────────────────────────────── */
 const API   = '/api';
 const LIMIT = 50;
@@ -729,16 +749,13 @@ function dataScore(s) {
 function cardHTML(s) {
   const init = s.name.split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase()||'?';
   const isAnon = (s.name||'').toLowerCase().includes('anonymous');
-  const revealed = isRevealed(s.slug);          // already unblurred elsewhere → keep it unblurred here
-  const blurName = false;   // paywall removed - names public to all visitors
-  const blurLogo = false;   // paywall removed - logos public to all visitors
+  // Guests see only the first 3 chars of the name; anonymous listings are left alone.
+  const gate = isGuest() && !isAnon;
   const iconInner = s.icon
     ? '<img src="'+escHtml(s.icon)+'" loading="lazy" onerror="this.parentElement.textContent=\''+init+'\'"/>'
     : init;
-  const logoMarkup = blurLogo ? '<div class="logo-blur">'+iconInner+'</div>' : iconInner;
-  const nameHtml = blurName
-    ? '<span class="name-blur">'+escHtml(s.name)+'</span>'
-    : escHtml(s.name);
+  const logoMarkup = iconInner;
+  const nameHtml = gate ? gatedNameHtml(s.name) : escHtml(s.name);
   const g = s.growth30d;
   const gh = g!=null?' <span class="cm-sub '+(g>=0?'up':'dn')+'">'+(g>=0?'↑':'↓')+Math.abs(parseFloat(g)).toFixed(1)+'%</span>':'';
   const hasP = s.onSale&&s.askingPrice;
@@ -761,8 +778,10 @@ function cardHTML(s) {
   const anonTag = isAnon
     ? '<span class="anon-tag" title="'+(t('idx','anonHint')||'Owner chose to stay anonymous')+'">·&nbsp;'+(t('idx','anonLabel')||'anonymous')+'</span>'
     : '';
-  const desc = s.description && s.description.trim()
-    ? escHtml(s.description)
+  const descRaw = s.description && s.description.trim() ? s.description : '';
+  // Description stays visible; for guests only the brand name inside it is blurred.
+  const desc = descRaw
+    ? (gate ? maskBrandHtml(descRaw, s.name) : escHtml(descRaw))
     : (isAnon ? (t('idx','anonNoDesc') || 'Seller chose not to disclose product details.') : '');
   // "NEW" badge if listed for sale within the last 7 days
   const daysListed = s.firstListedForSaleAt
@@ -987,6 +1006,11 @@ function restoreFromUrl() {
   else { displayItems = applyClientFilters(loadedItems); renderCards(); updateCount(); }
 }
 window.addEventListener('popstate', restoreFromUrl);
+// Re-paint once /api/auth resolves so the guest gate (name + brand-in-description)
+// reflects the real login state - the first cards may render before auth comes back.
+window.addEventListener('navAuthUpdated', () => {
+  if (document.querySelector('#cards .card')) renderCards();
+});
 
 let _scrollRestored = false;
 function restoreScroll() {

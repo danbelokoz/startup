@@ -22,10 +22,6 @@
     .startup-header-meta h1 { font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif; font-size: 32px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 8px; }
     .header-badges { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
     .startup-desc { font-size: 16px; color: var(--text2); line-height: 1.7; margin-bottom: 32px; }
-    /* Guest gate: the second half of the description is blurred until registration */
-    .desc-gate { filter: blur(5px); user-select: none; }
-    .desc-readfull { display: inline-block; margin-top: 10px; font-size: 14px; font-weight: 600; color: var(--accent); text-decoration: none; }
-    .desc-readfull:hover { text-decoration: underline; }
     /* Shown in place of the description until enrichment resolves our rephrased/
        translated text - avoids briefly flashing TrustMRR's original copy. */
     .desc-skeleton { display: flex; flex-direction: column; gap: 9px; }
@@ -615,6 +611,13 @@ function maskBrand(text, brand) {
   );
 }
 
+// Guest name gate: show only the first 3 characters, blur the rest.
+function gatedNameHtml(name) {
+  const n = String(name == null ? '' : name);
+  if (n.length <= 3) return escHtml(n);
+  return escHtml(n.slice(0, 3)) + '<span class="name-blur">' + escHtml(n.slice(3)) + '</span>';
+}
+
 function renderStartup(s) {
   document.title = `${s.name} - MRRket`;
   document.getElementById('backLink').textContent = '← ' + t('startupPage','back');
@@ -644,7 +647,6 @@ function renderStartup(s) {
   const isAnon = (s.name||'').toLowerCase().includes('anonymous');
   // Guests (not logged in) get the gated blur on site / founder / name.
   const wantBlur = !isAnon && !_revealed;
-  const blurNameCls = wantBlur ? ' name-blur' : '';
   const blurLogoCls = wantBlur ? ' logo-blur' : '';
 
   // Description: prefer real description, fall back to AI valueProposition with
@@ -665,23 +667,11 @@ function renderStartup(s) {
   // /api/startups & /api/startup); otherwise skeleton until enrichment resolves so we
   // never flash TrustMRR's original.
   const descReady = _enrichDone || s.descI18n;
-  // Guests see only the first half of the description; the rest is blurred with a
-  // "register to read the full text" hint (clicking the blur opens the register modal).
-  function gatedDesc(text) {
-    const mid = Math.floor(text.length / 2);
-    let cut = text.indexOf(' ', mid);
-    if (cut === -1) cut = text.length;
-    const head = text.slice(0, cut);
-    const tail = text.slice(cut);
-    if (!tail.trim()) return maskBrand(text, s.name);   // too short to split meaningfully
-    const from = encodeURIComponent(location.pathname);
-    return `${maskBrand(head, s.name)}<span class="desc-gate paywall-blur" style="cursor:pointer;">${escHtml(tail)}</span>`
-      + `<a class="desc-readfull" href="/auth.html?from=${from}">${escHtml(t('startupPage','descMore'))} →</a>`;
-  }
-  const descBody = wantBlur ? gatedDesc(descText) : maskBrand(descText, s.name);
+  // Description stays fully visible; for guests maskBrand blurs only the brand-name
+  // mentions inside it (the surrounding text is shown).
   const descHtml = !descReady
     ? '<div class="startup-desc desc-skeleton" aria-hidden="true"><span></span><span></span><span></span></div>'
-    : (descText ? `<div class="startup-desc">${descBody}</div>` : '');
+    : (descText ? `<div class="startup-desc">${maskBrand(descText, s.name)}</div>` : '');
 
   // Cofounders - render as chips when populated
   const cofoundersHtml = s.cofounders&&s.cofounders.length
@@ -809,7 +799,7 @@ function renderStartup(s) {
       <div class="startup-icon${blurLogoCls}">${logoMarkup}</div>
       <div class="startup-header-meta">
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-          <h1 class="${blurNameCls}" style="margin-bottom:0;">${escHtml(s.name)}</h1>
+          <h1 style="margin-bottom:0;">${wantBlur ? gatedNameHtml(s.name) : escHtml(s.name)}</h1>
           ${headerReveal}
           ${headerPrice}
         </div>
