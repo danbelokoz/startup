@@ -517,14 +517,14 @@ async function loadLanding() {
       if (st.onSale != null) animateCount(byId('tsSale'), st.onSale + 300, v => Math.round(v).toLocaleString());
     }
   } catch {}
-  // Revenue leaders → widget. Sample 5 from the top on-sale earners (real, non-anon,
-  // non-zero listings) so the widget varies each load instead of always showing the
-  // same five, then show them in descending-revenue order.
+  // Revenue leaders → widget. Show the true top 5 on-sale earners (real, non-anon,
+  // non-zero listings) in descending-revenue order, so the list stays stable across
+  // reloads instead of rotating a random sample.
   try {
     const r = await fetch(API+'/startups?onSale=true&page=1&limit=30&sort=revenue-desc').then(r=>r.json()).catch(()=>null);
     const byRev = (a,b)=>((b.revenue&&b.revenue.last30Days)||0)-((a.revenue&&a.revenue.last30Days)||0);
     const pool = ((r&&r.data)||[]).filter(isRecommendable).sort(byRev);
-    const items = shuffle(pool.slice(0,14)).slice(0,5).sort(byRev);
+    const items = pool.slice(0,5);
     renderWidget(items);
   } catch { renderWidget([]); }
   // Top growing on-sale startups → product cards.
