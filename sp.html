@@ -28,6 +28,19 @@
     .desc-skeleton span { height: 13px; border-radius: 6px; background: linear-gradient(90deg, var(--bg3) 25%, var(--bg2) 50%, var(--bg3) 75%); background-size: 200% 100%; animation: descShimmer 1.2s ease-in-out infinite; }
     .desc-skeleton span:nth-child(1) { width: 96%; } .desc-skeleton span:nth-child(2) { width: 88%; } .desc-skeleton span:nth-child(3) { width: 62%; }
     @keyframes descShimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    /* ── Page-load skeleton: layout-matching placeholders with a white light sweep ── */
+    .sp-skeleton { animation: skFadeIn .25s ease both; }
+    @keyframes skFadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .sk { position: relative; overflow: hidden; background: var(--bg3); border-radius: 6px; }
+    .sk::after { content: ''; position: absolute; top: 0; left: 0; height: 100%; width: 100%;
+      background: linear-gradient(100deg, transparent 20%, rgba(255,255,255,0.85) 50%, transparent 80%);
+      transform: translateX(-100%); animation: skSweep 1.5s ease-in-out infinite; }
+    @keyframes skSweep { 0% { transform: translateX(-100%); } 60%, 100% { transform: translateX(100%); } }
+    /* slight cascade so the light reads as one wave travelling down the page */
+    .sp-skeleton .metric-card:nth-child(2) .sk::after { animation-delay: .08s; }
+    .sp-skeleton .metric-card:nth-child(3) .sk::after { animation-delay: .16s; }
+    .sp-skeleton .metric-card:nth-child(4) .sk::after { animation-delay: .24s; }
+    .sp-skeleton .chart-card .sk::after { animation-delay: .3s; }
     /* Asymmetric metrics grid: MRR is a featured 2x2 block, the rest tile around it */
     .metrics-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 32px; }
     .metric-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow); display: flex; flex-direction: column; min-width: 0; }
@@ -274,7 +287,49 @@
     </div>
   </div>
   <div id="archiveBanner"></div>
-  <div id="content"><div class="loading-state"><h3>Loading...</h3></div></div>
+  <div id="content"><div class="sp-skeleton" aria-busy="true" aria-label="Loading">
+    <div class="startup-header">
+      <div class="startup-icon sk" style="border:none;"></div>
+      <div class="startup-header-meta" style="flex:1;min-width:0;">
+        <div class="sk" style="height:32px;width:46%;border-radius:8px;margin-bottom:14px;"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <div class="sk" style="height:22px;width:88px;border-radius:999px;"></div>
+          <div class="sk" style="height:22px;width:64px;border-radius:999px;"></div>
+          <div class="sk" style="height:22px;width:104px;border-radius:999px;"></div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:32px;">
+      <div class="sk" style="height:13px;width:96%;"></div>
+      <div class="sk" style="height:13px;width:88%;"></div>
+      <div class="sk" style="height:13px;width:62%;"></div>
+    </div>
+    <div class="sk" style="height:18px;width:170px;border-radius:6px;margin-bottom:16px;"></div>
+    <div class="metrics-grid">
+      <div class="metric-card featured">
+        <div class="sk" style="height:12px;width:46px;margin-bottom:12px;"></div>
+        <div class="sk" style="height:42px;width:72%;border-radius:8px;"></div>
+      </div>
+      <div class="metric-card wide">
+        <div class="sk" style="height:12px;width:60%;margin-bottom:12px;"></div>
+        <div class="sk" style="height:26px;width:50%;"></div>
+      </div>
+      <div class="metric-card">
+        <div class="sk" style="height:12px;width:70%;margin-bottom:12px;"></div>
+        <div class="sk" style="height:26px;width:55%;"></div>
+      </div>
+      <div class="metric-card">
+        <div class="sk" style="height:12px;width:64%;margin-bottom:12px;"></div>
+        <div class="sk" style="height:26px;width:48%;"></div>
+      </div>
+    </div>
+    <div class="sk" style="height:18px;width:200px;border-radius:6px;margin-bottom:16px;"></div>
+    <div class="chart-card">
+      <div class="sk" style="height:30px;width:150px;border-radius:7px;margin-bottom:8px;"></div>
+      <div class="sk" style="height:14px;width:220px;margin-bottom:20px;"></div>
+      <div class="sk" style="height:210px;width:100%;border-radius:10px;"></div>
+    </div>
+  </div></div>
 </div>
 <footer><a href="#">Условия</a> &nbsp;·&nbsp; <a href="#">Конфиденциальность</a></footer>
 
