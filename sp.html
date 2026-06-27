@@ -134,7 +134,14 @@
   .logo-blur { filter: blur(5px); user-select: none; transition: filter 0.25s; }
   /* Header-positioned reveal pill for non-onSale startups */
   .header-reveal { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text2); background: var(--bg3); border: 1px solid var(--border); border-radius: 999px; padding: 4px 10px; cursor: pointer; transition: all 0.15s; font-family: 'Manrope', sans-serif; }
+  .header-reveal { text-decoration: none; }
   .header-reveal:hover { border-color: var(--text); color: var(--text); }
+  /* "Register for free" gate shown to guests under blurred site / founder blocks */
+  .reg-gate { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 12px; padding: 12px 14px; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); }
+  .reg-gate-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .reg-gate-text strong { font-size: 13px; color: var(--text); }
+  .reg-gate-text span { font-size: 12px; color: var(--text2); }
+  .reg-gate .btn { white-space: nowrap; flex-shrink: 0; }
   /* Enrichment additions */
   .pp-section { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; margin-bottom: 16px; box-shadow: var(--shadow); }
   .pp-section h4 { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text3); margin-bottom: 8px; }
@@ -335,7 +342,7 @@
 
 <script src="/auth-config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="/shared.js?v=20260626"></script>
+<script src="/shared.js?v=20260627"></script>
 <script>
 // Resilience guard: loadSimilar() (the "More … for sale" rail) calls isRecommendable()
 // and shuffle() from shared.js. If a browser serves a STALE cached shared.js right
@@ -511,7 +518,20 @@ async function renderArchived(slug) {
 }
 
 let _startup = null;
-let _revealed = true;   // paywall removed - seller site + owner are public to all visitors
+let _revealed = false;  // gated: site / founder / startup name are shown only to registered users
+// Registered users (free or paid) see everything for free; guests get a blur + register CTA.
+function isAuthed() { return !!(window._access && window._access.authenticated); }
+// Small inline "register for free" call-to-action reused under the gated blocks.
+function regCtaHtml() {
+  const from = encodeURIComponent(location.pathname);
+  return `<div class="reg-gate">
+    <div class="reg-gate-text">
+      <strong>${escHtml(t('startupPage','regGate'))}</strong>
+      <span>${escHtml(t('startupPage','regNote'))}</span>
+    </div>
+    <a href="/auth.html?from=${from}" class="btn btn-primary btn-sm">${escHtml(t('startupPage','regBtn'))}</a>
+  </div>`;
+}
 const LS_FAVS = 'sm_favs';
 function getFavs(){try{return JSON.parse(localStorage.getItem(LS_FAVS)||'[]');}catch{return[];}}
 function toggleDetailFav(){
@@ -595,8 +615,8 @@ function renderStartup(s) {
   document.title = `${s.name} - MRRket`;
   document.getElementById('backLink').textContent = '← ' + t('startupPage','back');
   _startup = s;
-  // If user revealed in this session, persist across re-renders (enrichment merge).
-  try { if (sessionStorage.getItem('revealed_'+s.slug) || isRevealed(s.slug)) _revealed = true; } catch {}
+  // Site / founder / name are open to any logged-in user (free), blurred for guests.
+  _revealed = isAuthed();
   updateFavBtn(s.slug);
   renderCmpBtns();   // now we have the exact slug - reflect queued state on the button
 
@@ -617,11 +637,9 @@ function renderStartup(s) {
     : (mrrCmpV === 0
         ? `<div class="metric-cmp flat">${t('startupPage','flat')} <span class="cmp-base">${t('startupPage','mrrVsPrev')}</span></div>`
         : `<div class="metric-cmp ${mrrCmpV > 0 ? 'up' : 'down'}">${mrrCmpV > 0 ? '↑' : '↓'} ${Math.abs(mrrCmpV).toFixed(1)}% <span class="cmp-base">${t('startupPage','mrrVsPrev')}</span></div>`);
-  const website = s.website?`<a href="${escHtml(s.website)}" target="_blank" style="color:var(--accent)">${s.website.replace(/^https?:\/\//,'')}</a>`:'-';
-
   const isAnon = (s.name||'').toLowerCase().includes('anonymous');
-  const isSubscriber = window._access && window._access.role === 'subscriber';
-  const wantBlur = !isAnon && !_revealed && !isSubscriber;
+  // Guests (not logged in) get the gated blur on site / founder / name.
+  const wantBlur = !isAnon && !_revealed;
   const blurNameCls = wantBlur ? ' name-blur' : '';
   const blurLogoCls = wantBlur ? ' logo-blur' : '';
 
@@ -649,10 +667,11 @@ function renderStartup(s) {
 
   // Cofounders - render as chips when populated
   const cofoundersHtml = s.cofounders&&s.cofounders.length
-    ? `<div class="section-title">Cofounders</div><div class="tech-tags">${s.cofounders.map(c=>{
-        if (typeof c==='string') return `<span class="tech-tag">${escHtml(c)}</span>`;
-        const nm = c.name || c.fullName || c.handle || '';
-        const handle = c.xHandle || c.handle;
+    ? `<div class="section-title">${t('startupPage','cofounders')}</div><div class="tech-tags">${s.cofounders.map(c=>{
+        const nm = (typeof c==='string') ? c : (c.name || c.fullName || c.handle || '');
+        const handle = (typeof c==='string') ? '' : (c.xHandle || c.handle);
+        // Cofounders are founder info - blurred for guests, links stripped.
+        if (wantBlur) return `<span class="tech-tag paywall-blur" style="cursor:pointer;">${escHtml(nm||('@'+handle))}</span>`;
         const inner = handle ? `<a href="https://x.com/${escHtml(handle)}" target="_blank" style="color:inherit;text-decoration:none">${escHtml(nm||'@'+handle)}</a>` : escHtml(nm);
         return `<span class="tech-tag">${inner}</span>`;
       }).join('')}</div>`
@@ -670,12 +689,19 @@ function renderStartup(s) {
   // Founder (X profile) + website surfaced as deeplinks at the top. On-sale startups
   // already get this via #contactSection (renderContactSection); non-sale ones used to
   // show only a plain "Not for sale" box, with founder/site buried in the Info table.
-  const founderTop = s.xHandle
-    ? `<a href="https://x.com/${escHtml(s.xHandle)}" target="_blank" class="btn btn-primary btn-sm">𝕏 ${s.xFounderName ? escHtml(s.xFounderName) + ' <span style="opacity:.7">@' + escHtml(s.xHandle) + '</span>' : '@' + escHtml(s.xHandle)}</a>`
-    : (s.xFounderName ? `<span class="btn btn-ghost btn-sm" style="cursor:default;">${escHtml(s.xFounderName)}</span>` : '');
-  const siteTop = s.website
-    ? `<a href="${escHtml(s.website)}" target="_blank" class="btn btn-ghost btn-sm">${t('startupPage','viewOriginal')} ↗</a>`
-    : '';
+  const founderLabel = s.xFounderName
+    ? escHtml(s.xFounderName) + (s.xHandle ? ' <span style="opacity:.7">@' + escHtml(s.xHandle) + '</span>' : '')
+    : (s.xHandle ? '@' + escHtml(s.xHandle) : '');
+  const founderTop = !founderLabel ? ''
+    : wantBlur
+      ? `<span class="btn btn-ghost btn-sm paywall-blur owner-blur" style="cursor:pointer;">𝕏 ${founderLabel}</span>`
+      : (s.xHandle
+          ? `<a href="https://x.com/${escHtml(s.xHandle)}" target="_blank" class="btn btn-primary btn-sm">𝕏 ${founderLabel}</a>`
+          : `<span class="btn btn-ghost btn-sm" style="cursor:default;">${founderLabel}</span>`);
+  const siteTop = !s.website ? ''
+    : wantBlur
+      ? `<span class="btn btn-ghost btn-sm paywall-blur" style="cursor:pointer;">${t('startupPage','viewOriginal')} ↗</span>`
+      : `<a href="${escHtml(s.website)}" target="_blank" class="btn btn-ghost btn-sm">${t('startupPage','viewOriginal')} ↗</a>`;
 
   const saleBlock = s.onSale&&s.askingPrice ? `
     <div class="sale-strip">
@@ -685,7 +711,7 @@ function renderStartup(s) {
     <div class="sale-strip">
       <span class="not-sale-label">${t('startupPage','notForSale')}</span>
       <div class="contact-revealed" style="margin-bottom:0;">${founderTop}${siteTop}</div>
-    </div>` : `<div class="not-sale-box">${t('startupPage','notForSale')}</div>`);
+    </div>${wantBlur ? regCtaHtml() : ''}` : `<div class="not-sale-box">${t('startupPage','notForSale')}</div>`);
 
   const ai = (s.aiEnrichment && typeof s.aiEnrichment === 'object') ? s.aiEnrichment : {};
   const tags = Array.isArray(ai.tags) ? ai.tags : [];
@@ -699,7 +725,7 @@ function renderStartup(s) {
   const tagsRow        = tagBadges ? `<div class="ai-tags" style="margin-top:8px;">${tagBadges}</div>` : '';
   // Non-onSale startups get a small inline reveal pill in the header.
   const headerReveal   = (!s.onSale && wantBlur)
-    ? `<button class="header-reveal" onclick="tryReveal()">${icon('lock',{size:12})} ${t('startupPage','revealBtn')||'Reveal'}</button>`
+    ? `<a class="header-reveal" href="/auth.html?from=${encodeURIComponent(location.pathname)}">${icon('lock',{size:12})} ${t('startupPage','regBtn')}</a>`
     : '';
   // Compact asking-price chip shown in the header next to the name (on-sale only).
   const headerPrice    = (s.onSale && s.askingPrice)
@@ -948,10 +974,11 @@ function renderSiteSection() {
     d.hasAPI       ? `<span class="site-pill">${icon('code',{size:10})} API / Docs</span>` : '',
   ].filter(Boolean).join('');
 
-  // Anything that exposes the seller's brand (handles, repo names, app IDs)
-  // stays behind the paywall blur until reveal.
+  // The whole website preview is gated for guests via the wrapper below, so the
+  // individual links don't need their own blur class.
   const isAnonStartup = ((s.name||'').toLowerCase().includes('anonymous'));
-  const bClass = (!_revealed && !isAnonStartup) ? ' paywall-blur' : '';
+  const siteGated = !_revealed && !isAnonStartup;
+  const bClass = '';
 
   const apps = d.apps || {};
   const appLinks = [
@@ -981,11 +1008,13 @@ function renderSiteSection() {
       </div>
       <div class="site-card">
         <div class="site-body">
+          ${siteGated ? '<div class="paywall-blur" style="cursor:pointer;display:flex;flex-direction:column;gap:10px;">' : ''}
           ${(d.ogDescription || d.description) ? `<p style="font-size:13px;color:var(--text2);line-height:1.55;margin:0;">${maskBrand((d.ogDescription || d.description).slice(0,280), s.name)}</p>` : ''}
           ${featurePills ? `<div class="site-pills">${featurePills}</div>` : ''}
           ${pricingPills ? `<div><div class="site-row"><strong>Pricing observed:</strong></div><div class="site-pricing">${pricingPills}</div></div>` : ''}
           ${techPills ? `<div><div class="site-row"><strong>Tech detected:</strong></div><div class="site-pills">${techPills}</div></div>` : ''}
           ${(appLinks || socialLinks) ? `<div class="site-row">${appLinks}${socialLinks}</div>` : ''}
+          ${siteGated ? '</div>' + regCtaHtml() : ''}
         </div>
       </div>
     </div>`;
@@ -1747,58 +1776,34 @@ function clearChartSel() {
 function renderContactSection(s) {
   const section = document.getElementById('contactSection');
   if (!section) return;
+  // Registered users (free or paid) see the seller's site + founder directly.
+  if (_revealed) {
+    section.innerHTML = `<div class="contact-revealed" id="contactWrap" style="height:100%;">` +
+      (s.xHandle ? `<a href="https://x.com/${escHtml(s.xHandle)}" target="_blank" class="btn btn-primary btn-sm">𝕏 @${escHtml(s.xHandle)}</a>` : '') +
+      (s.website  ? `<a href="${escHtml(s.website)}" target="_blank" class="btn btn-ghost btn-sm">${t('startupPage','viewOriginal')} ↗</a>` : '') +
+      `</div>`;
+    return;
+  }
+  // Guests: blurred placeholder + a free-registration call to action.
+  const from = encodeURIComponent(location.pathname);
   section.innerHTML = `
     <div class="contact-cta" id="contactWrap" style="height:100%;">
       <span class="contact-cta-icon">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
       </span>
       <span class="contact-cta-text">
-        <span class="contact-cta-title" data-i18n="startupPage.reveal">Открыть контакты продавца и сайт</span>
-        <span class="contact-cta-sub" id="revealNote" data-i18n="startupPage.revealNote">тратит 1 просмотр из вашего лимита</span>
+        <span class="contact-cta-title">${escHtml(t('startupPage','regGate'))}</span>
+        <span class="contact-cta-sub">${escHtml(t('startupPage','regNote'))}</span>
       </span>
-      <button class="btn btn-primary btn-sm" onclick="tryReveal()" id="revealBtn" data-i18n="startupPage.revealBtn">Открыть</button>
+      <a class="btn btn-primary btn-sm" href="/auth.html?from=${from}">${escHtml(t('startupPage','regBtn'))}</a>
     </div>`;
-  // Re-apply i18n to the just-inserted content
-  if (typeof applyLangToDoc === 'function') applyLangToDoc();
-  // If already revealed: apply contact links directly - do NOT call doReveal() here,
-  // as doReveal → renderStartup → renderContactSection → doReveal creates infinite recursion.
-  if (_revealed) {
-    const wrap = document.getElementById('contactWrap');
-    if (wrap) {
-      wrap.className = 'contact-revealed';
-      wrap.innerHTML =
-        (s.xHandle ? `<a href="https://x.com/${escHtml(s.xHandle)}" target="_blank" class="btn btn-primary btn-sm">𝕏 @${escHtml(s.xHandle)}</a>` : '') +
-        (s.website  ? `<a href="${escHtml(s.website)}" target="_blank" class="btn btn-ghost btn-sm">${t('startupPage','viewOriginal')} ↗</a>` : '');
-    }
-  } else {
-    try { if (sessionStorage.getItem('revealed_'+s.slug) || isRevealed(s.slug)) { doReveal(s); } } catch {}
-  }
 }
 
-async function tryReveal() {
-  const s = _startup; if (!s) return;
-  const btn = document.getElementById('revealBtn');
-  if (btn) { btn.textContent='⏳ Проверяем...'; btn.disabled=true; }
-
-  const access = window._access;
-  if (access && access.role==='subscriber') { doReveal(s); return; }
-
-  if (access && access.authenticated) {
-    const token = window._session&&window._session.access_token;
-    if (!token) { doReveal(s); return; }
-    try {
-      const r = await fetch('/api/auth',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({slug:s.slug})});
-      if (r.ok)            { doReveal(s); }
-      else if (r.status===403){ showLocked('subscriber'); }
-      else                 { doReveal(s); }
-    } catch { doReveal(s); }
-    return;
-  }
-
-  // Guest
-  const viewed = getGuestViewedSlugs();
-  if (viewed.includes(s.slug)||viewed.length<3) { addGuestViewedSlug(s.slug); doReveal(s); }
-  else showLocked('user');
+function tryReveal() {
+  // Site / founder / name are gated behind a free account. Logged-in users already
+  // see everything (nothing to reveal); guests are sent to register for free.
+  if (isAuthed()) { if (_startup) renderStartup(_startup); return; }
+  location.href = '/auth.html?from=' + encodeURIComponent(location.pathname);
 }
 
 function doReveal(s) {
@@ -1847,7 +1852,13 @@ function addGuestViewedSlug(slug) {
 }
 
 // Re-render contact section when auth resolves
-window.addEventListener('navAuthUpdated', () => { if (_startup&&_startup.onSale) renderContactSection(_startup); updateFavBtn(_startup&&_startup.slug); });
+// Auth resolves async after first paint. Re-render so the gate flips correctly:
+// a logged-in user who first saw the blurred guest view now gets the full content
+// (fetch guards in initChart/fetchEnrichment/fetchSiteData prevent duplicate requests).
+window.addEventListener('navAuthUpdated', () => {
+  if (_startup) renderStartup(_startup);
+  updateFavBtn(_startup&&_startup.slug);
+});
 </script>
 </body>
 </html>
