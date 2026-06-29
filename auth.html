@@ -41,6 +41,9 @@
     .sent-box h3 { font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif; font-size: 18px; margin-bottom: 8px; }
     .sent-box p  { font-size: 14px; color: var(--text2); line-height: 1.6; margin-bottom: 20px; }
     .sent-box a  { color: var(--accent); text-decoration: none; font-size: 14px; }
+    .sent-email  { color: var(--text); word-break: break-all; }
+    .sent-back   { display: block; margin-bottom: 10px; }
+    .sent-back:hover { text-decoration: underline; }
 
     .reset-notice { font-size: 12px; color: var(--text3); text-align: center; margin-top: 12px; line-height: 1.5; }
 
@@ -94,7 +97,8 @@
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
         </div>
         <h3 data-i18n="auth.checkInbox">Check your inbox</h3>
-        <p><span data-i18n="auth.sentPre">We sent a confirmation link to</span> <strong id="sentEmail"></strong>. <span data-i18n="auth.sentPost">Click it to activate your account.</span></p>
+        <p><span data-i18n="auth.sentPre">We sent a confirmation link to</span><br><strong id="sentEmail" class="sent-email"></strong><br><span data-i18n="auth.sentPost">Click it to activate your account.</span></p>
+        <a href="#" class="sent-back" id="sentBackLink" onclick="backToForm(event)" data-i18n="auth.changeEmail">← Change email</a>
         <a href="/" data-i18n="auth.continueBrowse">Continue browsing →</a>
       </div>
 
@@ -271,6 +275,16 @@ function showSentBox(email) {
   document.getElementById('sentEmail').textContent     = email;
   document.getElementById('sentBox').style.display     = 'block';
   clearMessages();
+}
+// Go back from the "check your inbox" screen to the form so the user can fix a typo.
+function backToForm(e) {
+  if (e) e.preventDefault();
+  document.getElementById('sentBox').style.display     = 'none';
+  document.getElementById('authForm').style.display    = '';
+  document.getElementById('authFooter').style.display  = '';
+  document.getElementById('tabs').style.display        = '';
+  clearMessages();
+  document.getElementById('email').focus();
 }
 
 // Map Supabase error strings to readable messages
