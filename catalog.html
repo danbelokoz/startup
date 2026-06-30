@@ -96,6 +96,11 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
 
 .grid-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; gap: 10px; }
 .grid-count { font-size: 13px; color: var(--text3); }
+.grid-tools { display: flex; align-items: center; gap: 8px; }
+.filter-toggle { display: none; align-items: center; gap: 6px; background: var(--bg2); border: 1px solid var(--border2); border-radius: 7px; padding: 6px 11px; font-size: 12px; font-weight: 600; color: var(--text); cursor: pointer; }
+.filter-toggle svg { color: var(--text3); flex-shrink: 0; }
+.filter-toggle .ft-badge { display: none; background: var(--accent); color: #181A20; border-radius: 10px; font-size: 10px; font-weight: 700; line-height: 16px; min-width: 16px; height: 16px; padding: 0 4px; text-align: center; }
+.filter-toggle.has-active .ft-badge { display: inline-block; }
 .sort-wrap { display: flex; align-items: center; gap: 5px; background: var(--bg2); border: 1px solid var(--border2); border-radius: 7px; padding: 4px 6px 4px 10px; }
 .sort-wrap svg { color: var(--text3); flex-shrink: 0; }
 .sort-select { appearance: none; background: transparent; border: none; padding: 4px 22px 4px 4px; font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif; font-size: 12px; color: var(--text2); cursor: pointer; outline: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238888a0' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 4px center; }
@@ -186,7 +191,13 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
 .dn { color: var(--trading-down); }
 
 @keyframes loadpulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-@media (max-width: 900px) { .body { grid-template-columns: 1fr; } .sidebar-block { position: static; max-height: none; } }
+@media (max-width: 900px) {
+  .body { grid-template-columns: 1fr; }
+  .sidebar-block { position: static; max-height: none; }
+  .filter-toggle { display: inline-flex; }
+  #filterSidebar { display: none; }
+  #filterSidebar.open { display: block; margin-bottom: 4px; }
+}
 @media (max-width: 640px) { .hero { padding: 24px 16px 16px; } .hero-title { font-size: 26px; } .cards { grid-template-columns: 1fr; } .body { padding: 12px 16px 60px; } .stat-n { font-size: 18px; } .stat-l { font-size: 9px; } .stat-item { padding: 14px 8px; } }
 </style>
 </head>
@@ -209,7 +220,7 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
 </div>
 
 <div class="body">
-  <aside>
+  <aside id="filterSidebar">
     <div class="sidebar-block">
       <div class="sb-header">
         <span class="sb-title" data-i18n="idx.fltTitle">Фильтры</span>
@@ -284,6 +295,12 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
   <main>
     <div class="grid-header">
       <span class="grid-count" id="gridCount" data-i18n="idx.loading">Загрузка...</span>
+      <div class="grid-tools">
+      <button type="button" class="filter-toggle" id="filterToggle" onclick="toggleFilters()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+        <span data-i18n="idx.fltTitle">Фильтры</span>
+        <span class="ft-badge" id="filterBadge">0</span>
+      </button>
       <div class="sort-wrap">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="9" y2="18"/></svg>
         <select class="sort-select" id="sortSelect" onchange="onSortChange(this.value)">
@@ -292,6 +309,7 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
           <option value="price-asc" data-i18n="idx.sortPriceAsc">Цена ↑</option>
           <option value="price-desc" data-i18n="idx.sortPriceDesc">Цена ↓</option>
         </select>
+      </div>
       </div>
     </div>
     <div class="cards" id="cards">
@@ -916,6 +934,7 @@ function hasActiveFilter() {
 }
 
 function updateCount() {
+  updateFilterBadge();
   const gc=document.getElementById('gridCount'); if(!gc)return;
   const lang=getLang();
   let n, plus='';
@@ -1072,6 +1091,33 @@ function applyFilters() {
   renderLimit=60;
   displayItems=applyClientFilters(loadedItems);
   renderCards();updateCount();
+  updateFilterBadge();
+  // On mobile the filter panel is collapsed behind the toggle - close it after applying.
+  if (window.matchMedia('(max-width: 900px)').matches) {
+    const sb=document.getElementById('filterSidebar'); if(sb) sb.classList.remove('open');
+  }
+}
+// Toggle the mobile filter panel (hidden by default on narrow screens).
+function toggleFilters() {
+  const sb=document.getElementById('filterSidebar'); if(sb) sb.classList.toggle('open');
+}
+// Count active filters (excluding the default on-sale status) for the toggle badge.
+function updateFilterBadge() {
+  let n=0;
+  if (filters.search) n++;
+  if (filters.category) n++;
+  if (filters.mrrMin||filters.mrrMax) n++;
+  if (filters.rev30Min||filters.rev30Max) n++;
+  if (filters.priceMin||filters.priceMax) n++;
+  if (filters.growthMin!==''||filters.growthMax!=='') n++;
+  if (filters.multipleMax) n++;
+  if (filters.marginMin||filters.marginMax) n++;
+  if (filters.audience) n++;
+  if (filters.mobile) n++;
+  if (filters.onSale!==true) n++;
+  const btn=document.getElementById('filterToggle'), b=document.getElementById('filterBadge');
+  if (btn) btn.classList.toggle('has-active', n>0);
+  if (b) b.textContent=n;
 }
 function resetFilters() {
   document.querySelectorAll('.sb-input').forEach(i=>i.value='');
