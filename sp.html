@@ -716,7 +716,12 @@ function renderStartup(s) {
       ? `<span class="btn btn-ghost btn-sm paywall-blur" style="cursor:pointer;">${t('startupPage','viewOriginal')} ↗</span>`
       : `<a href="${escHtml(s.website)}" target="_blank" class="btn btn-ghost btn-sm">${t('startupPage','viewOriginal')} ↗</a>`;
 
-  const saleBlock = s.onSale&&s.askingPrice ? `
+  // For-sale is driven by onSale alone: many sellers list without a public asking
+  // price (open to offers). Gating the strip on askingPrice made those listings
+  // render "Not for sale" AND dropped #contactSection (so renderContactSection,
+  // which runs for every onSale startup, had nowhere to write). The price chip in
+  // the header stays gated on askingPrice; the strip just needs the contact slot.
+  const saleBlock = s.onSale ? `
     <div class="sale-strip">
       ${listedDate || '<span></span>'}
       <div id="contactSection"></div>

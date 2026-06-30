@@ -141,11 +141,16 @@ export default async function handler(req, res) {
     return supaSeries(url, res);
   }
 
-  // default: daily MRR/metrics snapshots
+  // default: daily MRR/metrics snapshots. Filter by a date window (not a bare
+  // limit) so we return the MOST RECENT N days. A plain order=asc&limit=days
+  // returns the OLDEST N — once a startup accumulates >days snapshots its chart
+  // would freeze at day N and look stale. limit is just an upper safety bound.
   const days = Math.min(parseInt(req.query.days || '90', 10) || 90, 365);
+  const cutoff = new Date(Date.now() - days * 86400_000).toISOString().slice(0, 10);
   const url = `${process.env.SUPABASE_URL}/rest/v1/daily_snapshots`
     + `?slug=eq.${encodeURIComponent(slug)}`
+    + `&snap_date=gte.${cutoff}`
     + `&order=snap_date.asc`
-    + `&limit=${days}`;
+    + `&limit=400`;
   return supaSeries(url, res);
 }
