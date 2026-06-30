@@ -178,7 +178,10 @@ function isPrivateIp(ip) {
 }
 // Reject obvious internal names and any host whose DNS records point at a private IP.
 async function assertPublicHost(hostname) {
-  const h = String(hostname || '').toLowerCase();
+  // URL.hostname keeps IPv6 literals bracketed (e.g. "[::1]") — strip them so
+  // net.isIP recognises the address and we block it directly instead of leaking
+  // it into a DNS lookup.
+  const h = String(hostname || '').toLowerCase().replace(/^\[|\]$/g, '');
   if (!h || h === 'localhost' || h.endsWith('.localhost') || h.endsWith('.local')
       || h.endsWith('.internal') || h === 'metadata.google.internal') {
     throw new Error('blocked_host');
