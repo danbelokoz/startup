@@ -3,7 +3,7 @@
 // fundingStatus, ...), acquireScore, cachedGrowth, analytics flags, githubActivity,
 // stealthMode, lookingForCofounder, xFollowerCount, xFounderName, etc.
 
-import { redisPipeline } from './_lib.js';
+import { redisPipeline, clientIp, rateOk } from './_lib.js';
 
 const CACHE_TTL = 86400; // 24h — enrich data refreshes daily on TrustMRR
 
@@ -177,6 +177,13 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
+
+  // Per-IP rate limit (fail-open). One call per detail-page view, then 24h cached,
+  // so a human stays well under this; the cap blunts scraping of the live trustmrr fetch.
+  if (!(await rateOk('enrich', clientIp(req), 90, 60))) {
+    res.setHeader('Retry-After', '30');
+    return res.status(429).json({ error: 'Too many requests' });
+  }
 
   const slug = req.query.slug;
   if (!slug) return res.status(400).json({ error: 'Missing slug' });

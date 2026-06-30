@@ -46,6 +46,23 @@ export async function redisPipeline(commands) {
   } catch { return null; }
 }
 
+// ── Per-IP rate limiting (fixed window, fail-OPEN) ───────────────────────────
+// Shared by the public endpoints. Fail-open: any Redis hiccup → allowed, so a
+// counter outage never blocks real visitors. `bucket` namespaces the counter so
+// different endpoints don't share a budget.
+export function clientIp(req) {
+  const xff = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  return xff || req.headers['x-real-ip'] || '';
+}
+export async function rateOk(bucket, ip, limit, windowSec) {
+  if (!ip) return true;
+  const slot = Math.floor(Date.now() / (windowSec * 1000));
+  const key = `sm_rl_${bucket}_${ip}_${slot}`;
+  const r = await redisPipeline([['INCR', key], ['EXPIRE', key, String(windowSec * 2)]]);
+  const n = r && r[0] && Number(r[0].result);
+  return !Number.isFinite(n) || n <= limit;
+}
+
 // ── Supabase REST (service role unless userToken given) ──────────────────────
 export function supaConfigured() {
   return !!(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);

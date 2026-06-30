@@ -9,7 +9,7 @@
 // so old clients keep working. Merged into one function to stay inside the
 // Vercel Hobby limit of 12 serverless functions.
 
-import { redisGet, redisSet } from './_lib.js';
+import { redisGet, redisSet, clientIp, rateOk } from './_lib.js';
 
 const PRICE_CACHE_TTL = 3600; // 1 hour
 
@@ -114,6 +114,13 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
+
+  // Per-IP rate limit (fail-open). A detail page fires a few series at once, so the
+  // budget is generous; the price type also scrapes trustmrr live, hence a guard.
+  if (!(await rateOk('hist', clientIp(req), 150, 60))) {
+    res.setHeader('Retry-After', '30');
+    return res.status(429).json({ error: 'Too many requests' });
+  }
 
   const slug = req.query.slug;
   if (!slug) return res.status(400).json({ error: 'Missing slug' });

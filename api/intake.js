@@ -9,7 +9,7 @@
 // track: no cookies and no per-user rows — uniqueness comes from a salted
 // sha256(ip|ua|day) that rotates daily. Counters live in Redis ~100 days.
 
-import { redisPipeline, sb, getUser, supaConfigured, encryptSecret } from './_lib.js';
+import { redisPipeline, sb, getUser, supaConfigured, encryptSecret, clientIp, rateOk } from './_lib.js';
 
 const COUNTER_TTL = 100 * 86400;
 const BOT_RE = /bot|crawl|spider|preview|fetch|monitor|lighthouse|headless|curl|python/i;
@@ -136,8 +136,19 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
+  // Per-IP rate limit. track is a per-pageview beacon (generous); waitlist/listing
+  // are writes, so they get a much tighter budget to blunt spam/abuse.
+  const op = req.query.op;
+  const ip = clientIp(req);
+  const limit = op === 'track' ? 150 : 20;
+  if (!(await rateOk(`intake_${op}`, ip, limit, 60))) {
+    if (op === 'track') return res.status(204).end(); // beacon must stay silent
+    res.setHeader('Retry-After', '30');
+    return res.status(429).json({ error: 'Too many requests' });
+  }
+
   try {
-    switch (req.query.op) {
+    switch (op) {
       case 'track':    return await handleTrack(req, res);
       case 'waitlist': return await handleWaitlist(req, res);
       case 'listing':  return await handleListing(req, res);
