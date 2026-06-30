@@ -64,6 +64,31 @@ async function fetchStartup(slug, apiKey) {
   return { status: r.status, ok: r.ok, data: await r.json().catch(() => null) };
 }
 
+// Self-healing deny-list (see supabase-dead-startups-migration.sql). A slug is
+// marked dead when TrustMRR's detail 404s, and un-marked when a fresh detail fetch
+// succeeds (re-listed). api/startups.js filters dead slugs out of the catalog so
+// "zombie" onSale listings stop showing. Both are best-effort: if the table isn't
+// migrated yet, the calls no-op and nothing breaks.
+async function markDead(slug) {
+  if (!supaConfigured()) return;
+  try {
+    await sb('/rest/v1/dead_startups?on_conflict=slug', {
+      method: 'POST',
+      headers: { Prefer: 'resolution=ignore-duplicates,return=minimal' },
+      body: { slug },
+    });
+  } catch {}
+}
+async function clearDead(slug) {
+  if (!supaConfigured()) return;
+  try {
+    await sb(`/rest/v1/dead_startups?slug=eq.${encodeURIComponent(slug)}`, {
+      method: 'DELETE',
+      headers: { Prefer: 'return=minimal' },
+    });
+  } catch {}
+}
+
 // Persisted full snapshot kept by cron-refresh.js. Returns { data, last_seen } or
 // null. Lets a delisted startup's page stay populated after TrustMRR drops it.
 async function getArchived(slug) {
@@ -149,12 +174,15 @@ export default async function handler(req, res) {
           redisSet(cacheKey, fresh.data),
           redisSet(freshKey, 1, FRESH_TTL),
         ]);
+        await clearDead(slug); // alive again — drop any stale deny-list entry
         res.setHeader('X-Cache', 'REVALIDATED');
         return res.status(200).json(await withOurDescription(fresh.data, slug, lang));
       }
       // Gone from upstream (404) — serve the archived snapshot (or the stale copy),
-      // flagged archived so the page shows the "no longer updated" banner.
+      // flagged archived so the page shows the "no longer updated" banner, and mark
+      // the slug dead so the catalog stops listing it as on-sale.
       if (fresh.status === 404) {
+        await markDead(slug);
         const arch = await getArchived(slug);
         return archivedResponse(res, arch ? arch.data : (cached.data || cached), arch ? arch.last_seen : null);
       }
@@ -171,12 +199,14 @@ export default async function handler(req, res) {
         redisSet(cacheKey, fresh.data),
         redisSet(freshKey, 1, FRESH_TTL),
       ]);
+      await clearDead(slug); // alive — drop any stale deny-list entry
       res.setHeader('X-Cache', 'MISS');
       res.setHeader('Cache-Control', swr);
       return res.status(200).json(await withOurDescription(fresh.data, slug, lang));
     }
-    // Delisted and nothing cached — fall back to the archived snapshot if we kept one.
+    // Delisted and nothing cached — mark dead and fall back to the archived snapshot.
     if (fresh.status === 404) {
+      await markDead(slug);
       const arch = await getArchived(slug);
       if (arch) return archivedResponse(res, arch.data, arch.last_seen);
     }

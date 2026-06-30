@@ -69,6 +69,43 @@ async function getDescMap() {
   return _descMap || {};
 }
 
+// ── Dead-startup deny-list ────────────────────────────────────────────────────
+// Slugs whose TrustMRR detail 404s (written by api/startup.js). TrustMRR can keep a
+// startup in the onSale LIST after its detail is gone, and our onSale pages live in
+// Redis without a TTL, so those "zombies" would otherwise show as on-sale forever.
+// Cached in memory for 60s (same trick as getDescMap) so a burst of catalog pages
+// costs one Supabase fetch. Resilient to the table not being migrated yet (→ empty).
+let _deadSet = null, _deadAt = 0;
+const DEAD_TTL = 60000;
+async function getDeadSet() {
+  if (_deadSet && Date.now() - _deadAt < DEAD_TTL) return _deadSet;
+  let next = _deadSet || new Set();
+  if (SUPA_URL && SUPA_KEY) {
+    try {
+      const r = await fetch(`${SUPA_URL}/rest/v1/dead_startups?select=slug`, {
+        headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}` },
+      });
+      if (r.ok) {
+        const rows = await r.json();
+        if (Array.isArray(rows)) next = new Set(rows.map(x => x && x.slug));
+      }
+    } catch { /* keep the previous set on a transient failure */ }
+  }
+  // Always refresh the timestamp — caches the empty set too, so a not-yet-migrated
+  // table (404) doesn't make every catalog request re-hit Supabase.
+  _deadSet = next; _deadAt = Date.now();
+  return _deadSet;
+}
+// Drop delisted "zombie" startups from a catalog payload's data array.
+async function dropDead(data) {
+  try {
+    if (!data || !Array.isArray(data.data) || !data.data.length) return data;
+    const dead = await getDeadSet();
+    if (dead.size) data.data = data.data.filter(s => !(s && dead.has(s.slug)));
+  } catch {}
+  return data;
+}
+
 async function withOurDescriptions(data, lang) {
   try {
     const items = data && Array.isArray(data.data) ? data.data : [];
@@ -83,7 +120,9 @@ async function withOurDescriptions(data, lang) {
       if (txt) { s.description = txt; s.descI18n = true; }
     }
   } catch {}
-  return data;
+  // Also strip delisted "zombie" listings here — every catalog response is spread
+  // through this function, so the filter applies uniformly (incl. the onSale fallback).
+  return dropDead(data);
 }
 
 async function fetchTrustMRR(params, apiKey) {
