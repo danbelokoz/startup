@@ -45,7 +45,10 @@ async function scrapeOne(base, website) {
   try {
     const ctl = new AbortController();
     const t = setTimeout(() => ctl.abort(), 12000);
-    const r = await fetch(`${base}/api/scrape-site?url=${encodeURIComponent(website)}`, { signal: ctl.signal });
+    // Carry the shared secret so scrape-site skips its public per-IP rate limit —
+    // a full-catalog warm-up makes far more calls than a human would.
+    const headers = process.env.CRON_SECRET ? { 'x-sm-internal': process.env.CRON_SECRET } : {};
+    const r = await fetch(`${base}/api/scrape-site?url=${encodeURIComponent(website)}`, { signal: ctl.signal, headers });
     clearTimeout(t);
     if (!r.ok) return 'fail';
     const j = await r.json();

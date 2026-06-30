@@ -7,6 +7,8 @@
 // since startup websites change much less than their revenue metrics.
 
 import { redisPipeline } from './_lib.js';
+import { lookup } from 'node:dns/promises';
+import net from 'node:net';
 
 const CACHE_TTL = 7 * 86400; // 7 days
 
@@ -142,11 +144,100 @@ function hostnameKey(url) {
   catch { return null; }
 }
 
+// ── SSRF guard ────────────────────────────────────────────────────────────────
+// The endpoint fetches a caller-supplied URL, so without this it's an open proxy:
+// anyone could point it at internal services or the cloud-metadata endpoint. We
+// reject any target that resolves to a private / loopback / link-local / metadata
+// address, AND re-validate every redirect hop (a public URL can otherwise 302 us
+// into the internal network). Vercel's egress currently blocks these too, but that
+// must not be the only line of defence.
+function ipv4ToInt(ip) {
+  const p = ip.split('.').map(Number);
+  return ((p[0] << 24) >>> 0) + (p[1] << 16) + (p[2] << 8) + p[3];
+}
+function isPrivateV4(ip) {
+  const n = ipv4ToInt(ip);
+  const inRange = (base, bits) => (n >>> (32 - bits)) === (ipv4ToInt(base) >>> (32 - bits));
+  return inRange('10.0.0.0', 8) || inRange('172.16.0.0', 12) || inRange('192.168.0.0', 16)
+      || inRange('127.0.0.0', 8) || inRange('169.254.0.0', 16) // loopback + link-local/metadata
+      || inRange('100.64.0.0', 10) || inRange('0.0.0.0', 8) || inRange('192.0.0.0', 24)
+      || inRange('198.18.0.0', 15) || inRange('192.0.2.0', 24) // benchmarking + TEST-NET
+      || inRange('224.0.0.0', 4)  || inRange('240.0.0.0', 4);  // multicast + reserved
+}
+function isPrivateIp(ip) {
+  if (net.isIP(ip) === 4) return isPrivateV4(ip);
+  const v = String(ip).toLowerCase();
+  if (v === '::1' || v === '::') return true;
+  const mapped = v.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/); // IPv4-mapped
+  if (mapped) return isPrivateV4(mapped[1]);
+  if (v.startsWith('fe80') || v.startsWith('fec0')) return true; // link-local
+  if (v.startsWith('fd00:ec2')) return true;                     // AWS IPv6 metadata
+  const head = parseInt(v.split(':')[0] || '0', 16);
+  if ((head & 0xfe00) === 0xfc00) return true;                   // fc00::/7 unique-local
+  return false;
+}
+// Reject obvious internal names and any host whose DNS records point at a private IP.
+async function assertPublicHost(hostname) {
+  const h = String(hostname || '').toLowerCase();
+  if (!h || h === 'localhost' || h.endsWith('.localhost') || h.endsWith('.local')
+      || h.endsWith('.internal') || h === 'metadata.google.internal') {
+    throw new Error('blocked_host');
+  }
+  if (net.isIP(h)) {
+    if (isPrivateIp(h)) throw new Error('blocked_ip');
+    return;
+  }
+  const addrs = await lookup(h, { all: true });
+  if (!addrs.length) throw new Error('dns_empty');
+  for (const a of addrs) if (isPrivateIp(a.address)) throw new Error('blocked_ip');
+}
+// fetch() that follows redirects manually, validating the host of EVERY hop before
+// connecting — so a public URL can't bounce the request to an internal address.
+async function safeFetch(startUrl, opts, maxRedirects = 4) {
+  let url = startUrl;
+  for (let i = 0; i <= maxRedirects; i++) {
+    const u = new URL(url);
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') throw new Error('bad_scheme');
+    await assertPublicHost(u.hostname);
+    const r = await fetch(url, { ...opts, redirect: 'manual' });
+    const loc = r.status >= 300 && r.status < 400 && r.headers.get('location');
+    if (!loc) return r;
+    url = new URL(loc, url).toString();
+  }
+  throw new Error('too_many_redirects');
+}
+const BLOCK_RE = /^(blocked_|bad_scheme|dns_empty|too_many_redirects)/;
+
+// ── Per-IP rate limit (fail-OPEN) ─────────────────────────────────────────────
+// Each call makes an outbound fetch, so an unthrottled public endpoint is a cost /
+// abuse vector. A human browsing triggers ~1 call per startup (then 7d cached), so
+// 30/min is generous. Internal warmup calls carry the shared secret and skip this.
+function clientIp(req) {
+  const xff = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  return xff || req.headers['x-real-ip'] || '';
+}
+async function rateOk(ip, limit, windowSec) {
+  if (!ip) return true;
+  const slot = Math.floor(Date.now() / (windowSec * 1000));
+  const key = `sm_rl_scrape_${ip}_${slot}`;
+  const r = await redisPipeline([['INCR', key], ['EXPIRE', key, String(windowSec * 2)]]);
+  const n = r && r[0] && Number(r[0].result);
+  return !Number.isFinite(n) || n <= limit;
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
+
+  // Internal warmup calls (warmup-sites.js) carry the shared secret and skip the
+  // public rate limit, so a bulk pre-warm of the whole catalog isn't throttled.
+  const internal = !!process.env.CRON_SECRET && req.headers['x-sm-internal'] === process.env.CRON_SECRET;
+  if (!internal && !(await rateOk(clientIp(req), 30, 60))) {
+    res.setHeader('Retry-After', '30');
+    return res.status(429).json({ error: 'Too many requests' });
+  }
 
   const rawUrl = req.query.url;
   if (!rawUrl || !/^https?:\/\//i.test(rawUrl)) {
@@ -166,16 +257,19 @@ export default async function handler(req, res) {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 8000);
     const t0 = Date.now();
-    const r = await fetch(rawUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; StartupMarketBot/1.0)',
-        'Accept': 'text/html,application/xhtml+xml',
-        'Accept-Language': 'en-US,en;q=0.9',
-      },
-      signal: ctrl.signal,
-      redirect: 'follow',
-    });
-    clearTimeout(timer);
+    let r;
+    try {
+      r = await safeFetch(rawUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; StartupMarketBot/1.0)',
+          'Accept': 'text/html,application/xhtml+xml',
+          'Accept-Language': 'en-US,en;q=0.9',
+        },
+        signal: ctrl.signal,
+      });
+    } finally {
+      clearTimeout(timer);
+    }
     const elapsed = Date.now() - t0;
 
     if (!r.ok) {
@@ -216,6 +310,10 @@ export default async function handler(req, res) {
     res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate=604800');
     return res.status(200).json({ data });
   } catch (e) {
+    // SSRF guard rejection — don't log it as a parser failure, just refuse.
+    if (e && BLOCK_RE.test(e.message || '')) {
+      return res.status(400).json({ error: 'Blocked or unreachable target' });
+    }
     await recordRun('site', false, `${host}: ${(e && e.name === 'AbortError') ? 'timeout' : (e.message || 'fetch_error')}`);
     return res.status(200).json({ data: { ok: false, error: (e && e.name === 'AbortError') ? 'timeout' : (e.message || 'fetch_error'), url: rawUrl } });
   }
