@@ -117,10 +117,13 @@
 
 /* product cards */
 .feed{max-width:1200px;margin:0 auto;padding:34px 24px 16px}
+.feedcard{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:20px 20px 22px}
 .feedhead{display:flex;align-items:center;gap:12px;margin-bottom:18px}
 .feedhead .ico{display:flex;width:34px;height:34px;border-radius:9px;background:rgba(252,213,53,.14);color:var(--accent);align-items:center;justify-content:center;flex:none}
-.feedhead h2{font-size:22px;font-weight:700;color:var(--text)}
-.feedhead .all{margin-left:auto;color:var(--text2);font-weight:500;font-size:14px;display:inline-flex;align-items:center;gap:6px;text-decoration:none}
+.feedtitle{min-width:0}
+.feedhead h2{font-size:20px;font-weight:700;color:var(--text);line-height:1.15}
+.feedsub{color:var(--text3);font-size:13px;margin-top:3px}
+.feedhead .all{margin-left:auto;flex:none;color:var(--text2);font-weight:500;font-size:14px;display:inline-flex;align-items:center;gap:6px;text-decoration:none}
 .feedhead .all:hover{color:var(--accent)}
 .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
 /* ── Loading skeleton: placeholders with a sweeping white-light shimmer ── */
@@ -262,6 +265,12 @@
   .herostats{display:block;margin-top:4px}
   .trustbar{display:none}
   .herocol{margin-top:2px}
+  .feed{padding:22px 16px 8px}
+  .feedcard{padding:16px 14px 18px;border-radius:16px}
+  .feedhead{flex-wrap:wrap;gap:10px;margin-bottom:16px}
+  .feedtitle{flex:1 1 0}
+  .feedhead h2{font-size:18px}
+  .feedhead .all{order:3;flex-basis:100%;margin-left:46px;font-size:13px}
 }
 @media(max-width:560px){.incl,.steps4,.cards{grid-template-columns:1fr}}
 </style>
@@ -338,9 +347,13 @@
 </div>
 
 <section class="feed">
+ <div class="feedcard">
   <div class="feedhead">
     <span class="ico"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5.5-5.5 4 4L21 7"/><path d="M15 7h6v6"/></svg></span>
-    <h2 data-i18n="landing.feedTitle">Топ растущих стартапов</h2>
+    <div class="feedtitle">
+      <h2 data-i18n="landing.feedTitle">Быстрее всего растут по выручке</h2>
+      <p class="feedsub" data-i18n="landing.feedSub">рост выручки за последние 30 дней · на продаже</p>
+    </div>
     <a class="all" href="/catalog?status=sale"><span data-i18n="landing.viewAllCatalog">Смотреть весь каталог</span> <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
   </div>
   <div class="cards sk-fill" id="cards">
@@ -349,6 +362,7 @@
     <div class="lcard sk-card"><div class="chead"><span class="sk" style="width:40px;height:40px;border-radius:50%;flex:none"></span><div class="sk-meta"><div class="sk" style="height:14px;width:66%"></div><div class="sk" style="height:10px;width:38%"></div></div></div><div class="cmrr"><div class="sk" style="height:23px;width:58%;border-radius:7px"></div></div><div class="cfoot"><div class="sk" style="height:12px;width:50%"></div><div class="sk" style="height:12px;width:24%"></div></div></div>
     <div class="lcard sk-card"><div class="chead"><span class="sk" style="width:40px;height:40px;border-radius:50%;flex:none"></span><div class="sk-meta"><div class="sk" style="height:14px;width:50%"></div><div class="sk" style="height:10px;width:42%"></div></div></div><div class="cmrr"><div class="sk" style="height:23px;width:48%;border-radius:7px"></div></div><div class="cfoot"><div class="sk" style="height:12px;width:44%"></div><div class="sk" style="height:12px;width:24%"></div></div></div>
   </div>
+ </div>
 </section>
 
 <!-- 1. Что входит в доступ -->
