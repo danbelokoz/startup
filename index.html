@@ -62,6 +62,16 @@
 .selllink{display:inline-flex;align-items:center;gap:5px;color:var(--text3);font-weight:500;font-size:14px;background:none;border:0;cursor:pointer;font-family:inherit}
 .selllink:hover{color:var(--text2)}
 
+/* mobile-only catalog stats card (hidden on desktop — trustbar covers it there) */
+.herostats{display:none}
+.herostats .hshead{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--text3);margin-bottom:9px}
+.herostats .hsgrid{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid rgba(255,255,255,.09);border-radius:14px;background:rgba(255,255,255,.03);overflow:hidden}
+.herostats .hsc{padding:13px 8px;text-align:center;border-right:1px solid rgba(255,255,255,.09)}
+.herostats .hsc:last-child{border-right:0}
+.herostats .hsc b{display:block;font-size:21px;font-weight:700;letter-spacing:-.5px;color:var(--text)}
+.herostats .hsc b.y{color:var(--accent)}
+.herostats .hsc span{display:block;font-size:10.5px;color:var(--text3);line-height:1.25;margin-top:4px}
+
 /* right column: free-views badge + live listings panel */
 .herocol{display:flex;flex-direction:column;gap:12px}
 .freebadge{display:flex;align-items:center;gap:11px;background:rgba(252,213,53,.10);border:1px solid rgba(252,213,53,.28);border-radius:12px;padding:12px 14px;color:var(--accent2);font-size:13px}
@@ -230,12 +240,28 @@
 
 @media(max-width:1000px){.cards{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:920px){
-  .hero{grid-template-columns:1fr;gap:30px}
+  .hero{grid-template-columns:1fr;gap:18px;padding:26px 20px 22px}
   .bignum b{font-size:58px}
   .tstats{margin-left:0;gap:24px}
   .incl,.steps4{grid-template-columns:repeat(2,1fr)}
   .compare,.plans,.sellerin{grid-template-columns:1fr}
   .sechead h2,.final h2,.sellerin h2{font-size:26px}
+}
+/* compact mobile hero + surface the catalog-stats card on the first screen */
+@media(max-width:640px){
+  .hero{gap:16px;padding:20px 18px 20px}
+  .eyebrow{margin-bottom:12px}
+  .hero h1{font-size:27px;line-height:1.14}
+  .herologos{display:none}
+  .bignum{margin:14px 0 4px}
+  .bignum b{font-size:44px;letter-spacing:-1.5px}
+  .bignum small{font-size:15px;margin-bottom:6px}
+  .bigcap{font-size:12px;margin-bottom:16px}
+  .cta{gap:16px}
+  .cta .btn-y{padding:12px 26px}
+  .herostats{display:block;margin-top:4px}
+  .trustbar{display:none}
+  .herocol{margin-top:2px}
 }
 @media(max-width:560px){.incl,.steps4,.cards{grid-template-columns:1fr}}
 </style>
@@ -273,6 +299,15 @@
         <a class="btn-y" href="/catalog" data-i18n="nav.catalog">Каталог</a>
         <button class="selllink" onclick="openSellModal()" data-i18n="landing.ctaSell">Продать стартап →</button>
       </div>
+
+      <div class="herostats">
+        <div class="hshead" data-i18n="landing.trustData">Данные каталога:</div>
+        <div class="hsgrid">
+          <div class="hsc"><b class="js-total">-</b><span data-i18n="landing.tsTotalLbl">стартапов в базе</span></div>
+          <div class="hsc"><b class="js-sale y">-</b><span data-i18n="landing.tsSaleLbl">на продаже сейчас</span></div>
+          <div class="hsc"><b>8</b><span data-i18n="landing.tsProvLbl">платёжных провайдеров</span></div>
+        </div>
+      </div>
     </div>
 
     <div class="herocol">
@@ -295,8 +330,8 @@
   <div class="trustin">
     <span class="trustlbl" data-i18n="landing.trustData">Данные каталога:</span>
     <div class="tstats">
-      <div class="tstat"><b id="tsTotal">-</b><span data-i18n="landing.tsTotalLbl">стартапов в базе</span></div>
-      <div class="tstat"><b id="tsSale">-</b><span data-i18n="landing.tsSaleLbl">на продаже сейчас</span></div>
+      <div class="tstat"><b id="tsTotal" class="js-total">-</b><span data-i18n="landing.tsTotalLbl">стартапов в базе</span></div>
+      <div class="tstat"><b id="tsSale" class="js-sale">-</b><span data-i18n="landing.tsSaleLbl">на продаже сейчас</span></div>
       <div class="tstat"><b>8</b><span data-i18n="landing.tsProvLbl">платёжных провайдеров</span></div>
     </div>
   </div>
@@ -549,9 +584,10 @@ async function loadLanding() {
     const byId = id => document.getElementById(id);
     if (st) {
       // Count up to the catalog-wide figures so the hero feels live on load.
+      const setAll = (sel, val, fmt) => document.querySelectorAll(sel).forEach(el => animateCount(el, val, fmt));
       if (st.mrr != null) animateCount(byId('heroMrr'), st.mrr, v => formatMoney(v).replace(/^\$/,''));
-      if (st.total != null) animateCount(byId('tsTotal'), st.total + 300, v => Math.round(v).toLocaleString());
-      if (st.onSale != null) animateCount(byId('tsSale'), st.onSale + 300, v => Math.round(v).toLocaleString());
+      if (st.total != null) setAll('.js-total', st.total + 300, v => Math.round(v).toLocaleString());
+      if (st.onSale != null) setAll('.js-sale', st.onSale + 300, v => Math.round(v).toLocaleString());
     }
   } catch {}
   // Revenue leaders → widget. Show the true top 5 on-sale earners (real, non-anon,
