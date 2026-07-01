@@ -77,6 +77,13 @@ async function getDescMap() {
 // costs one Supabase fetch. Resilient to the table not being migrated yet (→ empty).
 let _deadSet = null, _deadAt = 0;
 const DEAD_TTL = 60000;
+// Circuit breaker: markDead only ever fires on a per-startup 404, so an access-wide
+// TrustMRR cutoff (401/403/429/5xx/network) can't populate this list. But if TrustMRR
+// ever answered 404 for *everything*, the list could balloon and blank the catalog.
+// If it grows past this many entries we treat it as a malfunction and STOP filtering
+// (fail-open) — the deny-list must never be able to empty the catalog. Real delisting
+// is a slow trickle, so this is far above any legitimate level.
+const DEAD_CAP = 1000;
 async function getDeadSet() {
   if (_deadSet && Date.now() - _deadAt < DEAD_TTL) return _deadSet;
   let next = _deadSet || new Set();
@@ -101,7 +108,10 @@ async function dropDead(data) {
   try {
     if (!data || !Array.isArray(data.data) || !data.data.length) return data;
     const dead = await getDeadSet();
-    if (dead.size) data.data = data.data.filter(s => !(s && dead.has(s.slug)));
+    // Fail-open if the deny-list looks broken (see DEAD_CAP) — never risk an empty catalog.
+    if (dead.size && dead.size <= DEAD_CAP) {
+      data.data = data.data.filter(s => !(s && dead.has(s.slug)));
+    }
   } catch {}
   return data;
 }
