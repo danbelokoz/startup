@@ -82,6 +82,7 @@
     <button class="adm-tab" data-tab="topviews" onclick="openTab('topviews')">Топ просмотров</button>
     <button class="adm-tab" data-tab="waitlist" onclick="openTab('waitlist')">Вейтлист</button>
     <button class="adm-tab" data-tab="parsers" onclick="openTab('parsers')">Парсеры</button>
+    <button class="adm-tab" data-tab="botvisits" onclick="openTab('botvisits')">ИИ-боты</button>
   </div>
   <div id="admContent"><div class="adm-msg">Загружаем…</div></div>
 </div>
@@ -147,7 +148,7 @@ const MSK_TZ = 'Europe/Moscow';
 const fmtDateTime = iso => new Date(iso).toLocaleString('ru-RU', { timeZone: MSK_TZ, day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
 const fmtMskShort = ms => new Date(ms).toLocaleString('ru-RU', { timeZone: MSK_TZ, day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
 
-const TAB_RENDERERS = { overview: renderOverview, listings: renderListings, topviews: renderTopviews, waitlist: renderWaitlist, parsers: renderParsers };
+const TAB_RENDERERS = { overview: renderOverview, listings: renderListings, topviews: renderTopviews, waitlist: renderWaitlist, parsers: renderParsers, botvisits: renderBotvisits };
 // Active tab lives in the URL hash (#parsers, …) so a page refresh stays on the same
 // tab and browser Back/Forward steps through the tabs you visited - instead of always
 // snapping back to "Обзор". The hashchange handler is the single place that renders.
@@ -347,6 +348,70 @@ async function renderWaitlist() {
     <table class="adm-table"><tr><th>Email</th><th>Источник</th><th>Дата</th></tr>
     ${waitlist.map(w => `<tr><td>${esc(w.email)}</td><td>${esc(w.source)}</td><td>${fmtDateTime(w.created_at)}</td></tr>`).join('')}
     </table></div>`;
+}
+
+/* ── ИИ-боты (аудит краулинга) ─────────────────────────────────────────────────
+ * middleware.js пишет в Redis каждый заход ИИ/поисковых краулеров на /startup/* и
+ * /sitemap.xml. Здесь видно, кто реально нас читает, когда был последний визит и
+ * тренд за 30 дней — и какие ожидаемые движки НЕ появлялись ни разу. */
+function sparkline(series) {
+  const vals = series.map(p => p.count);
+  const max = Math.max(1, ...vals);
+  const W = 120, H = 26;
+  const x = i => (series.length < 2 ? W / 2 : i * W / (series.length - 1));
+  const y = v => H - 2 - v * (H - 4) / max;
+  if (!vals.some(v => v)) return `<svg width="${W}" height="${H}"><line x1="0" y1="${H-2}" x2="${W}" y2="${H-2}" stroke="var(--border)" stroke-width="1"/></svg>`;
+  const path = series.map((p, i) => (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(p.count).toFixed(1)).join(' ');
+  const bars = series.map((p, i) => `<rect x="${(x(i)-1).toFixed(1)}" y="0" width="2.4" height="${H}" fill="transparent" data-tip="${esc(fmtDay(p.date))}|Заходов: ${p.count}"/>`).join('');
+  return `<svg width="${W}" height="${H}" style="overflow:visible"><path d="${path}" fill="none" stroke="var(--accent)" stroke-width="1.6"/>${bars}</svg>`;
+}
+
+async function renderBotvisits() {
+  const { bots } = await api('/api/admin?section=botvisits');
+  const ai = bots.filter(b => b.group === 'ai');
+  const other = bots.filter(b => b.group !== 'ai');
+  const aiSeen = ai.filter(b => b.total > 0).length;
+  const ai30 = ai.reduce((a, b) => a + b.last30, 0);
+  const freshest = bots.filter(b => b.lastSeen).sort((a, b) => new Date(b.lastSeen) - new Date(a.lastSeen))[0];
+
+  const GROUP_LBL = { ai: 'ИИ-движок', search: 'Поиск', other: 'Прочие' };
+  const row = b => {
+    const seen = b.lastSeen
+      ? `<span title="${fmtDateTime(b.lastSeen)}">${relTime(b.lastSeen)}</span>`
+      : '<span style="color:var(--text3);">Никогда</span>';
+    const nameCls = b.total ? '' : ' style="color:var(--text3);"';
+    return `<tr>
+      <td${nameCls}><b>${esc(b.name)}</b> <span class="adm-mini">${GROUP_LBL[b.group] || b.group}</span></td>
+      <td>${seen}</td>
+      <td class="num">${b.last7.toLocaleString()}</td>
+      <td class="num">${b.last30.toLocaleString()}</td>
+      <td class="num">${b.total.toLocaleString()}</td>
+      <td>${sparkline(b.series)}</td>
+    </tr>`;
+  };
+
+  $('admContent').innerHTML = `
+    <div class="adm-kpis">
+      <div class="adm-kpi"><div class="n">${aiSeen} / ${ai.length}</div><div class="l">ИИ-движков заходило</div></div>
+      <div class="adm-kpi"><div class="n">${ai30.toLocaleString()}</div><div class="l">Заходов ИИ за 30 дней</div></div>
+      <div class="adm-kpi"><div class="n">${freshest ? relTime(freshest.lastSeen) : '-'}</div><div class="l">Последний визит${freshest ? ' · ' + esc(freshest.name) : ''}</div></div>
+    </div>
+    <div class="adm-card">
+      <h3>ИИ / answer-engine краулеры</h3>
+      <table class="adm-table">
+        <tr><th>Бот</th><th>Последний визит</th><th class="num">7 дней</th><th class="num">30 дней</th><th class="num">Всего</th><th>Тренд 30д</th></tr>
+        ${ai.map(row).join('')}
+      </table>
+      <div class="adm-mini" style="margin-top:8px;">«Никогда» = этот движок ни разу не заходил на /startup/* или /sitemap.xml с момента деплоя счётчика. Считаются только заходы ботов (люди не учитываются).</div>
+    </div>
+    <div class="adm-card">
+      <h3>Поисковые и прочие боты</h3>
+      <table class="adm-table">
+        <tr><th>Бот</th><th>Последний визит</th><th class="num">7 дней</th><th class="num">30 дней</th><th class="num">Всего</th><th>Тренд 30д</th></tr>
+        ${other.map(row).join('')}
+      </table>
+    </div>`;
+  attachChartTips();
 }
 
 /* ── Парсеры ───────────────────────────────────────────────────────────────── */

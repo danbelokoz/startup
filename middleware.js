@@ -26,6 +26,51 @@ const BOT_RE = /bot|crawl|spider|gptbot|chatgpt|oai-searchbot|ccbot|claude|anthr
 
 function isBot(ua) { return !!ua && BOT_RE.test(ua); }
 
+// ── AI/search-bot visit audit ─────────────────────────────────────────────────
+// Which named crawler is this? First match wins, so specific tokens (oai-searchbot,
+// chatgpt-user, perplexity-user) are tested before the broader ones (gptbot,
+// perplexity). Anything that is a bot but unrecognised buckets as "Other-Bot" so
+// totals still reconcile. Used only to log a per-bot counter — never gates a request.
+const NAMED_BOTS = [
+  [/oai-searchbot/i,   'OAI-SearchBot'],
+  [/chatgpt-user/i,    'ChatGPT-User'],
+  [/gptbot/i,          'GPTBot'],
+  [/claudebot/i,       'ClaudeBot'],
+  [/claude-web/i,      'Claude-Web'],
+  [/anthropic/i,       'anthropic-ai'],
+  [/perplexity-user/i, 'Perplexity-User'],
+  [/perplexity/i,      'PerplexityBot'],
+  [/applebot/i,        'Applebot'],
+  [/amazonbot/i,       'Amazonbot'],
+  [/bytespider/i,      'Bytespider'],
+  [/ccbot/i,           'CCBot'],
+  [/meta-external/i,   'Meta-ExternalAgent'],
+  [/googlebot/i,       'Googlebot'],
+  [/bingbot/i,         'Bingbot'],
+  [/duckduck/i,        'DuckDuckBot'],
+  [/yandex/i,          'YandexBot'],
+];
+function botName(ua) {
+  for (const [re, name] of NAMED_BOTS) if (re.test(ua)) return name;
+  return 'Other-Bot';
+}
+// Best-effort: bump this bot's all-time counter, its last-seen, and a per-day counter
+// (35-day TTL). Fail-open — any Redis hiccup is swallowed so logging can never affect
+// what the crawler is served. NOTE: EXPIRE seconds MUST be a string in the Upstash
+// /pipeline body — a number silently no-ops the whole command.
+async function logBotVisit(ua) {
+  try {
+    const name = botName(ua);
+    const day = new Date().toISOString().slice(0, 10);
+    await redisCmd([
+      ['HINCRBY', 'sm_botvisits_total', name, '1'],
+      ['HSET',    'sm_botvisits_last',  name, String(Date.now())],
+      ['HINCRBY', `sm_botvisits_d_${day}`, name, '1'],
+      ['EXPIRE',  `sm_botvisits_d_${day}`, String(35 * 86400)],
+    ]);
+  } catch { /* audit only — never block */ }
+}
+
 // ── tiny escapers ─────────────────────────────────────────────────────────────
 function esc(s) {
   return String(s == null ? '' : s)
@@ -240,6 +285,12 @@ export default async function middleware(request) {
   const templateUrl = `${origin}${TEMPLATE_PATH}`;
 
   try {
+    // Audit: record which AI/search crawlers actually reach us (the matched paths -
+    // /startup/* and /sitemap.xml - are exactly where answer-engine bots crawl). Humans
+    // are skipped; this is fire-and-forget and can never change the response.
+    const ua = request.headers.get('user-agent');
+    if (isBot(ua)) await logBotVisit(ua);
+
     if (url.pathname === '/sitemap.xml') return await sitemap();
 
     // Everything else here is a /startup/<slug> request (per matcher).

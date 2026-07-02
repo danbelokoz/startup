@@ -234,6 +234,57 @@ async function parsers(res) {
   return res.status(200).json({ parsers: list });
 }
 
+// ── Bot-visit audit ("ИИ-боты" tab) ──────────────────────────────────────────
+// middleware.js logs every AI/search crawler that reaches /startup/* or /sitemap.xml
+// into Redis hashes: sm_botvisits_total (all-time), sm_botvisits_last (last-seen ms),
+// sm_botvisits_d_<date> (per-day). We surface totals, last-seen and a 30-day trend so
+// you can see which answer engines actually crawl the site — and which never show up.
+const BOT_GROUPS = {
+  ai: ['GPTBot', 'OAI-SearchBot', 'ChatGPT-User', 'PerplexityBot', 'Perplexity-User',
+       'ClaudeBot', 'Claude-Web', 'anthropic-ai', 'Amazonbot', 'Applebot', 'Bytespider',
+       'CCBot', 'Meta-ExternalAgent'],
+  search: ['Googlebot', 'Bingbot', 'DuckDuckBot', 'YandexBot'],
+};
+
+// Upstash HGETALL comes back as a flat [field, value, …] array over the REST pipeline
+// (same shape as ZRANGE … WITHSCORES); tolerate an object form too, just in case.
+function hashToObj(res) {
+  const a = (res && res.result) || [];
+  const o = {};
+  if (Array.isArray(a)) { for (let i = 0; i + 1 < a.length; i += 2) o[a[i]] = a[i + 1]; }
+  else if (a && typeof a === 'object') Object.assign(o, a);
+  return o;
+}
+
+async function botvisits(res) {
+  const dates = lastDays(30);
+  const cmds = [['HGETALL', 'sm_botvisits_total'], ['HGETALL', 'sm_botvisits_last']];
+  for (const d of dates) cmds.push(['HGETALL', `sm_botvisits_d_${d}`]);
+  const pipe = (await redisPipeline(cmds)) || [];
+  const totals = hashToObj(pipe[0]);
+  const lasts  = hashToObj(pipe[1]);
+  const daily  = dates.map((_, i) => hashToObj(pipe[2 + i]));   // per-day { bot: count }
+
+  const groupOf = n => BOT_GROUPS.ai.includes(n) ? 'ai' : BOT_GROUPS.search.includes(n) ? 'search' : 'other';
+  // Every crawler we expect (so a no-show reads as "Никогда"), plus any that appeared.
+  const all = new Set([...BOT_GROUPS.ai, ...BOT_GROUPS.search, ...Object.keys(totals), ...Object.keys(lasts)]);
+
+  const bots = [...all].map(name => {
+    const series = daily.map((day, i) => ({ date: dates[i], count: parseInt(day[name], 10) || 0 }));
+    const sum = n => series.slice(-n).reduce((a, x) => a + x.count, 0);
+    const lastMs = parseInt(lasts[name], 10);
+    return {
+      name, group: groupOf(name),
+      total: parseInt(totals[name], 10) || 0,
+      lastSeen: Number.isFinite(lastMs) ? new Date(lastMs).toISOString() : null,
+      last7: sum(7), last30: sum(30),
+      series,
+    };
+  }).sort((a, b) => (b.last30 - a.last30) || (b.total - a.total) || a.name.localeCompare(b.name));
+
+  return res.status(200).json({ bots, days: dates });
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -264,6 +315,7 @@ export default async function handler(req, res) {
     switch (req.query.section) {
       case 'overview': return await overview(days, res);
       case 'parsers':  return await parsers(res);
+      case 'botvisits': return await botvisits(res);
       case 'topviews': return await topviews(days, res);
       case 'listings': {
         const { ok, data } = await sb(
