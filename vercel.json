@@ -2,6 +2,7 @@
   "rewrites": [
     { "source": "/catalog", "destination": "/catalog.html" },
     { "source": "/compare", "destination": "/compare.html" },
+    { "source": "/faq", "destination": "/faq.html" },
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/terms", "destination": "/terms.html" },
     { "source": "/startup/:slug", "destination": "/sp.html" },

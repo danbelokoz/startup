@@ -629,6 +629,7 @@ function buildFooterHTML() {
     `<span class="foot-links">` +
       `<a href="/catalog">${l.footCatalog}</a>` +
       `<a href="/acquire.html">${l.footHow}</a>` +
+      `<a href="/faq">FAQ</a>` +
       `<a href="/privacy">${l.footPrivacy}</a>` +
       `<a href="/terms">${l.footTerms}</a>` +
     `</span>`;

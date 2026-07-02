@@ -128,7 +128,7 @@ async function sitemap() {
   if (_sitemapCache.xml && Date.now() - _sitemapCache.ts < 600000) {
     return new Response(_sitemapCache.xml, { headers: SITEMAP_HEADERS });
   }
-  const staticUrls = [`${SITE}/`, `${SITE}/catalog`, `${SITE}/top.html`, `${SITE}/acquire.html`];
+  const staticUrls = [`${SITE}/`, `${SITE}/catalog`, `${SITE}/top.html`, `${SITE}/acquire.html`, `${SITE}/faq`];
   const out = staticUrls.map(u => `<url><loc>${u}</loc></url>`);
   const slugs = await redisGet('sm_sitemap_slugs'); // written by scripts/refresh-catalog.js
   if (Array.isArray(slugs)) {

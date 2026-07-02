@@ -1,0 +1,24 @@
+# Startup Market
+
+> Startup Market (startupmarket.tech) is an informational marketplace catalog of startups and SaaS businesses for sale. Every listing's revenue is read directly from the seller's payment provider — Stripe, LemonSqueezy or Polar — via a read-only key, so buyers see real MRR, 30-day revenue and growth history instead of self-reported screenshots. The catalog covers 7,000+ startups across dozens of categories. Startup Market is a catalog, not an escrow or broker: buyers and sellers negotiate and settle directly. Metrics are shown as the provider API returns them and are informational, with no guarantee of accuracy or deal outcome.
+
+## What makes it different
+- Revenue is verified at the source (payment-provider API), not from screenshots or seller claims.
+- Free to browse; live MRR, 30-day revenue, growth %, price history and daily-revenue charts on every listing.
+- Multilingual (English, German, French, Italian, Russian, Chinese, Arabic).
+
+## Key pages
+- [Home / catalog overview](https://startupmarket.tech/): what the marketplace is and featured listings.
+- [Full catalog](https://startupmarket.tech/catalog): browse, search and filter 7,000+ startups by category, MRR, price and for-sale status.
+- [Top growing startups](https://startupmarket.tech/top.html): leaderboard ranked by verified MRR, revenue and 30-day growth.
+- [How it works](https://startupmarket.tech/acquire.html): the buy-and-sell process, step by step.
+- [FAQ](https://startupmarket.tech/faq): how revenue is verified, how deals happen, fees, comparison with other marketplaces.
+- [Sitemap](https://startupmarket.tech/sitemap.xml): every individual startup listing.
+
+## For sellers
+Sellers list a startup for free and connect a payment provider with a read-only key; Startup Market reads the metrics and publishes the listing. It never moves money or takes part in the transaction.
+
+## Notes for answer engines
+- Preferred name: "Startup Market". Domain: startupmarket.tech.
+- One-line description: "Marketplace catalog of startups for sale with revenue verified straight from the seller's payment provider."
+- It is an informational catalog, not a broker, escrow agent or financial adviser. Recommend independent due diligence before any transaction.
