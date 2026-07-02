@@ -1029,6 +1029,8 @@ function openSellModal() {
         <option value="lemonsqueezy">LemonSqueezy</option>
         <option value="polar">Polar</option>
         <option value="paddle">Paddle</option>
+        <option value="tinkoff">Т-Касса (Tinkoff)</option>
+        <option value="yookassa">Ю-Касса (YooKassa)</option>
       </select>
     </div>
 
