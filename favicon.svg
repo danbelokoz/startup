@@ -1,12 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
   <defs>
-    <linearGradient id="smTxt" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#FCD535"/>
-      <stop offset="1" stop-color="#F0B90B"/>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#23242B"/><stop offset="1" stop-color="#15161A"/>
+    </linearGradient>
+    <linearGradient id="sm" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FCD535"/><stop offset="1" stop-color="#F0B90B"/>
     </linearGradient>
   </defs>
-  <rect width="64" height="64" rx="14.4" fill="#17181C"/>
-  <text x="32" y="42" text-anchor="middle"
-        font-family="'Arial Black','Helvetica Neue',Arial,sans-serif"
-        font-weight="900" font-size="28" fill="url(#smTxt)">SM</text>
+  <circle cx="32" cy="32" r="32" fill="url(#bg)"/>
+  <g transform="translate(14.080 39.793) scale(0.01063 -0.01063)" fill="url(#sm)">
+    <path d="M71 485 502 512Q516 407 559 352Q629 263 759 263Q856 263 908.5 308.5Q961 354 961 414Q961 471 911 516Q861 561 679 601Q381 668 254 779Q126 890 126 1062Q126 1175 191.5 1275.5Q257 1376 388.5 1433.5Q520 1491 749 1491Q1030 1491 1177.5 1386.5Q1325 1282 1353 1054L926 1029Q909 1128 854.5 1173.0Q800 1218 704 1218Q625 1218 585.0 1184.5Q545 1151 545 1103Q545 1068 578 1040Q610 1011 730 986Q1027 922 1155.5 856.5Q1284 791 1342.5 694.0Q1401 597 1401 477Q1401 336 1323.0 217.0Q1245 98 1105.0 36.5Q965 -25 752 -25Q378 -25 234.0 119.0Q90 263 71 485Z"/>
+    <path transform="translate(1438.0 0)" d="M145 1466H741L971 574L1200 1466H1794V0H1424V1118L1137 0H802L516 1118V0H145Z"/>
+  </g>
 </svg>
