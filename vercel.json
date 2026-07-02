@@ -12,6 +12,12 @@
     { "source": "/api/track", "destination": "/api/intake?op=track" }
   ],
   "headers": [
+    { "source": "/", "headers": [ { "key": "Cache-Control", "value": "public, max-age=0, s-maxage=600, stale-while-revalidate=86400" } ] },
+    { "source": "/(catalog|faq|compare|privacy|terms)", "headers": [ { "key": "Cache-Control", "value": "public, max-age=0, s-maxage=600, stale-while-revalidate=86400" } ] },
+    { "source": "/(index|top|acquire)\\.html", "headers": [ { "key": "Cache-Control", "value": "public, max-age=0, s-maxage=600, stale-while-revalidate=86400" } ] },
+    { "source": "/shared.js", "headers": [ { "key": "Cache-Control", "value": "public, max-age=300, stale-while-revalidate=86400" } ] },
+    { "source": "/shared.css", "headers": [ { "key": "Cache-Control", "value": "public, max-age=3600, stale-while-revalidate=604800" } ] },
+    { "source": "/(.*)\\.(png|jpg|jpeg|svg|ico|webp|woff|woff2)", "headers": [ { "key": "Cache-Control", "value": "public, max-age=2592000, stale-while-revalidate=604800" } ] },
     {
       "source": "/(.*)",
       "headers": [

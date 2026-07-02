@@ -4,7 +4,7 @@
    built on. Tabular figures give prices/metrics the Binance trading look.
    Theme: Binance dark - #181A20 surface, #FCD535 yellow accent.
    ============================================= */
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
+/* Font is now loaded via a non-blocking <link> in each page's <head> (was a render-blocking @import here). */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
