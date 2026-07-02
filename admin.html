@@ -30,6 +30,12 @@
 /* Красный кружок-счётчик непросмотренных регистраций/заявок на вкладке. */
 .adm-badge { position: absolute; top: -7px; right: -7px; min-width: 19px; height: 19px; padding: 0 5px; box-sizing: border-box; border-radius: 999px; background: #f6465d; color: #fff; font-size: 11px; font-weight: 700; line-height: 19px; text-align: center; box-shadow: 0 0 0 2px var(--bg); }
 
+/* Скелетоны загрузки — серые плашки с бегущим бликом вместо «Загружаем…». */
+.sk { position: relative; overflow: hidden; background: var(--bg3); border-radius: 6px; }
+.sk::after { content: ''; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent); animation: sk-shimmer 1.2s infinite; }
+@keyframes sk-shimmer { 100% { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) { .sk::after { animation: none; } }
+
 .adm-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 16px; }
 .adm-kpi { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; }
 .adm-kpi .n { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; color: var(--text); line-height: 1.1; }
@@ -80,11 +86,10 @@
     <button class="adm-tab sel" data-tab="overview" onclick="openTab('overview')">Обзор</button>
     <button class="adm-tab" data-tab="listings" onclick="openTab('listings')">Заявки</button>
     <button class="adm-tab" data-tab="topviews" onclick="openTab('topviews')">Топ просмотров</button>
-    <button class="adm-tab" data-tab="waitlist" onclick="openTab('waitlist')">Вейтлист</button>
     <button class="adm-tab" data-tab="parsers" onclick="openTab('parsers')">Парсеры</button>
     <button class="adm-tab" data-tab="botvisits" onclick="openTab('botvisits')">ИИ-боты</button>
   </div>
-  <div id="admContent"><div class="adm-msg">Загружаем…</div></div>
+  <div id="admContent"></div>
 </div>
 
 <script>
@@ -148,7 +153,7 @@ const MSK_TZ = 'Europe/Moscow';
 const fmtDateTime = iso => new Date(iso).toLocaleString('ru-RU', { timeZone: MSK_TZ, day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
 const fmtMskShort = ms => new Date(ms).toLocaleString('ru-RU', { timeZone: MSK_TZ, day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
 
-const TAB_RENDERERS = { overview: renderOverview, listings: renderListings, topviews: renderTopviews, waitlist: renderWaitlist, parsers: renderParsers, botvisits: renderBotvisits };
+const TAB_RENDERERS = { overview: renderOverview, listings: renderListings, topviews: renderTopviews, parsers: renderParsers, botvisits: renderBotvisits };
 // Active tab lives in the URL hash (#parsers, …) so a page refresh stays on the same
 // tab and browser Back/Forward steps through the tabs you visited - instead of always
 // snapping back to "Обзор". The hashchange handler is the single place that renders.
@@ -163,8 +168,33 @@ function openTab(tab) {
 function renderTab(tab) {
   if (!TAB_RENDERERS[tab]) tab = 'overview';
   document.querySelectorAll('.adm-tab').forEach(b => b.classList.toggle('sel', b.dataset.tab === tab));
-  $('admContent').innerHTML = '<div class="adm-msg">Загружаем…</div>';
+  $('admContent').innerHTML = renderSkeleton(tab);
   TAB_RENDERERS[tab]().catch(e => { $('admContent').innerHTML = '<div class="adm-msg">Ошибка: ' + esc(e.message) + '</div>'; });
+}
+
+/* ── Скелетоны загрузки ──────────────────────────────────────────────────────
+ * Пока данные секции грузятся, показываем плашки в форме будущего контента
+ * (KPI-плитки, строки таблиц, карточки парсеров) вместо текста «Загружаем…». */
+const skBox = (w, h, extra = '') => `<div class="sk" style="width:${w};height:${h}px;${extra}"></div>`;
+const skKpis = n => `<div class="adm-kpis">${Array.from({ length: n }, () =>
+  `<div class="adm-kpi">${skBox('55%', 24)}${skBox('85%', 9, 'margin-top:8px;')}</div>`).join('')}</div>`;
+const skTable = (cols, rows) => `<table class="adm-table">${Array.from({ length: rows }, () =>
+  `<tr>${Array.from({ length: cols }, (_, i) => `<td>${skBox(i === 0 ? '40%' : '70%', 12)}</td>`).join('')}</tr>`).join('')}</table>`;
+const skTableCard = (cols, rows, titleW = 180) => `<div class="adm-card"><h3>${skBox(titleW + 'px', 14)}</h3>${skTable(cols, rows)}</div>`;
+const skParserCard = () => `<div style="border:1px solid var(--border);border-radius:12px;padding:14px 16px;background:var(--bg3);">
+  ${skBox('200px', 16, 'margin-bottom:10px;')}${skBox('90%', 10, 'margin-bottom:14px;')}
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;">${Array.from({ length: 4 }, () =>
+    `<div>${skBox('60%', 9, 'margin-bottom:6px;')}${skBox('80%', 13)}</div>`).join('')}</div>
+  ${skBox('100%', 74, 'border-radius:8px;margin-top:14px;')}</div>`;
+function renderSkeleton(tab) {
+  switch (tab) {
+    case 'overview':  return skKpis(8) + `<div class="adm-card"><h3>${skBox('200px', 14)}</h3>${skBox('100%', 180, 'border-radius:10px;')}</div>` + skTableCard(3, 6);
+    case 'botvisits': return skKpis(3) + skTableCard(6, 6, 220) + skTableCard(6, 4, 220);
+    case 'listings':  return skTableCard(9, 8, 220);
+    case 'topviews':  return skTableCard(5, 10, 240);
+    case 'parsers':   return `<div class="adm-card"><h3>${skBox('220px', 14)}</h3><div style="display:grid;gap:12px;">${skParserCard() + skParserCard()}</div></div>`;
+    default:          return '<div class="adm-msg">Загружаем…</div>';
+  }
 }
 
 window.addEventListener('hashchange', () => renderTab(tabFromHash()));
@@ -231,7 +261,6 @@ async function renderOverview() {
       <div class="adm-kpi"><div class="n">${o.totalUsers != null ? o.totalUsers.toLocaleString() : '-'}</div><div class="l">Пользователей всего</div></div>
       <div class="adm-kpi"><div class="n">${signups7.toLocaleString()}</div><div class="l">Регистраций за 7 дней</div></div>
       <div class="adm-kpi"><div class="n">${newListings.toLocaleString()}</div><div class="l">Новых заявок</div></div>
-      <div class="adm-kpi"><div class="n">${o.waitlistTotal != null ? o.waitlistTotal.toLocaleString() : '-'}</div><div class="l">В вейтлисте Pro</div></div>
       <div class="adm-kpi"><div class="n">${dDone != null ? dDone.toLocaleString() : '-'}${catTotal != null ? ' / ' + catTotal.toLocaleString() : ''}</div><div class="l">Описания готовы (с переводом)</div></div>
       <div class="adm-kpi"><div class="n">${dBacklog != null ? dBacklog.toLocaleString() : '-'}</div><div class="l">Ждут перефраза/перевода</div></div>
     </div>
@@ -331,23 +360,6 @@ async function renderTopviews() {
       </tr>`).join('')}</table>`
     : '<div class="adm-mini">Пока пусто: гостевые просмотры начнут копиться после деплоя, просмотры юзеров - из таблицы startup_views.</div>'}
   </div>`;
-}
-
-/* ── Вейтлист ──────────────────────────────────────────────────────────────── */
-let waitlistEmails = [];
-function copyWaitlist(btn) {
-  navigator.clipboard.writeText(waitlistEmails.join('\n'));
-  btn.textContent = 'Скопировано';
-}
-async function renderWaitlist() {
-  const { waitlist } = await api('/api/admin?section=waitlist');
-  if (!waitlist.length) { $('admContent').innerHTML = '<div class="adm-msg">Вейтлист пуст.</div>'; return; }
-  waitlistEmails = waitlist.map(w => w.email);
-  $('admContent').innerHTML = `<div class="adm-card">
-    <h3>Вейтлист Pro <span><button class="adm-copy" onclick="copyWaitlist(this)">Скопировать все email</button></span></h3>
-    <table class="adm-table"><tr><th>Email</th><th>Источник</th><th>Дата</th></tr>
-    ${waitlist.map(w => `<tr><td>${esc(w.email)}</td><td>${esc(w.source)}</td><td>${fmtDateTime(w.created_at)}</td></tr>`).join('')}
-    </table></div>`;
 }
 
 /* ── ИИ-боты (аудит краулинга) ─────────────────────────────────────────────────
@@ -601,6 +613,7 @@ async function renderParsers() {
   $('admUser').innerHTML = esc(session.user.email) + ' · <a href="#" onclick="sbc.auth.signOut().then(()=>location.reload());return false;">выйти</a>';
   const initial = tabFromHash();   // restore the tab from #hash on refresh / deep-link
   document.querySelectorAll('.adm-tab').forEach(b => b.classList.toggle('sel', b.dataset.tab === initial));
+  $('admContent').innerHTML = renderSkeleton(initial);
   try {
     await TAB_RENDERERS[initial]();
     document.getElementById('admTabs').style.display = 'flex';

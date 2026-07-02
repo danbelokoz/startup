@@ -6,7 +6,6 @@
 // GET  ?section=listings             — seller listing requests (keys masked)
 // GET  ?section=reveal_key&id=<uuid> — decrypt one stored payment-provider key
 // GET  ?section=topviews&days=30     — most-viewed startups (registered + guests)
-// GET  ?section=waitlist             — Pro waitlist emails
 // POST { action:'set_status', id, status } — update a listing request status
 
 import { redisPipeline, sb, getUser, supaConfigured, decryptSecret } from './_lib.js';
@@ -50,22 +49,20 @@ async function overview(days, res) {
     visitors:  parseInt(pipe[i * 2 + 1] && pipe[i * 2 + 1].result, 10) || 0,
   }));
 
-  let signups = [], totalUsers = null, listingCounts = {}, waitlistTotal = null;
+  let signups = [], totalUsers = null, listingCounts = {};
   const since = dates[0];
-  const [rpc, usersCnt, listings, wlCnt] = await Promise.all([
+  const [rpc, usersCnt, listings] = await Promise.all([
     sb('/rest/v1/rpc/admin_signups', { method: 'POST', body: { since } }),
     sb('/rest/v1/profiles?select=id&limit=1', { headers: { Prefer: 'count=exact' } }),
     sb('/rest/v1/listing_requests?select=status'),
-    sb('/rest/v1/waitlist?select=id&limit=1', { headers: { Prefer: 'count=exact' } }),
   ]);
   if (rpc.ok && Array.isArray(rpc.data)) signups = rpc.data;
   totalUsers = rangeTotal(usersCnt.headers);
   if (listings.ok && Array.isArray(listings.data)) {
     for (const row of listings.data) listingCounts[row.status] = (listingCounts[row.status] || 0) + 1;
   }
-  waitlistTotal = rangeTotal(wlCnt.headers);
 
-  return res.status(200).json({ traffic, signups, totalUsers, listingCounts, waitlistTotal });
+  return res.status(200).json({ traffic, signups, totalUsers, listingCounts });
 }
 
 async function topviews(days, res) {
@@ -334,13 +331,9 @@ export default async function handler(req, res) {
         const key = await decryptSecret(enc);
         return res.status(200).json({ key, note: key ? undefined : 'decrypt_failed' });
       }
-      case 'waitlist': {
-        const { ok, data } = await sb('/rest/v1/waitlist?select=email,source,created_at&order=created_at.desc&limit=500');
-        return res.status(200).json({ waitlist: ok && Array.isArray(data) ? data : [] });
-      }
       case 'descriptions': {
         // Coverage of our rephrased + translated descriptions. Exact counts via
-        // Prefer: count=exact (same trick as the overview/waitlist counters). Resilient
+        // Prefer: count=exact (same trick as the overview counters). Resilient
         // to a not-yet-migrated `status` column: those counts come back null.
         const cnt = (filter) => sb(
           `/rest/v1/startup_descriptions?select=slug&limit=1${filter ? '&' + filter : ''}`,

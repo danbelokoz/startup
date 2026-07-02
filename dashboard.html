@@ -135,18 +135,13 @@
     <button class="pro-close" onclick="closeProModal()">×</button>
     <div class="pro-price">$9<small data-i18n="dash.proPerMonth">/мес</small></div>
     <h2>Startup Market Pro</h2>
-    <p data-i18n="dash.proUnavail">Подписка временно недоступна - мы готовим запуск платных тарифов. Оставь email и сообщим, как только продвинутый уровень станет доступен.</p>
+    <p data-i18n="dash.proUnavail">Подписка временно недоступна - мы готовим запуск платных тарифов. Продвинутый уровень скоро появится здесь.</p>
     <ul>
       <li data-i18n="dash.proFeat2">AI-бриф по каждому стартапу (анализ рисков и потенциала)</li>
       <li data-i18n="dash.proFeat3">Email-алерты о новых листингах по твоим фильтрам</li>
       <li data-i18n="dash.proFeat4">Экспорт результатов поиска в CSV</li>
       <li data-i18n="dash.proFeat5">Полная история изменения цен и сравнение с похожими сделками</li>
     </ul>
-    <form class="pro-row" onsubmit="submitProWaitlist(event)">
-      <input type="email" id="proEmail" placeholder="you@email.com" required>
-      <button type="submit" class="acct-btn" data-i18n="dash.proNotify">Уведомить</button>
-    </form>
-    <div class="pro-success" id="proSuccess" data-i18n="dash.proSuccess">Готово - мы напишем тебе на этот email.</div>
   </div>
 </div>
 
@@ -408,17 +403,9 @@ async function renderFavorites() {
 
 function removeFav(slug) { setFavs(getFavs().filter(x => x !== slug)); renderFavorites(); }
 
-/* ── Pro waitlist modal ──────────────────────────────────── */
-function openProModal() { document.getElementById('proModal').classList.add('open'); setTimeout(() => { const i = document.getElementById('proEmail'); if (i) i.focus(); }, 50); }
-function closeProModal() { document.getElementById('proModal').classList.remove('open'); const s = document.getElementById('proSuccess'); if (s) s.classList.remove('show'); }
-async function submitProWaitlist(e) {
-  e.preventDefault();
-  const email = document.getElementById('proEmail').value.trim(); if (!email) return;
-  try { const list = JSON.parse(localStorage.getItem('sm_pro_waitlist') || '[]'); if (!list.includes(email)) { list.push(email); localStorage.setItem('sm_pro_waitlist', JSON.stringify(list)); } } catch {}
-  try { await fetch('/api/waitlist', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, source: 'dashboard-pro' }) }); } catch {}
-  document.getElementById('proSuccess').classList.add('show');
-  setTimeout(closeProModal, 1800);
-}
+/* ── Pro «скоро» modal ─────────────────────────────────────── */
+function openProModal() { document.getElementById('proModal').classList.add('open'); }
+function closeProModal() { document.getElementById('proModal').classList.remove('open'); }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeProModal(); });
 </script>
 </body>

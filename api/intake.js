@@ -1,7 +1,6 @@
 // Public write endpoints, merged into one function (Vercel Hobby 12-function
 // limit). vercel.json rewrites map the friendly URLs here:
 //   POST /api/sell-listing-intent → ?op=listing  — seller listing request
-//   POST /api/waitlist            → ?op=waitlist — Pro waitlist email
 //   POST /api/track               → ?op=track    — anonymous traffic beacon
 //
 // listing: the payment-provider API key is AES-256-GCM encrypted with
@@ -63,23 +62,6 @@ async function handleTrack(req, res) {
   return res.status(204).end();
 }
 
-// ── waitlist ──────────────────────────────────────────────────────────────────
-async function handleWaitlist(req, res) {
-  if (!supaConfigured()) return res.status(200).json({ ok: false, note: 'not_configured' });
-  const body = parseBody(req);
-  const email = String(body.email || '').trim().toLowerCase();
-  if (email.length > 200 || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
-    return res.status(400).json({ error: 'Invalid email' });
-  }
-  const source = String(body.source || 'unknown').slice(0, 60);
-  const { ok } = await sb('/rest/v1/waitlist?on_conflict=email,source', {
-    method: 'POST',
-    headers: { Prefer: 'resolution=ignore-duplicates,return=minimal' },
-    body: { email, source },
-  });
-  return res.status(200).json({ ok });
-}
-
 // ── listing request ───────────────────────────────────────────────────────────
 async function handleListing(req, res) {
   if (!supaConfigured()) return res.status(200).json({ ok: false, note: 'not_configured' });
@@ -136,8 +118,8 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
-  // Per-IP rate limit. track is a per-pageview beacon (generous); waitlist/listing
-  // are writes, so they get a much tighter budget to blunt spam/abuse.
+  // Per-IP rate limit. track is a per-pageview beacon (generous); listing is a
+  // write, so it gets a much tighter budget to blunt spam/abuse.
   const op = req.query.op;
   const ip = clientIp(req);
   const limit = op === 'track' ? 150 : 20;
@@ -150,7 +132,6 @@ export default async function handler(req, res) {
   try {
     switch (op) {
       case 'track':    return await handleTrack(req, res);
-      case 'waitlist': return await handleWaitlist(req, res);
       case 'listing':  return await handleListing(req, res);
       default:         return res.status(400).json({ error: 'Unknown op' });
     }
