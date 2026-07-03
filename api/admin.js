@@ -4,9 +4,12 @@
 // GET  ?section=overview&days=30     — daily traffic + signups + KPI counters
 // GET  ?section=parsers              — scraper/cron run status (last/next run, count, ok)
 // GET  ?section=listings             — seller listing requests (keys masked)
+// GET  ?section=users                — individual registrations (auth users + role)
 // GET  ?section=reveal_key&id=<uuid> — decrypt one stored payment-provider key
 // GET  ?section=topviews&days=30     — most-viewed startups (registered + guests)
 // POST { action:'set_status', id, status } — update a listing request status
+// POST { action:'delete_listing', id }     — permanently delete a listing request
+// POST { action:'delete_user', id }        — permanently delete a registration
 
 import { redisPipeline, sb, getUser, supaConfigured, decryptSecret } from './_lib.js';
 
@@ -305,6 +308,28 @@ export default async function handler(req, res) {
         });
         return res.status(200).json({ ok });
       }
+      if (body.action === 'delete_listing') {
+        if (!UUID_RE.test(String(body.id))) return res.status(400).json({ error: 'Bad id' });
+        const { ok } = await sb(`/rest/v1/listing_requests?id=eq.${body.id}`, {
+          method: 'DELETE',
+          headers: { Prefer: 'return=minimal' },
+        });
+        return res.status(200).json({ ok });
+      }
+      if (body.action === 'delete_user') {
+        // Fully removes a registration: deletes the auth user via the GoTrue admin
+        // API; profiles / subscriptions / startup_views cascade on ON DELETE CASCADE.
+        const id = String(body.id || '');
+        if (!UUID_RE.test(id)) return res.status(400).json({ error: 'Bad id' });
+        if (id === admin.id) return res.status(400).json({ error: 'cant_delete_self' });
+        // Never delete another admin by accident.
+        const { data: prof } = await sb(`/rest/v1/profiles?id=eq.${id}&select=role`);
+        if (Array.isArray(prof) && prof[0] && prof[0].role === 'admin') {
+          return res.status(400).json({ error: 'cant_delete_admin' });
+        }
+        const r = await sb(`/auth/v1/admin/users/${id}`, { method: 'DELETE' });
+        return res.status(r.ok ? 200 : 502).json({ ok: r.ok });
+      }
       return res.status(400).json({ error: 'Unknown action' });
     }
 
@@ -321,6 +346,28 @@ export default async function handler(req, res) {
           + '&order=created_at.desc&limit=200'
         );
         return res.status(200).json({ listings: ok && Array.isArray(data) ? data : [] });
+      }
+      case 'users': {
+        // Individual registrations, so test accounts can be pruned from the panel.
+        // Emails + timestamps come from the GoTrue admin API; role from profiles so
+        // admins are flagged (and shielded from deletion).
+        const [au, prof] = await Promise.all([
+          sb('/auth/v1/admin/users?page=1&per_page=200'),
+          sb('/rest/v1/profiles?select=id,role'),
+        ]);
+        const roleById = {};
+        if (prof.ok && Array.isArray(prof.data)) for (const p of prof.data) roleById[p.id] = p.role;
+        const raw = au.ok && au.data && Array.isArray(au.data.users) ? au.data.users : [];
+        const users = raw
+          .map(u => ({
+            id: u.id,
+            email: u.email || null,
+            created_at: u.created_at || null,
+            last_sign_in_at: u.last_sign_in_at || null,
+            role: roleById[u.id] || 'user',
+          }))
+          .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+        return res.status(200).json({ users, self: admin.id });
       }
       case 'reveal_key': {
         const id = String(req.query.id || '');
