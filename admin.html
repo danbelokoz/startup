@@ -186,7 +186,7 @@ function renderTab(tab) {
  * «подъезжали» сами, без перезагрузки страницы. Один активный таймер на всю
  * панель — startLive() всегда сбрасывает предыдущий, renderTab() его гасит. */
 let liveTimer = null;
-const LIVE_MS = 12000;
+const LIVE_MS = 3600000;   // раз в час
 function stopLive() { if (liveTimer) { clearInterval(liveTimer); liveTimer = null; } }
 function startLive(tick) {
   stopLive();
@@ -387,8 +387,8 @@ const userRow = (u, self, hidden) => `<tr id="urow-${u.id}"${hidden ? ' style="o
           : `<button class="adm-del" onclick="hideUser('${u.id}', this)">убрать</button>`)}</td>
 </tr>`;
 
-// Сигнатура набора регистраций — чтобы при live-опросе перерисовывать только
-// когда что-то реально изменилось (новый юзер, вход, скрытие), а не каждые 12с.
+// Сигнатура набора регистраций — чтобы при опросе перерисовывать только когда
+// что-то реально изменилось (новый юзер, вход, скрытие), а не каждый тик.
 let usersSig = '';
 const usersSigOf = users => users.map(u => u.id + '|' + u.last_sign_in_at + '|' + (u.hidden ? 1 : 0)).join(',');
 
