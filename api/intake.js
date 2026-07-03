@@ -19,11 +19,6 @@ function parseBody(req) {
   return req.body;
 }
 
-function clientIp(req) {
-  const fwd = req.headers['x-forwarded-for'];
-  return (typeof fwd === 'string' && fwd.split(',')[0].trim()) || req.socket?.remoteAddress || '';
-}
-
 async function sha256hex(s) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
   return Buffer.from(buf).toString('hex');
