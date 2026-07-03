@@ -429,10 +429,20 @@ function isDefault() { return filters.onSale===true; }
 /* ── FAVOURITES ────────────────────────────────────────────────────────────── */
 function getFavs() { try{return JSON.parse(localStorage.getItem(LS_FAVS)||'[]');}catch{return[];} }
 function isFav(slug) { return getFavs().includes(slug); }
+// Robust "is the user logged in?" for the favourites gate. window._access only
+// resolves after /api/auth returns, so relying on it alone bounces a logged-in
+// user to /auth.html on an early click (race). Fall back to the live Supabase
+// session (nav sets window._session first) and, for the very first frame, the
+// persisted sm_authed hint - so only a genuine guest gets redirected.
+function favAuthed() {
+  if (window._access) return !!window._access.authenticated;
+  if (window._session && window._session.user) return true;
+  try { return localStorage.getItem('sm_authed') === '1'; } catch { return false; }
+}
 function toggleFav(e, slug) {
   e.preventDefault(); e.stopPropagation();
-  if (!window._access || !window._access.authenticated) {
-    location.href='/auth.html?from='+encodeURIComponent(location.pathname); return;
+  if (!favAuthed()) {
+    location.href='/auth.html?from='+encodeURIComponent(location.pathname+location.search); return;
   }
   const favs=getFavs(), idx=favs.indexOf(slug);
   if(idx===-1) favs.push(slug); else favs.splice(idx,1);
