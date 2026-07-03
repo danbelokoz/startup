@@ -360,34 +360,55 @@ async function deleteListing(id, btn) {
 }
 
 /* ── Регистрации ───────────────────────────────────────────────────────────── */
+const userRow = (u, self, hidden) => `<tr id="urow-${u.id}"${hidden ? ' style="opacity:0.55;"' : ''}>
+  <td style="white-space:nowrap;">${fmtDateTime(u.created_at)}</td>
+  <td>${esc(u.email || '-')}</td>
+  <td style="white-space:nowrap;">${u.last_sign_in_at ? fmtDateTime(u.last_sign_in_at) : '<span style="color:var(--text3);">—</span>'}</td>
+  <td>${u.role === 'admin' ? '<span class="adm-pill" style="color:var(--accent);border-color:rgba(0,194,122,0.5);">admin</span>' : '<span class="adm-pill">user</span>'}</td>
+  <td>${hidden
+      ? `<button class="adm-del" style="color:var(--accent);" onclick="restoreUser('${u.id}', this)">вернуть</button>`
+      : (u.id === self
+          ? '<span class="adm-mini">это вы</span>'
+          : `<button class="adm-del" onclick="hideUser('${u.id}', this)">убрать</button>`)}</td>
+</tr>`;
+
 async function renderUsers() {
   const { users, self } = await api('/api/admin?section=users');
   if (!users || !users.length) { $('admContent').innerHTML = '<div class="adm-msg">Регистраций пока нет.</div>'; return; }
+  const active = users.filter(u => !u.hidden);
+  const hidden = users.filter(u => u.hidden);
+  const head = '<tr><th>Зарегистрирован</th><th>Email</th><th>Последний вход</th><th>Роль</th><th></th></tr>';
   $('admContent').innerHTML = `<div class="adm-card" style="overflow-x:auto;">
-    <h3>Регистрации <span class="adm-mini">${users.length} шт. · последние сверху</span></h3>
-    <div class="adm-mini" style="margin-bottom:10px;">Удаление стирает аккаунт из Supabase Auth вместе с профилем, подписками и историей просмотров (каскад). Своего аккаунта и других админов удалить нельзя.</div>
+    <h3>Регистрации <span class="adm-mini">${active.length} в статистике · последние сверху</span></h3>
+    <div class="adm-mini" style="margin-bottom:10px;">«Убрать» исключает регистрацию только из аналитики (счётчики и графики регистраций). Аккаунт в Supabase остаётся — это обратимо, можно вернуть.</div>
     <table class="adm-table">
-      <tr><th>Зарегистрирован</th><th>Email</th><th>Последний вход</th><th>Роль</th><th></th></tr>
-      ${users.map(u => `<tr id="urow-${u.id}">
-        <td style="white-space:nowrap;">${fmtDateTime(u.created_at)}</td>
-        <td>${esc(u.email || '-')}</td>
-        <td style="white-space:nowrap;">${u.last_sign_in_at ? fmtDateTime(u.last_sign_in_at) : '<span style="color:var(--text3);">—</span>'}</td>
-        <td>${u.role === 'admin' ? '<span class="adm-pill" style="color:var(--accent);border-color:rgba(0,194,122,0.5);">admin</span>' : '<span class="adm-pill">user</span>'}</td>
-        <td>${(u.role === 'admin' || u.id === self)
-          ? '<span class="adm-mini">—</span>'
-          : `<button class="adm-del" onclick="deleteUser('${u.id}', this)">удалить</button>`}</td>
-      </tr>`).join('')}
-    </table></div>`;
+      ${head}
+      ${active.map(u => userRow(u, self, false)).join('')}
+    </table></div>
+    ${hidden.length ? `<div class="adm-card" style="overflow-x:auto;">
+      <h3>Скрыты из статистики <span class="adm-mini">${hidden.length} шт.</span></h3>
+      <table class="adm-table">
+        ${head}
+        ${hidden.map(u => userRow(u, self, true)).join('')}
+      </table></div>` : ''}`;
 }
 
-async function deleteUser(id, btn) {
-  if (!confirm('Удалить регистрацию навсегда? Аккаунт, профиль и история просмотров будут стёрты.')) return;
+async function hideUser(id, btn) {
   btn.disabled = true;
   try {
-    const { ok } = await api('/api/admin', { method: 'POST', body: JSON.stringify({ action: 'delete_user', id }) });
+    const { ok } = await api('/api/admin', { method: 'POST', body: JSON.stringify({ action: 'hide_user', id }) });
     if (!ok) throw new Error();
-    const row = $('urow-' + id); if (row) row.remove();
-  } catch { alert('Не удалось удалить регистрацию'); btn.disabled = false; }
+    renderUsers();
+  } catch { alert('Не удалось убрать из статистики'); btn.disabled = false; }
+}
+
+async function restoreUser(id, btn) {
+  btn.disabled = true;
+  try {
+    const { ok } = await api('/api/admin', { method: 'POST', body: JSON.stringify({ action: 'restore_user', id }) });
+    if (!ok) throw new Error();
+    renderUsers();
+  } catch { alert('Не удалось вернуть в статистику'); btn.disabled = false; }
 }
 
 /* ── Топ просмотров ────────────────────────────────────────────────────────── */

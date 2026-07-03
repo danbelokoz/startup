@@ -9,12 +9,25 @@
 // GET  ?section=topviews&days=30     — most-viewed startups (registered + guests)
 // POST { action:'set_status', id, status } — update a listing request status
 // POST { action:'delete_listing', id }     — permanently delete a listing request
-// POST { action:'delete_user', id }        — permanently delete a registration
+// POST { action:'hide_user', id }          — exclude a registration from analytics
+// POST { action:'restore_user', id }       — bring a hidden registration back
+//
+// hide_user does NOT touch Supabase — it only adds the user id to a Redis set
+// (sm_adm_hidden_users). The account stays; it's just subtracted from the user
+// counts / signup breakdown and moved to the "hidden" list in the panel. This
+// lets the owner keep test signups out of the stats without deleting real users.
 
 import { redisPipeline, sb, getUser, supaConfigured, decryptSecret } from './_lib.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const STATUSES = ['new', 'processing', 'listed', 'rejected'];
+const HIDDEN_USERS_KEY = 'sm_adm_hidden_users';   // Redis SET of user ids kept out of analytics
+
+async function hiddenUserIds() {
+  const pipe = await redisPipeline([['SMEMBERS', HIDDEN_USERS_KEY]]);
+  const arr = pipe && pipe[0] && pipe[0].result;
+  return Array.isArray(arr) ? arr : [];
+}
 
 async function requireAdmin(req) {
   if (!supaConfigured()) return null;
@@ -63,6 +76,27 @@ async function overview(days, res) {
   totalUsers = rangeTotal(usersCnt.headers);
   if (listings.ok && Array.isArray(listings.data)) {
     for (const row of listings.data) listingCounts[row.status] = (listingCounts[row.status] || 0) + 1;
+  }
+
+  // Exclude registrations the admin has hidden (Redis set) from the counts. We
+  // look up their created_at so the per-day signup breakdown drops them too.
+  const hidden = await hiddenUserIds();
+  if (hidden.length) {
+    let hiddenRows = [];
+    const { ok, data } = await sb(`/rest/v1/profiles?id=in.(${hidden.join(',')})&select=created_at`);
+    if (ok && Array.isArray(data)) hiddenRows = data;
+    const hiddenN = hiddenRows.length || hidden.length;
+    if (totalUsers != null) totalUsers = Math.max(0, totalUsers - hiddenN);
+    if (hiddenRows.length) {
+      const decByDay = {};
+      for (const row of hiddenRows) {
+        const d = String(row.created_at || '').slice(0, 10);
+        if (d) decByDay[d] = (decByDay[d] || 0) + 1;
+      }
+      signups = signups
+        .map(s => ({ day: s.day, signups: Math.max(0, s.signups - (decByDay[String(s.day)] || 0)) }))
+        .filter(s => s.signups > 0);
+    }
   }
 
   return res.status(200).json({ traffic, signups, totalUsers, listingCounts });
@@ -316,19 +350,14 @@ export default async function handler(req, res) {
         });
         return res.status(200).json({ ok });
       }
-      if (body.action === 'delete_user') {
-        // Fully removes a registration: deletes the auth user via the GoTrue admin
-        // API; profiles / subscriptions / startup_views cascade on ON DELETE CASCADE.
+      if (body.action === 'hide_user' || body.action === 'restore_user') {
+        // Analytics-only: add/remove the user id in a Redis set. The Supabase
+        // account is never touched — this just filters them out of the counts.
         const id = String(body.id || '');
         if (!UUID_RE.test(id)) return res.status(400).json({ error: 'Bad id' });
-        if (id === admin.id) return res.status(400).json({ error: 'cant_delete_self' });
-        // Never delete another admin by accident.
-        const { data: prof } = await sb(`/rest/v1/profiles?id=eq.${id}&select=role`);
-        if (Array.isArray(prof) && prof[0] && prof[0].role === 'admin') {
-          return res.status(400).json({ error: 'cant_delete_admin' });
-        }
-        const r = await sb(`/auth/v1/admin/users/${id}`, { method: 'DELETE' });
-        return res.status(r.ok ? 200 : 502).json({ ok: r.ok });
+        const cmd = body.action === 'hide_user' ? 'SADD' : 'SREM';
+        const pipe = await redisPipeline([[cmd, HIDDEN_USERS_KEY, id]]);
+        return res.status(200).json({ ok: !!pipe });
       }
       return res.status(400).json({ error: 'Unknown action' });
     }
@@ -348,15 +377,17 @@ export default async function handler(req, res) {
         return res.status(200).json({ listings: ok && Array.isArray(data) ? data : [] });
       }
       case 'users': {
-        // Individual registrations, so test accounts can be pruned from the panel.
-        // Emails + timestamps come from the GoTrue admin API; role from profiles so
-        // admins are flagged (and shielded from deletion).
-        const [au, prof] = await Promise.all([
+        // Individual registrations, so test accounts can be excluded from stats.
+        // Emails + timestamps come from the GoTrue admin API; role from profiles.
+        // `hidden` = currently kept out of analytics (Redis set, reversible).
+        const [au, prof, hidden] = await Promise.all([
           sb('/auth/v1/admin/users?page=1&per_page=200'),
           sb('/rest/v1/profiles?select=id,role'),
+          hiddenUserIds(),
         ]);
         const roleById = {};
         if (prof.ok && Array.isArray(prof.data)) for (const p of prof.data) roleById[p.id] = p.role;
+        const hiddenSet = new Set(hidden);
         const raw = au.ok && au.data && Array.isArray(au.data.users) ? au.data.users : [];
         const users = raw
           .map(u => ({
@@ -365,6 +396,7 @@ export default async function handler(req, res) {
             created_at: u.created_at || null,
             last_sign_in_at: u.last_sign_in_at || null,
             role: roleById[u.id] || 'user',
+            hidden: hiddenSet.has(u.id),
           }))
           .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
         return res.status(200).json({ users, self: admin.id });
