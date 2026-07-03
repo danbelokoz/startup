@@ -89,6 +89,21 @@ a.lead-row:hover { background: var(--bg3); }
 .lead-msg .bar > div { height: 100%; width: 40%; background: var(--accent); border-radius: 2px; animation: loadpulse 1.5s ease-in-out infinite; }
 @keyframes loadpulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 
+/* ── Loading skeleton: rows matching the leaderboard grid, white-light sweep ── */
+.sk { position: relative; overflow: hidden; display: inline-block; background: var(--bg3); border-radius: 6px; }
+.sk::after { content: ''; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 25%, rgba(255,255,255,0.14) 50%, transparent 75%); transform: translateX(-100%); animation: skSweep 1.5s ease-in-out infinite; }
+@keyframes skSweep { 0% { transform: translateX(-100%); } 60%,100% { transform: translateX(100%); } }
+.sk-fill { animation: skFadeIn .25s ease both; }
+@keyframes skFadeIn { from { opacity: 0; } to { opacity: 1; } }
+.lead-row.sk-row { pointer-events: none; }
+.sk-logo { width: 38px; height: 38px; border-radius: 10px; }
+.sk-line { height: 12px; border-radius: 6px; }
+.lead-row.sk-row:nth-of-type(3) .sk::after { animation-delay: .07s; }
+.lead-row.sk-row:nth-of-type(4) .sk::after { animation-delay: .14s; }
+.lead-row.sk-row:nth-of-type(5) .sk::after { animation-delay: .21s; }
+.lead-row.sk-row:nth-of-type(6) .sk::after { animation-delay: .28s; }
+@media (max-width: 760px) { .sk-logo { width: 30px; height: 30px; } }
+
 @media (max-width: 760px) {
   .lead-head h1 { font-size: 26px; }
   .lead-row { grid-template-columns: 30px minmax(0,1fr) auto auto; gap: 8px; padding: 11px 8px; }
@@ -154,8 +169,33 @@ let sortKey   = 'growth';   // default: rank by 30-day growth (matches the “to
 
 function onSortChange(v) { sortKey = v; renderTable(); }
 
+// Placeholder rows that mirror the real table grid (rank · logo+name · mrr · rev · growth)
+// with a sweeping light, so the board doesn't flash a bare "loading" line while the two
+// cached pools are fetched.
+function headHTML() {
+  return '<div class="lead-row lead-row-head">' +
+    '<span class="lead-c-rank">' + t('lead','thRank') + '</span>' +
+    '<span class="lead-c-name">' + t('lead','thStartup') + '</span>' +
+    '<span class="lead-c-mrr">'  + t('lead','thMrr') + '</span>' +
+    '<span class="lead-c-rev">'  + t('lead','thRev') + '</span>' +
+    '<span class="lead-c-growth">' + t('lead','thGrowth') + '</span>' +
+  '</div>';
+}
+function skeletonHTML(n) {
+  const row =
+    '<div class="lead-row sk-row" aria-hidden="true">' +
+      '<span class="lead-c-rank"><span class="sk sk-line" style="width:20px;height:20px;border-radius:6px;"></span></span>' +
+      '<span class="lead-c-name"><span class="sk sk-logo"></span><span class="sk sk-line" style="width:min(150px,60%);"></span></span>' +
+      '<span class="lead-c-mrr"><span class="sk sk-line" style="width:64px;"></span></span>' +
+      '<span class="lead-c-rev"><span class="sk sk-line" style="width:52px;"></span></span>' +
+      '<span class="lead-c-growth"><span class="sk sk-line" style="width:46px;"></span></span>' +
+    '</div>';
+  return '<div class="sk-fill">' + headHTML() + row.repeat(n || 8) + '</div>';
+}
+
 async function loadLeaderboard() {
   const host = document.getElementById('leadTable');
+  host.innerHTML = skeletonHTML(8);
   try {
     // Only startups that are for sale. Merge two cached pools so every ranking
     // has the right candidates: top-50 by revenue (MRR/revenue views) + top-50 by growth.

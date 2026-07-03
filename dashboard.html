@@ -118,6 +118,19 @@
 
     .loading-state { text-align: center; padding: 80px 24px; color: var(--text3); font-size: 14px; line-height: 1.8; }
 
+    /* ── Loading skeletons: shell (sidebar + cards) and favourite rows ── */
+    .sk { position: relative; overflow: hidden; background: var(--bg3); border-radius: 6px; }
+    .sk::after { content: ''; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 25%, rgba(255,255,255,0.14) 50%, transparent 75%); transform: translateX(-100%); animation: skSweep 1.5s ease-in-out infinite; }
+    @keyframes skSweep { 0% { transform: translateX(-100%); } 60%,100% { transform: translateX(100%); } }
+    .sk-fill { animation: skFadeIn .25s ease both; }
+    @keyframes skFadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .sk-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
+    .sk-line { height: 12px; border-radius: 6px; }
+    .sk-fav { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 8px; }
+    .sk-fav .sk-logo { width: 38px; height: 38px; border-radius: 10px; flex: none; }
+    .fav-list .sk-fav:nth-child(2) .sk::after { animation-delay: .08s; }
+    .fav-list .sk-fav:nth-child(3) .sk::after { animation-delay: .16s; }
+
     @media (max-width: 760px) {
       .acct-wrap { grid-template-columns: 1fr; gap: 16px; }
       .acct-side { position: static; flex-direction: row; flex-wrap: nowrap; overflow-x: auto; align-items: center; padding: 8px; }
@@ -129,8 +142,29 @@
 <body>
 <div id="navPlaceholder"></div>
 
-<div id="acctRoot">
-  <div class="loading-state" data-i18n="dash.loading">Loading your account…</div>
+<div id="acctRoot" class="acct-wrap sk-fill" aria-busy="true" aria-label="Loading">
+  <aside class="acct-side">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">
+      <span class="sk sk-logo" style="width:40px;height:40px;border-radius:50%;flex:none;"></span>
+      <span style="flex:1;display:flex;flex-direction:column;gap:7px;"><span class="sk sk-line" style="width:70%;"></span><span class="sk sk-line" style="width:45%;height:10px;"></span></span>
+    </div>
+    <span class="sk sk-line" style="display:block;width:100%;height:34px;border-radius:8px;margin-bottom:8px;"></span>
+    <span class="sk sk-line" style="display:block;width:100%;height:34px;border-radius:8px;margin-bottom:8px;"></span>
+    <span class="sk sk-line" style="display:block;width:100%;height:34px;border-radius:8px;"></span>
+  </aside>
+  <div class="acct-main">
+    <span class="sk sk-line" style="display:block;width:180px;height:22px;margin-bottom:16px;"></span>
+    <div class="sk-card">
+      <div style="display:flex;align-items:center;gap:16px;">
+        <span class="sk sk-logo" style="width:60px;height:60px;border-radius:50%;flex:none;"></span>
+        <span style="flex:1;display:flex;flex-direction:column;gap:9px;"><span class="sk sk-line" style="width:50%;height:15px;"></span><span class="sk sk-line" style="width:30%;height:11px;"></span></span>
+      </div>
+    </div>
+    <div class="sk-card">
+      <span class="sk sk-line" style="display:block;width:35%;height:10px;margin-bottom:14px;"></span>
+      <span class="sk sk-line" style="display:block;width:100%;height:8px;border-radius:4px;"></span>
+    </div>
+  </div>
 </div>
 
 <!-- Pro upgrade modal -->
@@ -261,7 +295,7 @@ function profileSection() {
 function favoritesSection() {
   return '<section class="acct-section" data-sec="favorites">' +
     '<h2 class="acct-h">' + t('acct','favorites') + '</h2>' +
-    '<div class="acct-card"><div id="favList" class="fav-list"><div class="fav-empty">' + t('acct','loading') + '</div></div></div>' +
+    '<div class="acct-card"><div id="favList" class="fav-list sk-fill">' + favSkeleton(3) + '</div></div>' +
   '</section>';
 }
 
@@ -384,10 +418,18 @@ async function signOutDash() {
 function getFavs() { try { return JSON.parse(localStorage.getItem(LS_FAVS) || '[]'); } catch { return []; } }
 function setFavs(list) { try { localStorage.setItem(LS_FAVS, JSON.stringify(list)); } catch {} }
 
+// Skeleton rows shown while each favourite's data is fetched (IndexedDB → /api/startup).
+function favSkeleton(n) {
+  const row = '<div class="sk-fav" aria-hidden="true"><span class="sk sk-logo"></span>' +
+    '<span style="flex:1;display:flex;flex-direction:column;gap:7px;min-width:0;"><span class="sk sk-line" style="width:55%;"></span><span class="sk sk-line" style="width:35%;height:10px;"></span></span></div>';
+  return row.repeat(n || 3);
+}
 async function renderFavorites() {
   const el = document.getElementById('favList'); if (!el) return;
   const slugs = getFavs();
   if (!slugs.length) { el.innerHTML = '<div class="fav-empty">' + t('acct','favEmpty') + '</div>'; return; }
+  el.classList.add('sk-fill');
+  el.innerHTML = favSkeleton(Math.min(slugs.length, 6));
   const items = await Promise.all(slugs.map(async slug => {
     let s = await idbGetOne(slug);
     if (!s) { try { const r = await fetch('/api/startup?slug=' + encodeURIComponent(slug)); if (r.ok) { const j = await r.json(); s = j.data || j; } } catch {} }
