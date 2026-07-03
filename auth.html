@@ -200,6 +200,13 @@ async function submitForm(e) {
       const { data: signUpData, error } = await sb.auth.signUp({ email, password });
       if (error) { showError(friendly(error.message)); return; }
       if (signUpData?.session) { location.href = redirectTo; return; }
+      // Supabase hides "email already taken" behind a fake success (anti-enumeration):
+      // it returns a user with an empty identities array. Surface it instead of
+      // pretending we sent a fresh confirmation email.
+      if (signUpData?.user && Array.isArray(signUpData.user.identities) && signUpData.user.identities.length === 0) {
+        showError(t('auth','errExists'));
+        return;
+      }
       showSentBox(email);
     }
   } finally {
