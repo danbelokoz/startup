@@ -175,10 +175,25 @@ function openTab(tab) {
 
 function renderTab(tab) {
   if (!TAB_RENDERERS[tab]) tab = 'overview';
+  stopLive();   // leaving a tab kills its live-refresh loop
   document.querySelectorAll('.adm-tab').forEach(b => b.classList.toggle('sel', b.dataset.tab === tab));
   $('admContent').innerHTML = renderSkeleton(tab);
   TAB_RENDERERS[tab]().catch(e => { $('admContent').innerHTML = '<div class="adm-msg">Ошибка: ' + esc(e.message) + '</div>'; });
 }
+
+/* ── Live-обновление ──────────────────────────────────────────────────────────
+ * Некоторые вкладки (Регистрации) держат опрос в фоне, чтобы новые записи
+ * «подъезжали» сами, без перезагрузки страницы. Один активный таймер на всю
+ * панель — startLive() всегда сбрасывает предыдущий, renderTab() его гасит. */
+let liveTimer = null;
+const LIVE_MS = 12000;
+function stopLive() { if (liveTimer) { clearInterval(liveTimer); liveTimer = null; } }
+function startLive(tick) {
+  stopLive();
+  liveTimer = setInterval(() => { if (!document.hidden) tick(); }, LIVE_MS);
+}
+const liveDot = stamp => `<span class="adm-mini" style="color:var(--accent);">● онлайн${stamp ? ' · ' + stamp : ''}</span>`;
+const nowMsk = () => new Date().toLocaleTimeString('ru-RU', { timeZone: MSK_TZ, hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
 /* ── Скелетоны загрузки ──────────────────────────────────────────────────────
  * Пока данные секции грузятся, показываем плашки в форме будущего контента
@@ -372,14 +387,29 @@ const userRow = (u, self, hidden) => `<tr id="urow-${u.id}"${hidden ? ' style="o
           : `<button class="adm-del" onclick="hideUser('${u.id}', this)">убрать</button>`)}</td>
 </tr>`;
 
-async function renderUsers() {
+// Сигнатура набора регистраций — чтобы при live-опросе перерисовывать только
+// когда что-то реально изменилось (новый юзер, вход, скрытие), а не каждые 12с.
+let usersSig = '';
+const usersSigOf = users => users.map(u => u.id + '|' + u.last_sign_in_at + '|' + (u.hidden ? 1 : 0)).join(',');
+
+async function renderUsers(live = false) {
   const { users, self } = await api('/api/admin?section=users');
-  if (!users || !users.length) { $('admContent').innerHTML = '<div class="adm-msg">Регистраций пока нет.</div>'; return; }
+  if (!users || !users.length) {
+    usersSig = 'empty';
+    $('admContent').innerHTML = '<div class="adm-msg">Регистраций пока нет.</div>';
+    if (!live) startLive(() => renderUsers(true));
+    return;
+  }
+  const sig = usersSigOf(users);
+  const stamp = $('liveStamp');
+  if (live && sig === usersSig) { if (stamp) stamp.innerHTML = liveDot(nowMsk()); return; }  // без изменений — только отметка времени
+  usersSig = sig;
+
   const active = users.filter(u => !u.hidden);
   const hidden = users.filter(u => u.hidden);
   const head = '<tr><th>Зарегистрирован</th><th>Email</th><th>Последний вход</th><th>Роль</th><th></th></tr>';
   $('admContent').innerHTML = `<div class="adm-card" style="overflow-x:auto;">
-    <h3>Регистрации <span class="adm-mini">${active.length} в статистике · последние сверху</span></h3>
+    <h3>Регистрации <span class="adm-mini">${active.length} в статистике · последние сверху</span> <span id="liveStamp">${liveDot(nowMsk())}</span></h3>
     <div class="adm-mini" style="margin-bottom:10px;">«Убрать» исключает регистрацию только из аналитики (счётчики и графики регистраций). Аккаунт в Supabase остаётся — это обратимо, можно вернуть.</div>
     <table class="adm-table">
       ${head}
@@ -391,6 +421,7 @@ async function renderUsers() {
         ${head}
         ${hidden.map(u => userRow(u, self, true)).join('')}
       </table></div>` : ''}`;
+  if (!live) startLive(() => renderUsers(true));
 }
 
 async function hideUser(id, btn) {
