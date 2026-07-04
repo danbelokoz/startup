@@ -342,7 +342,7 @@
 
 <script src="/auth-config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="/shared.js?v=20260627b"></script>
+<script src="/shared.js?v=20260704a"></script>
 <script>
 // Resilience guard: loadSimilar() (the "More … for sale" rail) calls isRecommendable()
 // and shuffle() from shared.js. If a browser serves a STALE cached shared.js right
@@ -649,6 +649,31 @@ function renderStartup(s) {
     : (mrrCmpV === 0
         ? `<div class="metric-cmp flat">${t('startupPage','flat')} <span class="cmp-base">${t('startupPage','mrrVsPrev')}</span></div>`
         : `<div class="metric-cmp ${mrrCmpV > 0 ? 'up' : 'down'}">${mrrCmpV > 0 ? '↑' : '↓'} ${Math.abs(mrrCmpV).toFixed(1)}% <span class="cmp-base">${t('startupPage','mrrVsPrev')}</span></div>`);
+  // GMV mode: a retail storefront / marketplace / merchant-of-record whose headline
+  // figure is gross sales volume, not the company's own recurring revenue. A door-shop
+  // like doors-delivered has a near-$0 MRR (one stray Stripe subscription) next to a
+  // real $78K/30d take - so MRR as the featured number reads as "$0 / broken". Feature
+  // GMV instead. isMerchantOfRecord is the real API flag; isGmvLike catches storefronts
+  // the flag misses (mirrors the catalog sort/recommendation heuristic).
+  const gmvMode = !!(s.isMerchantOfRecord || (window.isGmvLike && window.isGmvLike(s)));
+  window._gmvMode = gmvMode;
+  // Featured GMV card comparison line: use the overall 30-day growth (growth30d), since
+  // MRR growth is meaningless when MRR is a rounding-error subscription.
+  const gmvCmpV = (g != null && isFinite(parseFloat(g))) ? parseFloat(g) : null;
+  const gmvCmp = gmvCmpV == null ? ''
+    : (gmvCmpV === 0
+        ? `<div class="metric-cmp flat">${t('startupPage','flat')} <span class="cmp-base">${t('startupPage','mrrVsPrev')}</span></div>`
+        : `<div class="metric-cmp ${gmvCmpV > 0 ? 'up' : 'down'}">${gmvCmpV > 0 ? '↑' : '↓'} ${Math.abs(gmvCmpV).toFixed(1)}% <span class="cmp-base">${t('startupPage','mrrVsPrev')}</span></div>`);
+  const hasMrr = Number(s.revenue && s.revenue.mrr) > 0;
+  const featuredCard = gmvMode
+    ? `<div class="metric-card featured">${mrrSource}<div class="metric-card-label"><span class="has-tip" data-tip="${escHtml(t('startupPage','tipGmv'))}" style="cursor:help;border-bottom:1px dotted var(--text3);">${t('startupPage','gmv30')}</span></div><div class="metric-card-value">${formatMoney(s.revenue&&s.revenue.last30Days)}</div>${gmvCmp}<svg class="metric-spark" id="mrrSpark" viewBox="0 0 300 42" preserveAspectRatio="none" aria-hidden="true"></svg></div>`
+    : `<div class="metric-card featured">${mrrSource}<div class="metric-card-label"><span class="has-tip" data-tip="${escHtml(t('startupPage','tipMrr'))}" style="cursor:help;border-bottom:1px dotted var(--text3);">${t('startupPage','mrr')}</span></div><div class="metric-card-value">${formatMoney(s.revenue&&s.revenue.mrr)}</div>${mrrCmp}<svg class="metric-spark" id="mrrSpark" viewBox="0 0 300 42" preserveAspectRatio="none" aria-hidden="true"></svg></div>`;
+  const wideCard1 = gmvMode
+    ? `<div class="metric-card wide"><div class="metric-card-label">${t('startupPage','gmv')}</div><div class="metric-card-value">${formatMoney(s.revenue&&s.revenue.total)}</div><div class="metric-card-sub">${t('startupPage','allTime')}</div></div>`
+    : `<div class="metric-card wide"><div class="metric-card-label">${t('startupPage','rev30')}</div><div class="metric-card-value">${formatMoney(s.revenue&&s.revenue.last30Days)}</div><div class="metric-card-sub">${t('startupPage','growth')}: ${gStr}</div></div>`;
+  const wideCard2 = gmvMode
+    ? (hasMrr ? `<div class="metric-card wide"><div class="metric-card-label">${t('startupPage','mrr')}</div><div class="metric-card-value">${formatMoney(s.revenue&&s.revenue.mrr)}</div></div>` : '')
+    : `<div class="metric-card wide"><div class="metric-card-label">${t('startupPage','totalRev')}</div><div class="metric-card-value">${formatMoney(s.revenue&&s.revenue.total)}</div><div class="metric-card-sub">${t('startupPage','allTime')}</div></div>`;
   const isAnon = (s.name||'').toLowerCase().includes('anonymous');
   // Guests (not logged in) get the gated blur on site / founder / name.
   const wantBlur = !isAnon && !_revealed;
@@ -834,9 +859,9 @@ function renderStartup(s) {
 
     <div class="section-title">${t('startupPage','revenueMetrics')}</div>
     <div class="metrics-grid">
-      <div class="metric-card featured">${mrrSource}<div class="metric-card-label"><span class="has-tip" data-tip="${escHtml(t('startupPage','tipMrr'))}" style="cursor:help;border-bottom:1px dotted var(--text3);">${t('startupPage','mrr')}</span></div><div class="metric-card-value">${formatMoney(s.revenue&&s.revenue.mrr)}</div>${mrrCmp}<svg class="metric-spark" id="mrrSpark" viewBox="0 0 300 42" preserveAspectRatio="none" aria-hidden="true"></svg></div>
-      <div class="metric-card wide"><div class="metric-card-label">${s.isMerchantOfRecord?t('startupPage','gmv30'):t('startupPage','rev30')}</div><div class="metric-card-value">${formatMoney(s.revenue&&s.revenue.last30Days)}</div><div class="metric-card-sub">${t('startupPage','growth')}: ${gStr}</div></div>
-      <div class="metric-card wide"><div class="metric-card-label">${s.isMerchantOfRecord?t('startupPage','gmv'):t('startupPage','totalRev')}</div><div class="metric-card-value">${formatMoney(s.revenue&&s.revenue.total)}</div><div class="metric-card-sub">${t('startupPage','allTime')}</div></div>
+      ${featuredCard}
+      ${wideCard1}
+      ${wideCard2}
       ${s.profitMarginLast30Days!=null?`<div class="metric-card"><div class="metric-card-label">${t('startupPage','margin')}</div><div class="metric-card-value">${Math.round(s.profitMarginLast30Days)}%</div></div>`:''}
       ${s.activeSubscriptions>0?`<div class="metric-card"><div class="metric-card-label">${t('startupPage','subs')}</div><div class="metric-card-value">${s.activeSubscriptions.toLocaleString()}</div></div>`:''/* Hidden when 0: RevenueCat (and merchant-of-record / one-time-payment) listings report 0 subscribers alongside a real MRR, so a "0" here is "not reported", not a true zero — showing it next to a live MRR reads as a bug. Mirrors the Customers card below. */}
       ${s.customers>0?`<div class="metric-card"><div class="metric-card-label">${t('startupPage','customers')}</div><div class="metric-card-value">${s.customers.toLocaleString()}</div></div>`:''/* Customers comes straight from TrustMRR; many RevenueCat listings report 0 here while activeSubscriptions is non-zero, so a 0 is "not reported", not a real zero - hide it instead of showing a misleading "0". */}
@@ -917,7 +942,11 @@ function renderStartup(s) {
 function renderMrrSparkline() {
   const el = document.getElementById('mrrSpark');
   if (!el) return;
-  const pts = (_chartData || []).filter(r => r.mrr_cents != null).map(r => Number(r.mrr_cents)).filter(v => Number.isFinite(v)).slice(-30);
+  // In GMV mode the featured figure is 30-day gross volume, so the mini-trend must
+  // track daily revenue (rev_usd from revenue-history), not the flat mrr_cents series.
+  const pts = window._gmvMode
+    ? (_revenueHistory || []).filter(r => r.rev_usd != null).map(r => Number(r.rev_usd)).filter(v => Number.isFinite(v)).slice(-30)
+    : (_chartData || []).filter(r => r.mrr_cents != null).map(r => Number(r.mrr_cents)).filter(v => Number.isFinite(v)).slice(-30);
   if (pts.length < 2) { el.innerHTML = ''; return; }
   const W = 300, H = 42, P = 3;
   const min = Math.min(...pts), max = Math.max(...pts), span = (max - min) || 1;
