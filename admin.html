@@ -106,10 +106,11 @@ let token = null;
 let topDays = 30;
 
 /* ── Бейджи непросмотренного (новые регистрации / заявки) ───────────────────────
- * На вкладках «Обзор» (регистрации) и «Заявки» висит красный кружок с числом
- * непросмотренных. «Непросмотренные» = текущее количество минус то, что было при
- * последнем открытии этой вкладки (high-water-mark в localStorage). Открыл вкладку →
- * отметка обновляется, кружок гаснет. */
+ * На вкладках «Регистрации» и «Заявки» висит красный кружок с числом непросмотренных.
+ * «Непросмотренные» = текущее количество минус то, что было при последнем открытии
+ * этой вкладки (high-water-mark в localStorage). Открыл вкладку → отметка обновляется,
+ * кружок гаснет. «Обзор» — это дашборд: он ПОКАЗЫВАЕТ кружки, но не гасит их (иначе на
+ * дефолтной вкладке счётчик обнулялся бы сразу и новые регистрации были бы не видны). */
 const SEEN_USERS = 'sm_adm_seen_users';
 const SEEN_LISTINGS = 'sm_adm_seen_listings';
 const lsGet = k => { const v = parseInt(localStorage.getItem(k) || '', 10); return Number.isNaN(v) ? null : v; };
@@ -133,11 +134,17 @@ function updateBadges(o) {
   // Первый визит: не показывать «всё сразу» — фиксируем текущее как просмотренное.
   if (lsGet(SEEN_USERS) == null && users != null) lsSet(SEEN_USERS, users);
   if (lsGet(SEEN_LISTINGS) == null) lsSet(SEEN_LISTINGS, listingsTotal);
-  setBadge('overview', users != null ? Math.max(0, users - lsGet(SEEN_USERS)) : 0);
+  // Пока открыта сама вкладка — её записи считаются просмотренными: двигаем отметку,
+  // чтобы кружок не копился, пока на него смотрят (и гас сразу при заходе на вкладку).
+  const active = tabFromHash();
+  if (active === 'users' && users != null) lsSet(SEEN_USERS, users);
+  if (active === 'listings') lsSet(SEEN_LISTINGS, listingsTotal);
+  setBadge('users', users != null ? Math.max(0, users - lsGet(SEEN_USERS)) : 0);
   setBadge('listings', Math.max(0, listingsTotal - lsGet(SEEN_LISTINGS)));
 }
 
-// Догрузить бейджи, когда стартовая вкладка — не «Обзор» (renderOverview сам их ставит).
+// Пересчитать кружки из свежих данных overview — при заходе на вкладку, в фоне
+// (раз в 2 мин) и при возврате на панель, чтобы новые регистрации подъезжали сами.
 async function refreshBadges() {
   try { updateBadges(await api('/api/admin?section=overview&days=30')); } catch {}
 }
@@ -311,16 +318,13 @@ async function renderOverview() {
         : '<div class="adm-mini">Пока нет регистраций за период.</div>'}
     </div>`;
   attachChartTips();
-  updateBadges(o);                                       // выставит бейдж «Заявки»
-  if (o.totalUsers != null) lsSet(SEEN_USERS, o.totalUsers);
-  setBadge('overview', 0);                               // вкладку открыли → регистрации просмотрены
+  updateBadges(o);   // «Обзор» — дашборд: показывает кружки «Регистрации»/«Заявки», но НЕ гасит их
 }
 
 /* ── Заявки ────────────────────────────────────────────────────────────────── */
 async function renderListings() {
   const { listings } = await api('/api/admin?section=listings');
-  lsSet(SEEN_LISTINGS, listings.length);   // вкладку открыли → заявки просмотрены
-  setBadge('listings', 0);
+  refreshBadges();   // active-вкладка «Заявки» → updateBadges отметит их просмотренными и погасит кружок
   if (!listings.length) { $('admContent').innerHTML = '<div class="adm-msg">Заявок пока нет.</div>'; return; }
   $('admContent').innerHTML = `<div class="adm-card" style="overflow-x:auto;">
     <h3>Заявки на размещение <span class="adm-mini">${listings.length} шт.</span></h3>
@@ -397,7 +401,7 @@ async function renderUsers(live = false) {
   if (!users || !users.length) {
     usersSig = 'empty';
     $('admContent').innerHTML = '<div class="adm-msg">Регистраций пока нет.</div>';
-    if (!live) startLive(() => renderUsers(true));
+    if (!live) { startLive(() => renderUsers(true)); refreshBadges(); }
     return;
   }
   const sig = usersSigOf(users);
@@ -421,7 +425,7 @@ async function renderUsers(live = false) {
         ${head}
         ${hidden.map(u => userRow(u, self, true)).join('')}
       </table></div>` : ''}`;
-  if (!live) startLive(() => renderUsers(true));
+  if (!live) { startLive(() => renderUsers(true)); refreshBadges(); }
 }
 
 async function hideUser(id, btn) {
@@ -721,6 +725,9 @@ async function renderParsers() {
     await TAB_RENDERERS[initial]();
     document.getElementById('admTabs').style.display = 'flex';
     if (initial !== 'overview') refreshBadges();   // «Обзор» сам ставит бейджи; иначе догрузить
+    // Кружки «подъезжают сами»: лёгкий фоновый опрос overview + пересчёт при возврате на панель.
+    setInterval(() => { if (!document.hidden) refreshBadges(); }, 120000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshBadges(); });
   } catch (e) {
     $('admContent').innerHTML = e.message === 'forbidden'
       ? '<div class="adm-msg">Нет доступа: у аккаунта <b>' + esc(session.user.email) + '</b> нет роли admin.<br/><span class="adm-mini">Выполни в Supabase SQL Editor шаг 6 из supabase-admin-migration.sql.</span></div>'
