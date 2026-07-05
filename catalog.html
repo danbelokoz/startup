@@ -98,6 +98,11 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
 .status-opt .cnt { font-size: 10px; opacity: 0.5; }
 .apply-btn { width: 100%; padding: 8px; background: var(--accent); color: #181A20; border: none; border-radius: 7px; font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.12s; margin-top: 4px; }
 .apply-btn:hover { background: var(--accent2); }
+/* Mobile-only chrome (back arrow in the header, sticky footer) - hidden on desktop
+   where the sidebar is a normal sticky column with its own inline Apply button. */
+.sb-back { display: none; background: none; border: none; padding: 2px; margin-right: 4px; color: var(--text); cursor: pointer; align-items: center; }
+.sb-foot { display: none; }
+.apply-btn-lg { padding: 13px; font-size: 14px; }
 
 .grid-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; gap: 10px; }
 .grid-count { font-size: 13px; color: var(--text3); }
@@ -198,10 +203,32 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
 @keyframes loadpulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 @media (max-width: 900px) {
   .body { grid-template-columns: 1fr; }
-  .sidebar-block { position: static; max-height: none; }
   .filter-toggle { display: inline-flex; }
   #filterSidebar { display: none; }
-  #filterSidebar.open { display: block; margin-bottom: 4px; }
+  /* Full-screen filter "page": a fixed overlay that owns its own scroll, with a pinned
+     header (back + title + reset) and a pinned footer ("Show N"). The page behind it
+     doesn't scroll, so Apply is always one tap away - no swiping to the bottom. */
+  #filterSidebar.open {
+    display: flex; flex-direction: column;
+    position: fixed; inset: 0; z-index: 1000;
+    background: var(--bg); margin: 0;
+  }
+  #filterSidebar.open .sidebar-block {
+    position: static; max-height: none; flex: 1 1 auto; min-height: 0;
+    border: none; border-radius: 0; box-shadow: none; overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  #filterSidebar.open .sb-header { padding: 14px 16px; }
+  #filterSidebar.open .sb-title { font-size: 15px; letter-spacing: 0; text-transform: none; color: var(--text); font-weight: 700; margin-right: auto; }
+  #filterSidebar.open .sb-reset { font-size: 13px; }
+  #filterSidebar.open .sb-back { display: inline-flex; }
+  #filterSidebar.open .sb-section { padding: 13px 16px; }
+  #filterSidebar.open .sb-apply-desktop { display: none; }
+  #filterSidebar.open .sb-foot {
+    display: block; flex: none; padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--border); background: var(--bg2);
+  }
+  body.filters-open { overflow: hidden; }
 }
 @media (max-width: 640px) { .hero { padding: 24px 16px 16px; } .hero-title { font-size: 26px; } .cards { grid-template-columns: 1fr; } .body { padding: 12px 16px 60px; } .stat-n { font-size: 18px; } .stat-l { font-size: 9px; } .stat-item { padding: 14px 8px; } }
 </style>
@@ -228,6 +255,9 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
   <aside id="filterSidebar">
     <div class="sidebar-block">
       <div class="sb-header">
+        <button type="button" class="sb-back" onclick="toggleFilters()" aria-label="Back">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+        </button>
         <span class="sb-title" data-i18n="idx.fltTitle">Фильтры</span>
         <span class="sb-reset" onclick="resetFilters()" data-i18n="idx.fltReset">Сбросить</span>
       </div>
@@ -293,7 +323,12 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
           <option value="" data-i18n="idx.fltAny">Любое</option><option value="yes" data-i18n="idx.fltHas">Есть</option><option value="no" data-i18n="idx.fltNo">Нет</option>
         </select>
       </div>
-      <div class="sb-section"><button class="apply-btn" onclick="applyFilters()" data-i18n="idx.fltApply">Применить фильтры</button></div>
+      <div class="sb-section sb-apply-desktop"><button class="apply-btn" onclick="applyFilters()" data-i18n="idx.fltApply">Применить фильтры</button></div>
+    </div>
+    <div class="sb-foot">
+      <button class="apply-btn apply-btn-lg" onclick="applyFilters()">
+        <span data-i18n="idx.fltShow">Показать</span> <span id="applyCount">—</span>
+      </button>
     </div>
   </aside>
 
@@ -661,31 +696,35 @@ function sortItems(arr) {
       (a.i - b.i))
     .map(o => o.s);
 }
-function applyClientFilters(items) {
-  const q = filters.search.toLowerCase();
+// f defaults to the committed global `filters`. The mobile "Show N" preview passes a
+// pending filter object (readPanelFilters) so it can count matches *before* Apply is
+// pressed without mutating the live state.
+function applyClientFilters(items, f) {
+  f = f || filters;
+  const q = (f.search||'').toLowerCase();
   const filtered = items.filter(s => {
     if (q && !s.name.toLowerCase().includes(q) && !(s.description||'').toLowerCase().includes(q)) return false;
-    if (filters.category && (s.category||'') !== filters.category) return false;
+    if (f.category && (s.category||'') !== f.category) return false;
     const mrr   = s.revenue&&s.revenue.mrr||0;
     const rev   = s.revenue&&s.revenue.last30Days||0;
     const price = s.askingPrice||0;
     const mult  = parseFloat(s.multiple)||0;
     const g     = s.growth30d;
     const margin= s.profitMarginLast30Days;
-    if (filters.mrrMin >0 && mrr  < filters.mrrMin) return false;
-    if (filters.mrrMax >0 && mrr  > filters.mrrMax) return false;
-    if (filters.rev30Min>0 && rev < filters.rev30Min) return false;
-    if (filters.rev30Max>0 && rev > filters.rev30Max) return false;
-    if (filters.priceMin>0 && price < filters.priceMin) return false;
-    if (filters.priceMax>0 && price > filters.priceMax) return false;
-    if (filters.growthMin!=='' && (g==null||g<parseFloat(filters.growthMin))) return false;
-    if (filters.growthMax!=='' && (g==null||g>parseFloat(filters.growthMax))) return false;
-    if (filters.multipleMax>0 && mult>filters.multipleMax) return false;
-    if (filters.marginMin>0 && (margin==null||margin<filters.marginMin)) return false;
-    if (filters.marginMax>0 && (margin==null||margin>filters.marginMax)) return false;
-    if (filters.audience && s.targetAudience && !s.targetAudience.toLowerCase().includes(filters.audience)) return false;
-    if (filters.mobile==='yes' && !s.hasMobileApp) return false;
-    if (filters.mobile==='no' && s.hasMobileApp) return false;
+    if (f.mrrMin >0 && mrr  < f.mrrMin) return false;
+    if (f.mrrMax >0 && mrr  > f.mrrMax) return false;
+    if (f.rev30Min>0 && rev < f.rev30Min) return false;
+    if (f.rev30Max>0 && rev > f.rev30Max) return false;
+    if (f.priceMin>0 && price < f.priceMin) return false;
+    if (f.priceMax>0 && price > f.priceMax) return false;
+    if (f.growthMin!=='' && (g==null||g<parseFloat(f.growthMin))) return false;
+    if (f.growthMax!=='' && (g==null||g>parseFloat(f.growthMax))) return false;
+    if (f.multipleMax>0 && mult>f.multipleMax) return false;
+    if (f.marginMin>0 && (margin==null||margin<f.marginMin)) return false;
+    if (f.marginMax>0 && (margin==null||margin>f.marginMax)) return false;
+    if (f.audience && s.targetAudience && !s.targetAudience.toLowerCase().includes(f.audience)) return false;
+    if (f.mobile==='yes' && !s.hasMobileApp) return false;
+    if (f.mobile==='no' && s.hasMobileApp) return false;
     return true;
   });
   return sortItems(filtered);
@@ -875,6 +914,9 @@ function saveStartup(slug) {
   // rather than a syncUrl change). restoreFiltersOnBack() re-injects it if the browser
   // drops the query when you press Back to a bare /catalog.
   try{ sessionStorage.setItem('sm_cat_q', location.search); }catch{}
+  // Snapshot the full filter state (incl. advanced ranges) so restoreSavedFilters() can
+  // rehydrate everything on Back - not just the status/search the URL carries.
+  persistFilters();
   // One-shot marker: we're leaving the catalog *for a startup detail page*, so a later bare
   // /catalog is a "Back" and should restore this filter. A fresh open (nav link, new tab,
   // typed URL) never sets this, so it correctly falls through to the default "For sale" view.
@@ -955,6 +997,7 @@ function hasActiveFilter() {
 
 function updateCount() {
   updateFilterBadge();
+  updateApplyCount();
   const gc=document.getElementById('gridCount'); if(!gc)return;
   const lang=getLang();
   let n, plus='';
@@ -1076,7 +1119,7 @@ function setStatus(el) {
   document.querySelectorAll('.status-opt').forEach(o=>o.classList.remove('sel'));
   el.classList.add('sel');
   filters.onSale=el.dataset.filter==='sale'?true:null;
-  syncUrl(true);
+  syncUrl(true); persistFilters();
   reloadFromAPI();
 }
 function onCategoryChange(v) {
@@ -1084,17 +1127,17 @@ function onCategoryChange(v) {
   const lbl = document.getElementById('catDDLabel');
   if (lbl) lbl.textContent = v || t('idx','fltCatsAll');
   document.querySelectorAll('.cat-dd-opt').forEach(o => o.classList.toggle('active', (o.dataset.value||'') === v));
-  displayItems = applyClientFilters(loadedItems); renderCards(); updateCount(); syncUrl(true);
+  displayItems = applyClientFilters(loadedItems); renderCards(); updateCount(); syncUrl(true); persistFilters();
 }
 // Sorting is client-side over the already-loaded set - instant, and it never wipes
 // the catalog (the old reloadFromAPI caused the "nothing found" flash on sort).
 function onSortChange(v) {
   filters.sort = v; renderLimit = 60;
-  displayItems = applyClientFilters(loadedItems); renderCards(); updateCount(); syncUrl(true);
+  displayItems = applyClientFilters(loadedItems); renderCards(); updateCount(); syncUrl(true); persistFilters();
 }
 function onSearch(v) {
   filters.search=v.trim(); clearTimeout(searchTimer);
-  searchTimer=setTimeout(()=>{renderLimit=60;displayItems=applyClientFilters(loadedItems);renderCards();updateCount();syncUrl();},300);
+  searchTimer=setTimeout(()=>{renderLimit=60;displayItems=applyClientFilters(loadedItems);renderCards();updateCount();syncUrl();persistFilters();},300);
 }
 function applyFilters() {
   const n=id=>{const v=parseFloat(document.getElementById(id)&&document.getElementById(id).value);return isNaN(v)?0:v;};
@@ -1112,14 +1155,47 @@ function applyFilters() {
   displayItems=applyClientFilters(loadedItems);
   renderCards();updateCount();
   updateFilterBadge();
-  // On mobile the filter panel is collapsed behind the toggle - close it after applying.
-  if (window.matchMedia('(max-width: 900px)').matches) {
-    const sb=document.getElementById('filterSidebar'); if(sb) sb.classList.remove('open');
-  }
+  persistFilters();
+  // On mobile the filter panel is a full-screen overlay - close it after applying.
+  if (window.matchMedia('(max-width: 900px)').matches) closeFilters();
 }
-// Toggle the mobile filter panel (hidden by default on narrow screens).
+// Open/close the mobile full-screen filter overlay. While open the page behind it is
+// scroll-locked (body.filters-open) so only the panel scrolls.
 function toggleFilters() {
-  const sb=document.getElementById('filterSidebar'); if(sb) sb.classList.toggle('open');
+  const sb=document.getElementById('filterSidebar'); if(!sb) return;
+  if (sb.classList.contains('open')) closeFilters(); else openFilters();
+}
+function openFilters() {
+  const sb=document.getElementById('filterSidebar'); if(!sb) return;
+  sb.classList.add('open');
+  document.body.classList.add('filters-open');
+  updateApplyCount();
+}
+function closeFilters() {
+  const sb=document.getElementById('filterSidebar'); if(sb) sb.classList.remove('open');
+  document.body.classList.remove('filters-open');
+}
+// Live "Show N" count for the mobile footer: how many loaded startups match the values
+// currently typed in the panel, before Apply is pressed. Reads the inputs directly so
+// it reflects pending (uncommitted) ranges.
+function readPanelFilters() {
+  const num=id=>{const el=document.getElementById(id);const v=parseFloat(el&&el.value);return isNaN(v)?0:v;};
+  const sel=id=>{const e=document.getElementById(id);return e?e.value:'';};
+  const txt=id=>{const e=document.getElementById(id);return e?e.value.trim():'';};
+  return Object.assign({}, filters, {
+    search: txt('searchInput'),
+    mrrMin:num('mrrMin'), mrrMax:num('mrrMax'),
+    rev30Min:num('rev30Min'), rev30Max:num('rev30Max'),
+    priceMin:num('priceMin'), priceMax:num('priceMax'),
+    growthMin:txt('growthMin'), growthMax:txt('growthMax'),
+    multipleMax:parseFloat(sel('multipleSelect'))||0,
+    marginMin:num('marginMin'), marginMax:num('marginMax'),
+    audience:sel('audienceSelect'), mobile:sel('mobileSelect')
+  });
+}
+function updateApplyCount() {
+  const el=document.getElementById('applyCount'); if(!el) return;
+  el.textContent = applyClientFilters(loadedItems, readPanelFilters()).length.toLocaleString();
 }
 // Count active filters (excluding the default on-sale status) for the toggle badge.
 function updateFilterBadge() {
@@ -1149,8 +1225,35 @@ function resetFilters() {
   const cdl=document.getElementById('catDDLabel'); if(cdl) cdl.textContent=t('idx','fltCatsAll');
   closeCatDD(); _catSig='';
   filters={onSale:true,category:'',sort:'revenue-desc',search:'',mrrMin:0,mrrMax:0,rev30Min:0,rev30Max:0,priceMin:0,priceMax:0,growthMin:'',growthMax:'',multipleMax:0,marginMin:0,marginMax:0,audience:'',mobile:'',saleFirst:false};
-  syncUrl(true);
+  syncUrl(true); persistFilters();
   reloadFromAPI();
+}
+// Snapshot the *full* filter state (incl. the advanced ranges the URL never carries)
+// for this tab so a Back from a startup page can restore everything - see
+// restoreSavedFilters(). Written on every committed change.
+function persistFilters() {
+  try { sessionStorage.setItem('sm_cat_filters', JSON.stringify(filters)); } catch {}
+}
+// Reflect the current `filters` object into every sidebar control (used when we
+// rehydrate a saved snapshot on Back). 0 / '' mean "no filter" → shown as an empty field.
+function populateFilterInputs() {
+  const setNum=(id,v)=>{const e=document.getElementById(id); if(e) e.value = v ? v : '';};
+  setNum('mrrMin',filters.mrrMin); setNum('mrrMax',filters.mrrMax);
+  setNum('rev30Min',filters.rev30Min); setNum('rev30Max',filters.rev30Max);
+  setNum('priceMin',filters.priceMin); setNum('priceMax',filters.priceMax);
+  setNum('marginMin',filters.marginMin); setNum('marginMax',filters.marginMax);
+  const gmin=document.getElementById('growthMin'); if(gmin) gmin.value=filters.growthMin||'';
+  const gmax=document.getElementById('growthMax'); if(gmax) gmax.value=filters.growthMax||'';
+  const ms=document.getElementById('multipleSelect'); if(ms) ms.value=filters.multipleMax?String(filters.multipleMax):'';
+  const as=document.getElementById('audienceSelect'); if(as) as.value=filters.audience||'';
+  const mo=document.getElementById('mobileSelect'); if(mo) mo.value=filters.mobile||'';
+  const si=document.getElementById('searchInput'); if(si) si.value=filters.search||'';
+  const ss=document.getElementById('sortSelect'); if(ss) ss.value=filters.sort||'revenue-desc';
+  const cdl=document.getElementById('catDDLabel'); if(cdl) cdl.textContent=filters.category||t('idx','fltCatsAll');
+  document.querySelectorAll('.cat-dd-opt').forEach(o=>o.classList.toggle('active',(o.dataset.value||'')===filters.category));
+  document.querySelectorAll('.status-opt').forEach(o=>o.classList.remove('sel'));
+  const so=document.querySelector('.status-opt[data-filter="'+(filters.onSale===true?'sale':'all')+'"]'); if(so) so.classList.add('sel');
+  updateFilterBadge();
 }
 
 // Deep-link support: /?search= , /?category= , /?sort= - e.g. clicking a tag or
@@ -1209,32 +1312,52 @@ function closeCatDD() {
   document.addEventListener('click', closeCatDD);   // click outside closes it
 })();
 
-// Safety net for "Back" from a startup page. Normally the catalog URL carries the
-// filters (?status=all…) and applyUrlParams() restores them. But some browsers reload
-// the catalog as a bare /catalog (query stripped) on that Back, which would snap the
-// view to the default "For sale". When the URL comes back bare, re-inject the filter we
-// remembered for this tab so it sticks - BUT only when we actually came back from a
-// startup detail page (saveStartup set the one-shot sm_cat_back marker). A genuinely fresh
-// open of the catalog - nav link, landing CTA, new tab, typed URL - has no marker, so it
-// always opens on the default "For sale" view regardless of the last filter used.
-function restoreFiltersOnBack() {
+// "Back" from a startup page → restore the FULL filter state (status + search + category
+// + sort AND the advanced ranges the URL never carried). saveStartup() set a one-shot
+// sm_cat_back marker and persistFilters() saved the whole `filters` object as
+// sm_cat_filters. We only restore when that marker is present, so a genuinely fresh open -
+// nav link, landing CTA, new tab, typed URL - always opens on the default "For sale" view.
+// Returns true when it fully rehydrated the state (so the caller skips applyUrlParams).
+function restoreSavedFilters() {
+  let returning = false;
   try {
-    const returning = sessionStorage.getItem('sm_cat_back');
+    returning = sessionStorage.getItem('sm_cat_back') === '1';
     sessionStorage.removeItem('sm_cat_back');                 // consume on every fresh load (one-shot)
-    if (!returning) return;                                   // fresh open → keep the default "For sale"
-    const savedQ = sessionStorage.getItem('sm_cat_q');
-    if (!location.search && savedQ && savedQ.length > 1) {
-      history.replaceState(history.state, '', location.pathname + savedQ);
-    }
   } catch {}
+  if (!returning) return false;                               // fresh open → keep the default "For sale"
+  let saved = null;
+  try { saved = JSON.parse(sessionStorage.getItem('sm_cat_filters') || 'null'); } catch {}
+  if (!saved || typeof saved !== 'object') {
+    // No full snapshot (older tab) → fall back to re-injecting the saved query string so
+    // at least status/search/category/sort survive; applyUrlParams() then reads it.
+    try {
+      const savedQ = sessionStorage.getItem('sm_cat_q');
+      if (!location.search && savedQ && savedQ.length > 1) {
+        history.replaceState(history.state, '', location.pathname + savedQ);
+      }
+    } catch {}
+    return false;
+  }
+  const def = {onSale:true,category:'',sort:'revenue-desc',search:'',mrrMin:0,mrrMax:0,rev30Min:0,rev30Max:0,priceMin:0,priceMax:0,growthMin:'',growthMax:'',multipleMax:0,marginMin:0,marginMax:0,audience:'',mobile:'',saleFirst:false};
+  filters = Object.assign(def, saved);
+  populateFilterInputs();                 // mirror the restored state into the sidebar controls
+  syncUrl(false);                         // put the discrete part back in the URL for a later reload
+  return true;
 }
 // A Back restored from bfcache keeps the catalog already in its previous filtered state, so
 // consume the marker here too - otherwise it would leak into the *next* fresh open and
-// wrongly restore "All" there.
+// wrongly restore filters there.
 window.addEventListener('pageshow', e => { if (e.persisted) { try { sessionStorage.removeItem('sm_cat_back'); } catch {} } });
 
-restoreFiltersOnBack();
-applyUrlParams();
+// Live "Show N" preview: recount as the user edits any control in the panel.
+(function wireApplyCount(){
+  const sb=document.getElementById('filterSidebar'); if(!sb) return;
+  const upd=()=>{ try { updateApplyCount(); } catch {} };
+  sb.addEventListener('input', upd);
+  sb.addEventListener('change', upd);
+})();
+
+if (!restoreSavedFilters()) applyUrlParams();
 loadInitial();
 fetchTotalsMeta();
 </script>
