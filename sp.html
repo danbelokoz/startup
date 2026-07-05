@@ -908,7 +908,6 @@ function renderStartup(s) {
       ${ai.pricingModel?`<tr><td>Pricing model</td><td>${escHtml(ai.pricingModel)}</td></tr>`:''}
       ${s.paymentProvider?`<tr><td>${t('startupPage','provider')}</td><td>${s.paymentProvider}</td></tr>`:''}
       ${s.xFounderName?`<tr><td>Founder</td><td>${wantBlur ? `<span class="paywall-blur owner-blur">${escHtml(s.xFounderName)}</span>` : escHtml(s.xFounderName)}</td></tr>`:''}
-      ${s.xHandle?`<tr><td>X handle</td><td>${wantBlur ? `<span class="paywall-blur owner-blur">@${escHtml(s.xHandle)}</span>` : '@'+escHtml(s.xHandle)}</td></tr>`:''}
     </table>
 
     ${cofoundersHtml}
