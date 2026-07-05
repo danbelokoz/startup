@@ -727,15 +727,7 @@ function renderStartup(s) {
   // Founder (X profile) + website surfaced as deeplinks at the top. On-sale startups
   // already get this via #contactSection (renderContactSection); non-sale ones used to
   // show only a plain "Not for sale" box, with founder/site buried in the Info table.
-  const founderLabel = s.xFounderName
-    ? escHtml(s.xFounderName) + (s.xHandle ? ' <span style="opacity:.7">@' + escHtml(s.xHandle) + '</span>' : '')
-    : (s.xHandle ? '@' + escHtml(s.xHandle) : '');
-  const founderTop = !founderLabel ? ''
-    : wantBlur
-      ? `<span class="btn btn-ghost btn-sm paywall-blur owner-blur" style="cursor:pointer;">𝕏 ${founderLabel}</span>`
-      : (s.xHandle
-          ? `<a href="https://x.com/${escHtml(s.xHandle)}" target="_blank" class="btn btn-primary btn-sm">𝕏 ${founderLabel}</a>`
-          : `<span class="btn btn-ghost btn-sm" style="cursor:default;">${founderLabel}</span>`);
+  // Founder (X/Twitter) link intentionally omitted from seller contacts — only the site is surfaced.
   const siteTop = !s.website ? ''
     : wantBlur
       ? `<span class="btn btn-ghost btn-sm paywall-blur" style="cursor:pointer;">${t('startupPage','viewOriginal')} ↗</span>`
@@ -750,10 +742,10 @@ function renderStartup(s) {
     <div class="sale-strip">
       ${listedDate || '<span></span>'}
       <div id="contactSection"></div>
-    </div>` : ((founderTop || siteTop) ? `
+    </div>` : (siteTop ? `
     <div class="sale-strip">
       <span class="not-sale-label">${t('startupPage','notForSale')}</span>
-      <div class="contact-revealed" style="margin-bottom:0;">${founderTop}${siteTop}</div>
+      <div class="contact-revealed" style="margin-bottom:0;">${siteTop}</div>
     </div>${wantBlur ? regCtaHtml() : ''}` : `<div class="not-sale-box">${t('startupPage','notForSale')}</div>`);
 
   const ai = (s.aiEnrichment && typeof s.aiEnrichment === 'object') ? s.aiEnrichment : {};
@@ -1826,8 +1818,7 @@ function renderContactSection(s) {
   // Registered users (free or paid) see the seller's site + founder directly.
   if (_revealed) {
     section.innerHTML = `<div class="contact-revealed" id="contactWrap" style="height:100%;">` +
-      (s.xHandle ? `<a href="https://x.com/${escHtml(s.xHandle)}" target="_blank" class="btn btn-primary btn-sm">𝕏 @${escHtml(s.xHandle)}</a>` : '') +
-      (s.website  ? `<a href="${escHtml(s.website)}" target="_blank" class="btn btn-ghost btn-sm">${t('startupPage','viewOriginal')} ↗</a>` : '') +
+      (s.website  ? `<a href="${escHtml(s.website)}" target="_blank" class="btn btn-primary btn-sm">${t('startupPage','viewOriginal')} ↗</a>` : '') +
       `</div>`;
     return;
   }
@@ -1872,8 +1863,7 @@ function doReveal(s) {
   if (wrap) {
     wrap.className = 'contact-revealed';
     wrap.innerHTML =
-      (s.xHandle?`<a href="https://x.com/${escHtml(s.xHandle)}" target="_blank" class="btn btn-primary btn-sm">𝕏 @${escHtml(s.xHandle)}</a>`:'') +
-      (s.website ?`<a href="${escHtml(s.website)}" target="_blank" class="btn btn-ghost btn-sm">${t('startupPage','viewOriginal')} ↗</a>`:'');
+      (s.website ?`<a href="${escHtml(s.website)}" target="_blank" class="btn btn-primary btn-sm">${t('startupPage','viewOriginal')} ↗</a>`:'');
   }
 }
 // `tryReveal` is a top-level function declaration, so it is already exposed as
