@@ -114,10 +114,10 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
 .fgroup.open > .fgroup-h .fgroup-cr { transform: rotate(180deg); }
 .fgroup-badge { background: var(--accent); color: #181A20; font-size: 10px; font-weight: 700; border-radius: 9px; min-width: 16px; height: 16px; line-height: 16px; text-align: center; padding: 0 4px; }
 .fgroup-badge[hidden] { display: none; }
-.fgroup-b { padding: 2px 14px 12px; display: none; }
+.fgroup-b { padding: 10px 14px 12px; display: none; }
 .fgroup.open > .fgroup-b { display: block; }
-.fgroup-b .sb-sub { margin-top: 11px; }
-.fgroup-b .sb-sub:first-child { margin-top: 2px; }
+.fgroup-b .sb-sub { margin-top: 12px; }
+.fgroup-b .sb-sub:first-child { margin-top: 0; }
 
 .grid-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; gap: 10px; }
 .grid-count { font-size: 13px; color: var(--text3); }
@@ -239,7 +239,7 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
   #filterSidebar.open .sb-back { display: inline-flex; }
   #filterSidebar.open .sb-section { padding: 13px 16px; }
   #filterSidebar.open .fgroup-h { padding: 14px 16px; }
-  #filterSidebar.open .fgroup-b { padding: 2px 16px 14px; }
+  #filterSidebar.open .fgroup-b { padding: 12px 16px 14px; }
   #filterSidebar.open .fgroup-t { font-size: 13px; }
   #filterSidebar.open .sb-apply-desktop { display: none; }
   #filterSidebar.open .sb-foot {
@@ -287,7 +287,7 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
       </div>
       <div class="fgroup open" data-group="status">
         <button type="button" class="fgroup-h" onclick="toggleGroup(this)">
-          <span class="fgroup-t"><span data-i18n="idx.fltStatus">Статус</span><span class="fgroup-badge" data-grpbadge="status" hidden></span></span>
+          <span class="fgroup-t"><span data-i18n="idx.fltStatus">Статус</span></span>
           <svg class="fgroup-cr" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
         </button>
         <div class="fgroup-b">
