@@ -21,8 +21,12 @@
 <style>
 .adm-wrap { max-width: 1060px; margin: 0 auto; padding: 28px 20px 80px; }
 .adm-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
-.adm-title { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; color: var(--text); }
+.adm-title { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; color: var(--text); text-decoration: none; cursor: pointer; transition: opacity 0.12s; }
+a.adm-title:hover { opacity: 0.82; }
 .adm-title span { color: var(--accent); }
+.adm-head-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.adm-back { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 600; color: var(--text2); text-decoration: none; border: 1px solid var(--border2); background: var(--bg2); border-radius: 999px; padding: 6px 14px; transition: all 0.12s; white-space: nowrap; }
+.adm-back:hover { border-color: var(--text); color: var(--text); }
 .adm-user { font-size: 13px; color: var(--text2); display: flex; align-items: center; gap: 10px; }
 .adm-user a { color: var(--text3); text-decoration: none; }
 .adm-user a:hover { color: var(--text); }
@@ -86,8 +90,11 @@
 
 <div class="adm-wrap">
   <div class="adm-head">
-    <div class="adm-title">Startup Market <span>· Админка</span></div>
-    <div class="adm-user" id="admUser"></div>
+    <a href="/" class="adm-title" title="На главную">Startup Market <span>· Админка</span></a>
+    <div class="adm-head-right">
+      <a class="adm-back" href="/">← На сайт</a>
+      <div class="adm-user" id="admUser"></div>
+    </div>
   </div>
   <div class="adm-tabs" id="admTabs" style="display:none;">
     <button class="adm-tab sel" data-tab="overview" onclick="openTab('overview')">Обзор</button>
