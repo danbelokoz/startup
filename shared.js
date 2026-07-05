@@ -614,11 +614,9 @@ function buildModalHTML() { return ''; }
 // DOMContentLoaded handler at the bottom): replaces an existing <footer> or, on
 // pages without one (startup detail, auth, dashboard), appends a fresh one.
 const CONTACT_EMAIL = 'startupmarket.tech@gmail.com';
-const CONTACT_X_URL = 'https://x.com/Dan_white_22';
-// "Two squares" copy glyph, a check for the copied state, and the X (Twitter) mark.
+// "Two squares" copy glyph and a check for the copied state.
 const COPY_ICON  = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
 const CHECK_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
-const X_ICON     = '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2H21.5l-7.5 8.57L22.5 22h-6.6l-5.17-6.76L4.8 22H1.54l8.02-9.17L1.5 2h6.77l4.67 6.18L18.244 2Zm-1.16 18h1.8L7.02 3.9H5.09L17.084 20Z"/></svg>';
 const MAIL_ICON  = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4.5" width="19" height="15" rx="3"/><path d="M3 7l9 6 9-6"/></svg>';
 
 function buildFooterHTML() {
@@ -636,7 +634,7 @@ function buildFooterHTML() {
 }
 
 // ── CONTACT MODAL ─────────────────────────────────────────────────────────────
-// A centered, dimmed dialog with the email and X - opened from the footer "Contact"
+// A centered, dimmed dialog with the email - opened from the footer "Contact"
 // link. Built fresh each open so the language is always current.
 function buildContactModalHTML() {
   const l = (T[getLang()] || T.en).legal || T.en.legal;
@@ -650,12 +648,6 @@ function buildContactModalHTML() {
             `<a class="contact-item-val" href="mailto:${CONTACT_EMAIL}">${CONTACT_EMAIL}</a></div>` +
           `<button type="button" class="contact-item-copy" title="${l.footCopy}" aria-label="${l.footCopy}" onclick="copyContactEmail(this)">${COPY_ICON}</button>` +
         `</div>` +
-        `<a class="contact-item contact-item-link" href="${CONTACT_X_URL}" target="_blank" rel="noopener">` +
-          `<span class="contact-item-ic">${X_ICON}</span>` +
-          `<div class="contact-item-main"><span class="contact-item-label">X (Twitter)</span>` +
-            `<span class="contact-item-val">@Dan_white_22</span></div>` +
-          `<span class="contact-item-arrow">↗</span>` +
-        `</a>` +
       `</div>` +
     `</div>`;
 }
