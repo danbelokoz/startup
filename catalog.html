@@ -103,6 +103,21 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
 .sb-back { display: none; background: none; border: none; padding: 2px; margin-right: 4px; color: var(--text); cursor: pointer; align-items: center; }
 .sb-foot { display: none; }
 .apply-btn-lg { padding: 13px; font-size: 14px; }
+/* Collapsible filter groups (variant C): advanced filters are grouped and folded
+   away so the sidebar stays short. Each group has a clickable header (label +
+   active-count badge + caret) that toggles its body. */
+.fgroup { border-bottom: 1px solid var(--border); }
+.fgroup-h { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 11px 14px; background: none; border: none; cursor: pointer; font-family: inherit; text-align: left; transition: background 0.1s; }
+.fgroup-h:hover { background: var(--bg3); }
+.fgroup-t { font-size: 12px; font-weight: 500; color: var(--text2); display: flex; align-items: center; gap: 7px; }
+.fgroup-cr { color: var(--text3); transition: transform 0.18s; flex: none; }
+.fgroup.open > .fgroup-h .fgroup-cr { transform: rotate(180deg); }
+.fgroup-badge { background: var(--accent); color: #181A20; font-size: 10px; font-weight: 700; border-radius: 9px; min-width: 16px; height: 16px; line-height: 16px; text-align: center; padding: 0 4px; }
+.fgroup-badge[hidden] { display: none; }
+.fgroup-b { padding: 2px 14px 12px; display: none; }
+.fgroup.open > .fgroup-b { display: block; }
+.fgroup-b .sb-sub { margin-top: 11px; }
+.fgroup-b .sb-sub:first-child { margin-top: 2px; }
 
 .grid-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; gap: 10px; }
 .grid-count { font-size: 13px; color: var(--text3); }
@@ -223,6 +238,9 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
   #filterSidebar.open .sb-reset { font-size: 13px; }
   #filterSidebar.open .sb-back { display: inline-flex; }
   #filterSidebar.open .sb-section { padding: 13px 16px; }
+  #filterSidebar.open .fgroup-h { padding: 14px 16px; }
+  #filterSidebar.open .fgroup-b { padding: 2px 16px 14px; }
+  #filterSidebar.open .fgroup-t { font-size: 13px; }
   #filterSidebar.open .sb-apply-desktop { display: none; }
   #filterSidebar.open .sb-foot {
     display: block; flex: none; padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
@@ -267,61 +285,95 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
           <input class="search-input" id="searchInput" type="text" data-i18n-placeholder="idx.fltSearch" placeholder="Поиск по названию..." oninput="onSearch(this.value)"/>
         </div>
       </div>
-      <div class="sb-section">
-        <div class="sb-label" data-i18n="idx.fltStatus">Статус</div>
-        <div class="status-opts">
-          <div class="status-opt sel" data-filter="sale" onclick="setStatus(this)"><span data-i18n="idx.fltStatusSale">На продаже</span> <span class="cnt" id="cntSale">-</span></div>
-          <div class="status-opt" data-filter="all" onclick="setStatus(this)"><span data-i18n="idx.fltStatusAll">Все</span> <span class="cnt" id="cntAll">-</span></div>
+      <div class="fgroup open" data-group="status">
+        <button type="button" class="fgroup-h" onclick="toggleGroup(this)">
+          <span class="fgroup-t"><span data-i18n="idx.fltStatus">Статус</span><span class="fgroup-badge" data-grpbadge="status" hidden></span></span>
+          <svg class="fgroup-cr" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="fgroup-b">
+          <div class="status-opts">
+            <div class="status-opt sel" data-filter="sale" onclick="setStatus(this)"><span data-i18n="idx.fltStatusSale">На продаже</span> <span class="cnt" id="cntSale">-</span></div>
+            <div class="status-opt" data-filter="all" onclick="setStatus(this)"><span data-i18n="idx.fltStatusAll">Все</span> <span class="cnt" id="cntAll">-</span></div>
+          </div>
         </div>
       </div>
-      <div class="sb-section">
-        <div class="sb-label" data-i18n="idx.fltCats">Категории</div>
-        <div class="cat-dd" id="catDD">
-          <button type="button" class="cat-dd-btn" id="catDDBtn">
-            <span id="catDDLabel" data-i18n="idx.fltCatsAll">Все категории...</span>
-            <svg class="cat-dd-caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
-          </button>
-          <div class="cat-dd-panel" id="catDDPanel"></div>
+      <div class="fgroup" data-group="categories">
+        <button type="button" class="fgroup-h" onclick="toggleGroup(this)">
+          <span class="fgroup-t"><span data-i18n="idx.fltCats">Категории</span><span class="fgroup-badge" data-grpbadge="categories" hidden></span></span>
+          <svg class="fgroup-cr" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="fgroup-b">
+          <div class="cat-dd" id="catDD">
+            <button type="button" class="cat-dd-btn" id="catDDBtn">
+              <span id="catDDLabel" data-i18n="idx.fltCatsAll">Все категории...</span>
+              <svg class="cat-dd-caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div class="cat-dd-panel" id="catDDPanel"></div>
+          </div>
         </div>
       </div>
-      <div class="sb-section">
-        <div class="sb-label"><span data-i18n="idx.fltRev30">Выручка 30 дней</span> <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box" data-i18n="idx.tipRev30">Суммарная выручка за последние 30 дней</span></span></div>
-        <div class="range-row"><input class="sb-input" id="rev30Min" type="text" placeholder="$ Min"><div class="range-sep">-</div><input class="sb-input" id="rev30Max" type="text" placeholder="$ Max"></div>
+      <div class="fgroup" data-group="fin">
+        <button type="button" class="fgroup-h" onclick="toggleGroup(this)">
+          <span class="fgroup-t"><span data-i18n="idx.fltGrpFin">Выручка и MRR</span><span class="fgroup-badge" data-grpbadge="fin" hidden></span></span>
+          <svg class="fgroup-cr" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="fgroup-b">
+          <div class="sb-sub">
+            <div class="sb-label"><span data-i18n="idx.fltRev30">Выручка 30 дней</span> <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box" data-i18n="idx.tipRev30">Суммарная выручка за последние 30 дней</span></span></div>
+            <div class="range-row"><input class="sb-input" id="rev30Min" type="text" placeholder="$ Min"><div class="range-sep">-</div><input class="sb-input" id="rev30Max" type="text" placeholder="$ Max"></div>
+          </div>
+          <div class="sb-sub">
+            <div class="sb-label">MRR <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box" data-i18n="idx.tipMrr">Monthly Recurring Revenue</span></span></div>
+            <div class="range-row"><input class="sb-input" id="mrrMin" type="text" placeholder="$ Min"><div class="range-sep">-</div><input class="sb-input" id="mrrMax" type="text" placeholder="$ Max"></div>
+          </div>
+        </div>
       </div>
-      <div class="sb-section">
-        <div class="sb-label">MRR <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box" data-i18n="idx.tipMrr">Monthly Recurring Revenue</span></span></div>
-        <div class="range-row"><input class="sb-input" id="mrrMin" type="text" placeholder="$ Min"><div class="range-sep">-</div><input class="sb-input" id="mrrMax" type="text" placeholder="$ Max"></div>
+      <div class="fgroup" data-group="deal">
+        <button type="button" class="fgroup-h" onclick="toggleGroup(this)">
+          <span class="fgroup-t"><span data-i18n="idx.fltGrpDeal">Рост и цена</span><span class="fgroup-badge" data-grpbadge="deal" hidden></span></span>
+          <svg class="fgroup-cr" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="fgroup-b">
+          <div class="sb-sub">
+            <div class="sb-label"><span data-i18n="idx.fltGrowth">Рост 30 дней</span> <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box" data-i18n="idx.tipGrowth">Изменение MRR за 30 дней в %</span></span></div>
+            <div class="range-row"><input class="sb-input" id="growthMin" type="text" placeholder="Min %"><div class="range-sep">-</div><input class="sb-input" id="growthMax" type="text" placeholder="Max %"></div>
+          </div>
+          <div class="sb-sub">
+            <div class="sb-label"><span data-i18n="idx.fltPrice">Цена продажи</span> <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box" data-i18n="idx.tipPrice">Запрашиваемая цена за 100% доли</span></span></div>
+            <div class="range-row"><input class="sb-input" id="priceMin" type="text" placeholder="$ Min"><div class="range-sep">-</div><input class="sb-input" id="priceMax" type="text" placeholder="$ Max"></div>
+          </div>
+          <div class="sb-sub">
+            <div class="sb-label"><span data-i18n="idx.fltMultiple">Мультипликатор</span> <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box" data-i18n="idx.tipMultiple">Цена / годовой MRR</span></span></div>
+            <select class="sb-select" id="multipleSelect">
+              <option value="" data-i18n="idx.fltAny">Любой</option><option value="1">До 1×</option><option value="2">До 2×</option>
+              <option value="3">До 3×</option><option value="5">До 5×</option><option value="10">До 10×</option>
+            </select>
+          </div>
+        </div>
       </div>
-      <div class="sb-section">
-        <div class="sb-label"><span data-i18n="idx.fltGrowth">Рост 30 дней</span> <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box" data-i18n="idx.tipGrowth">Изменение MRR за 30 дней в %</span></span></div>
-        <div class="range-row"><input class="sb-input" id="growthMin" type="text" placeholder="Min %"><div class="range-sep">-</div><input class="sb-input" id="growthMax" type="text" placeholder="Max %"></div>
-      </div>
-      <div class="sb-section">
-        <div class="sb-label"><span data-i18n="idx.fltPrice">Цена продажи</span> <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box" data-i18n="idx.tipPrice">Запрашиваемая цена за 100% доли</span></span></div>
-        <div class="range-row"><input class="sb-input" id="priceMin" type="text" placeholder="$ Min"><div class="range-sep">-</div><input class="sb-input" id="priceMax" type="text" placeholder="$ Max"></div>
-      </div>
-      <div class="sb-section">
-        <div class="sb-label"><span data-i18n="idx.fltMultiple">Мультипликатор</span> <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box" data-i18n="idx.tipMultiple">Цена / годовой MRR</span></span></div>
-        <select class="sb-select" id="multipleSelect">
-          <option value="" data-i18n="idx.fltAny">Любой</option><option value="1">До 1×</option><option value="2">До 2×</option>
-          <option value="3">До 3×</option><option value="5">До 5×</option><option value="10">До 10×</option>
-        </select>
-      </div>
-      <div class="sb-section">
-        <div class="sb-label"><span data-i18n="idx.fltMargin">Маржа прибыли</span></div>
-        <div class="range-row"><input class="sb-input" id="marginMin" type="text" placeholder="Min %"><div class="range-sep">-</div><input class="sb-input" id="marginMax" type="text" placeholder="Max %"></div>
-      </div>
-      <div class="sb-section">
-        <div class="sb-label" data-i18n="idx.fltAudience">Аудитория</div>
-        <select class="sb-select" id="audienceSelect">
-          <option value="" data-i18n="idx.fltAny">Любая</option><option value="b2b">B2B</option><option value="b2c">B2C</option><option value="b2b2c">B2B2C</option>
-        </select>
-      </div>
-      <div class="sb-section">
-        <div class="sb-label" data-i18n="idx.fltMobile">Мобильное приложение</div>
-        <select class="sb-select" id="mobileSelect">
-          <option value="" data-i18n="idx.fltAny">Любое</option><option value="yes" data-i18n="idx.fltHas">Есть</option><option value="no" data-i18n="idx.fltNo">Нет</option>
-        </select>
+      <div class="fgroup" data-group="more">
+        <button type="button" class="fgroup-h" onclick="toggleGroup(this)">
+          <span class="fgroup-t"><span data-i18n="idx.fltGrpMore">Дополнительно</span><span class="fgroup-badge" data-grpbadge="more" hidden></span></span>
+          <svg class="fgroup-cr" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="fgroup-b">
+          <div class="sb-sub">
+            <div class="sb-label"><span data-i18n="idx.fltMargin">Маржа прибыли</span></div>
+            <div class="range-row"><input class="sb-input" id="marginMin" type="text" placeholder="Min %"><div class="range-sep">-</div><input class="sb-input" id="marginMax" type="text" placeholder="Max %"></div>
+          </div>
+          <div class="sb-sub">
+            <div class="sb-label" data-i18n="idx.fltAudience">Аудитория</div>
+            <select class="sb-select" id="audienceSelect">
+              <option value="" data-i18n="idx.fltAny">Любая</option><option value="b2b">B2B</option><option value="b2c">B2C</option><option value="b2b2c">B2B2C</option>
+            </select>
+          </div>
+          <div class="sb-sub">
+            <div class="sb-label" data-i18n="idx.fltMobile">Мобильное приложение</div>
+            <select class="sb-select" id="mobileSelect">
+              <option value="" data-i18n="idx.fltAny">Любое</option><option value="yes" data-i18n="idx.fltHas">Есть</option><option value="no" data-i18n="idx.fltNo">Нет</option>
+            </select>
+          </div>
+        </div>
       </div>
       <div class="sb-section sb-apply-desktop"><button class="apply-btn" onclick="applyFilters()" data-i18n="idx.fltApply">Применить фильтры</button></div>
     </div>
@@ -1221,6 +1273,36 @@ function closeFilters() {
   const sb=document.getElementById('filterSidebar'); if(sb) sb.classList.remove('open');
   document.body.classList.remove('filters-open');
 }
+// Expand/collapse a filter group (variant C accordion sidebar).
+function toggleGroup(el) {
+  const g = el.closest('.fgroup'); if (g) g.classList.toggle('open');
+}
+// How many active filters live in each collapsible group - shown as a small badge on
+// the (possibly collapsed) group header so you can see where the active filters are.
+function groupCounts() {
+  return {
+    status: filters.onSale!==true ? 1 : 0,
+    categories: filters.category ? 1 : 0,
+    fin: (filters.rev30Min||filters.rev30Max?1:0) + (filters.mrrMin||filters.mrrMax?1:0),
+    deal: (filters.growthMin!==''||filters.growthMax!==''?1:0) + (filters.priceMin||filters.priceMax?1:0) + (filters.multipleMax?1:0),
+    more: (filters.marginMin||filters.marginMax?1:0) + (filters.audience?1:0) + (filters.mobile?1:0)
+  };
+}
+function refreshGroupBadges() {
+  const c = groupCounts();
+  document.querySelectorAll('[data-grpbadge]').forEach(b => {
+    const n = c[b.dataset.grpbadge] || 0;
+    if (n > 0) { b.textContent = n; b.hidden = false; } else { b.hidden = true; }
+  });
+}
+// After restoring a saved filter state, auto-open any group that has an active filter
+// so the user sees their restored criteria (status stays open by default anyway).
+function autoExpandActiveGroups() {
+  const c = groupCounts();
+  document.querySelectorAll('.fgroup[data-group]').forEach(g => {
+    if ((c[g.dataset.group] || 0) > 0) g.classList.add('open');
+  });
+}
 // Live "Show N" count for the mobile footer: how many loaded startups match the values
 // currently typed in the panel, before Apply is pressed. Reads the inputs directly so
 // it reflects pending (uncommitted) ranges.
@@ -1260,6 +1342,7 @@ function updateFilterBadge() {
   const btn=document.getElementById('filterToggle'), b=document.getElementById('filterBadge');
   if (btn) btn.classList.toggle('has-active', n>0);
   if (b) b.textContent=n;
+  refreshGroupBadges();
 }
 function resetFilters() {
   document.querySelectorAll('.sb-input').forEach(i=>i.value='');
@@ -1387,6 +1470,7 @@ function restoreSavedFilters() {
   const def = {onSale:true,category:'',sort:'revenue-desc',search:'',mrrMin:0,mrrMax:0,rev30Min:0,rev30Max:0,priceMin:0,priceMax:0,growthMin:'',growthMax:'',multipleMax:0,marginMin:0,marginMax:0,audience:'',mobile:'',saleFirst:false};
   filters = Object.assign(def, saved);
   populateFilterInputs();                 // mirror the restored state into the sidebar controls
+  autoExpandActiveGroups();               // open the groups that carry a restored filter
   syncUrl(false);                         // put the discrete part back in the URL for a later reload
   return true;
 }
