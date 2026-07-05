@@ -716,7 +716,12 @@ function renderCards() {
 function fillGrid() {
   const grid = document.getElementById('cards');
   if (!displayItems.length) return;
-  const have = new Set(Array.from(grid.querySelectorAll('.card[data-slug]')).map(n => n.getAttribute('data-slug')));
+  const cards = grid.querySelectorAll('.card[data-slug]');
+  // Nothing painted yet (empty grid or the "not found" placeholder is showing):
+  // do a full render so results that stream in from a later page replace the
+  // placeholder instead of being appended next to it.
+  if (!cards.length) { renderCards(); return; }
+  const have = new Set(Array.from(cards).map(n => n.getAttribute('data-slug')));
   let html = '';
   for (let i = 0; i < displayItems.length && have.size < renderLimit; i++) {
     const s = displayItems[i];
