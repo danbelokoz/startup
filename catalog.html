@@ -528,6 +528,7 @@ function renderTray(){
 
 /* ── LOAD ──────────────────────────────────────────────────────────────────── */
 async function loadInitial() {
+  hydrateCatOptions();   // paint category counts from the last snapshot before any fetch
   if (isDefault()) {
     const c = cacheRead();
     if (c && Date.now()-c.ts < CACHE_TTL) {
@@ -623,17 +624,36 @@ async function loadAllPages(token) {
 
 // Rebuild the category dropdown from categories actually present in the data.
 // (The upstream API ignores ?category=, so filtering is client-side and the
-// options must match the real category strings exactly.) Built incrementally as
-// pages stream in - the top categories appear right after page 1, so the list no
-// longer waits ~5s for the whole catalog to load. _catSig skips no-op rebuilds.
+// options must match the real category strings exactly.)
+//
+// The counts used to be tallied live as pages streamed in, so opening the filter
+// early showed numbers still climbing. Now we persist the *complete* count map to
+// localStorage (per status + language) and hydrate the dropdown from that snapshot
+// the instant the page loads - so the counts are ready before the fresh sweep even
+// finishes. While that background sweep is streaming we keep the ready snapshot on
+// screen (no churn) and only rebuild + re-persist once every page is in memory.
 let _catSig = '';
-function buildCategoryOptions() {
+let _catHydrated = false;   // showing the persisted (full) snapshot, not partial live data
+function catCacheKey() { return 'sm_cats_' + (filters.onSale===true ? 'sale' : 'all') + '_' + getLang(); }
+function readCatCache() {
+  try { const c = JSON.parse(localStorage.getItem(catCacheKey())||'null'); return c && c.counts ? c.counts : null; } catch { return null; }
+}
+function writeCatCache(counts) {
+  const total = Object.values(counts).reduce((a,n) => a + n, 0);
+  if (!total) return;   // an empty/failed sweep must never wipe a good snapshot
+  try {
+    const prev = JSON.parse(localStorage.getItem(catCacheKey()) || 'null');
+    const prevTotal = prev && prev.counts ? Object.values(prev.counts).reduce((a,n)=>a+n,0) : 0;
+    if (prevTotal && total < prevTotal * 0.5) return;   // a partial sweep must not shrink a fuller one
+    localStorage.setItem(catCacheKey(), JSON.stringify({ counts, ts: Date.now() }));
+  } catch {}
+}
+let _catShownTotal = 0;   // total items behind the counts currently painted
+function renderCatOptions(counts, cur) {
   const panel = document.getElementById('catDDPanel');
   if (!panel) return;
-  const counts = {};
-  loadedItems.forEach(s => { const c = (s.category||'').trim(); if (c) counts[c] = (counts[c]||0) + 1; });
+  _catShownTotal = Object.values(counts).reduce((a,n) => a + n, 0);
   const cats = Object.keys(counts).sort((a,b) => counts[b] - counts[a]);
-  const cur = filters.category;
   const sig = cats.length + '|' + cats.join(',') + '||' + (cur||'');
   if (sig === _catSig) return;   // nothing changed - don't churn the DOM
   _catSig = sig;
@@ -644,6 +664,32 @@ function buildCategoryOptions() {
       + '<span>' + escHtml(c) + '</span><span class="cat-dd-cnt">' + counts[c] + '</span></div>').join('');
   const lbl = document.getElementById('catDDLabel');
   if (lbl) lbl.textContent = cur || t('idx','fltCatsAll');
+}
+// Paint the dropdown from the last persisted snapshot immediately on load. Called at
+// the top of every (re)load so a status switch picks up that status's own snapshot.
+function hydrateCatOptions() {
+  _catSig = ''; _catHydrated = false;
+  const counts = readCatCache();
+  if (counts) { _catHydrated = true; renderCatOptions(counts, filters.category); }
+}
+function buildCategoryOptions() {
+  const panel = document.getElementById('catDDPanel');
+  if (!panel) return;
+  // A full snapshot is already on screen and the fresh sweep is still streaming -
+  // leave the ready counts alone rather than flashing partial numbers.
+  if (!allLoaded && _catHydrated) return;
+  const counts = {};
+  loadedItems.forEach(s => { const c = (s.category||'').trim(); if (c) counts[c] = (counts[c]||0) + 1; });
+  const total = Object.values(counts).reduce((a,n) => a + n, 0);
+  if (allLoaded) {
+    // Only let a *healthy* full sweep supersede a snapshot: an empty or clearly-partial
+    // result (API hiccup) must not shrink the ready counts on screen or in cache.
+    if (!total || (_catHydrated && _catShownTotal && total < _catShownTotal * 0.5)) return;
+    renderCatOptions(counts, filters.category);
+    writeCatCache(counts); _catHydrated = true;   // persist the complete map for next visit
+  } else if (!_catHydrated) {
+    renderCatOptions(counts, filters.category);   // first-ever visit: stream counts in incrementally
+  }
 }
 
 // Client-side ranking. Anonymous ("stealth") listings are pushed below every named
