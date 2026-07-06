@@ -396,8 +396,13 @@ function render(s, enrich, hist){
 
   // ── Иконка ──
   const fb = esc((s.name || '?').charAt(0).toUpperCase());
-  const icon = s.icon
-    ? `<img src="${esc(s.icon)}" crossorigin="anonymous" alt="" data-fb="${fb}" onerror="this.parentElement.textContent=this.getAttribute('data-fb')"/>`
+  // Route the logo through our own origin so it comes back CORS-clean (the CloudFront
+  // host serving TrustMRR logos sends no ACAO header). Without this, crossorigin=
+  // "anonymous" makes the browser reject the image → fallback letter, and html2canvas
+  // couldn't export it into the PNG anyway.
+  const iconSrc = s.icon ? '/api/scrape-site?logo=' + encodeURIComponent(s.icon) : '';
+  const icon = iconSrc
+    ? `<img src="${esc(iconSrc)}" crossorigin="anonymous" alt="" data-fb="${fb}" onerror="this.parentElement.textContent=this.getAttribute('data-fb')"/>`
     : `<span>${fb}</span>`;
 
   // ── Цена рядом с названием ──

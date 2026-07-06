@@ -261,6 +261,40 @@ export default async function handler(req, res) {
     return res.status(429).json({ error: 'Too many requests' });
   }
 
+  // ── Logo proxy ────────────────────────────────────────────────────────────
+  // TrustMRR startup logos live on a CloudFront host that serves them without any
+  // `Access-Control-Allow-Origin` header. That's fine for a plain <img>, but the
+  // card generator (/card.html) needs a CORS-clean image so html2canvas can bake
+  // it into the exported PNG without tainting the canvas. Re-serving the bytes from
+  // our own origin (with ACAO:* already set above) makes crossorigin="anonymous"
+  // succeed. safeFetch() keeps this from becoming an SSRF hole.
+  const logoUrl = req.query.logo;
+  if (logoUrl) {
+    if (!/^https?:\/\//i.test(logoUrl)) return res.status(400).json({ error: 'Invalid logo url' });
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 8000);
+      let r;
+      try {
+        r = await safeFetch(logoUrl, {
+          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; StartupMarketBot/1.0)', 'Accept': 'image/*' },
+          signal: ctrl.signal,
+        });
+      } finally {
+        clearTimeout(timer);
+      }
+      const ct = r.headers.get('content-type') || '';
+      if (!r.ok || !/^image\//i.test(ct)) return res.status(404).json({ error: 'Not an image' });
+      const buf = Buffer.from(await r.arrayBuffer());
+      if (buf.length > 3_000_000) return res.status(413).json({ error: 'Logo too large' });
+      res.setHeader('Content-Type', ct);
+      res.setHeader('Cache-Control', 'public, max-age=604800, s-maxage=604800, immutable');
+      return res.status(200).send(buf);
+    } catch (e) {
+      return res.status(BLOCK_RE.test(e.message) ? 400 : 502).json({ error: 'logo_fetch_failed' });
+    }
+  }
+
   const rawUrl = req.query.url;
   if (!rawUrl || !/^https?:\/\//i.test(rawUrl)) {
     return res.status(400).json({ error: 'Missing or invalid url' });
