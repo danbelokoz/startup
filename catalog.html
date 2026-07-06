@@ -517,6 +517,44 @@ function cacheWrite(data,hasMore,total) {
 // any sort/category the user picks.
 function isDefault() { return filters.onSale===true; }
 
+// Full-catalog snapshot cache (IndexedDB). localStorage's ~5MB cap can't hold the
+// whole set (the "all" view is ~9MB), so a Back from a startup page used to re-stream
+// every page from scratch - which blanked filtered results and re-ran all the counts
+// ("пересчёт"). We persist the complete in-memory set per status+language here and
+// restore it instantly on return, so filters stay applied and nothing re-streams.
+// Dedicated DB (not shared.js's slug-keyed store) → self-contained, no cache-skew risk.
+const CATDB_NAME = 'sm_catalog_cache', CATDB_STORE = 'sets';
+function catdbOpen() {
+  return new Promise((res, rej) => {
+    let req; try { req = indexedDB.open(CATDB_NAME, 1); } catch (e) { return rej(e); }
+    req.onupgradeneeded = e => { const db = e.target.result; if (!db.objectStoreNames.contains(CATDB_STORE)) db.createObjectStore(CATDB_STORE, { keyPath: 'key' }); };
+    req.onsuccess = e => res(e.target.result);
+    req.onerror   = () => rej(req.error);
+  });
+}
+function snapKey() { return (filters.onSale===true ? 'sale' : 'all') + '_' + getLang(); }
+async function snapRead() {
+  try {
+    const db = await catdbOpen();
+    return await new Promise(r => {
+      const q = db.transaction(CATDB_STORE, 'readonly').objectStore(CATDB_STORE).get(snapKey());
+      q.onsuccess = () => r(q.result || null);
+      q.onerror   = () => r(null);
+    });
+  } catch { return null; }
+}
+async function snapWrite(obj) {
+  try {
+    const db = await catdbOpen();
+    await new Promise((r, j) => {
+      const tx = db.transaction(CATDB_STORE, 'readwrite');
+      tx.objectStore(CATDB_STORE).put(Object.assign({ key: snapKey() }, obj));
+      tx.oncomplete = r;
+      tx.onerror    = () => j(tx.error);
+    });
+  } catch {}
+}
+
 /* ── FAVOURITES ────────────────────────────────────────────────────────────── */
 function getFavs() { try{return JSON.parse(localStorage.getItem(LS_FAVS)||'[]');}catch{return[];} }
 function isFav(slug) { return getFavs().includes(slug); }
@@ -585,6 +623,9 @@ function renderTray(){
 /* ── LOAD ──────────────────────────────────────────────────────────────────── */
 async function loadInitial() {
   hydrateCatOptions();   // paint category counts from the last snapshot before any fetch
+  const tk = loadToken;  // a status switch bumps loadToken → abort a now-stale restore
+  let painted = false;
+  // 1) Instant sync paint from the localStorage page-1 cache (default on-sale view only).
   if (isDefault()) {
     const c = cacheRead();
     if (c && Date.now()-c.ts < CACHE_TTL) {
@@ -594,16 +635,31 @@ async function loadInitial() {
       apiMeta     = { total: c.total };
       displayItems = applyClientFilters(loadedItems);
       updateStats(); renderCards(); updateCount();
-      restoreScroll();
-      if (Date.now()-c.ts > FRESH_TTL) fetchPage(1, true);
-      loadAllPages(loadToken);   // fill remaining pages so search/category cover all
-      return;
+      painted = true;
     }
   }
-  showLoading();
+  if (!painted) showLoading();   // skeletons while the IDB read (below) resolves
+  // 2) Full-catalog snapshot from IndexedDB (both statuses). Restores the entire in-memory
+  //    set so filters apply immediately and we DON'T re-stream every page on a Back.
+  const snap = await snapRead();
+  if (tk !== loadToken) return;  // status switched while the IDB read was in flight
+  if (snap && snap.data && snap.data.length && Date.now()-snap.ts < CACHE_TTL) {
+    loadedItems = snap.data;
+    allLoaded   = !!snap.all;
+    hasMore     = allLoaded ? false : !!snap.hasMore;
+    apiPage     = allLoaded ? Math.ceil(snap.data.length / LIMIT) : 1;
+    apiMeta     = { total: snap.total };
+    displayItems = applyClientFilters(loadedItems);
+    updateStats(); renderCards(); updateCount(); buildCategoryOptions();
+    restoreScroll();
+    if (!allLoaded) loadAllPages(tk);              // finish remaining pages (appends)
+    else if (Date.now()-snap.ts > FRESH_TTL) backgroundRefresh(tk); // stale → silent refresh
+    return;
+  }
+  // 3) No usable snapshot → fetch fresh.
   await fetchPage(1, false);
   restoreScroll();
-  loadAllPages(loadToken);   // fill remaining pages so search/category cover all
+  loadAllPages(tk);   // fill remaining pages so search/category cover all
 }
 
 async function fetchPage(page, bg) {
@@ -676,6 +732,38 @@ async function loadAllPages(token) {
   renderIfWindowChanged();             // re-sort the painted window only if it changed
   updateCount();
   buildCategoryOptions();
+  // Persist the complete set so a Back (or the next visit) restores it instantly instead
+  // of re-streaming every page. Only when we truly loaded everything for this status.
+  if (allLoaded && loadedItems.length) {
+    snapWrite({ data: loadedItems, total: apiMeta && apiMeta.total, hasMore: false, all: true, ts: Date.now() });
+  }
+}
+
+// Silent full re-stream used when a restored snapshot is stale (>FRESH_TTL). Builds a
+// fresh set off-screen and swaps it in only once complete, so the visible grid never
+// blanks. Overwrites the snapshot with the refreshed data.
+async function backgroundRefresh(token) {
+  try {
+    let page = 1, acc = [], meta = null, more = true, guard = 0;
+    while (more && guard++ < 400) {
+      if (token !== loadToken) return;
+      const p = new URLSearchParams({ page, limit: LIMIT, sort: API_SORT });
+      if (filters.onSale === true) p.set('onSale', 'true');
+      p.set('lang', getLang());
+      const r = await fetch(API + '/startups?' + p).then(x => x.ok ? x.json() : null).catch(() => null);
+      if (!r || !r.data) return;   // network hiccup → keep the stale set on screen
+      const items = r.data.filter(s => s && s.slug);
+      acc = acc.concat(items.filter(s => !acc.find(x => x.slug === s.slug)));
+      meta = r.meta || meta;
+      more = !!(r.meta && r.meta.hasMore);
+      page++;
+    }
+    if (token !== loadToken || !acc.length) return;
+    loadedItems = acc; apiMeta = meta; allLoaded = true; hasMore = false; apiPage = page - 1;
+    displayItems = applyClientFilters(loadedItems);
+    renderIfWindowChanged(); updateCount(); buildCategoryOptions(); updateStats();
+    snapWrite({ data: loadedItems, total: meta && meta.total, hasMore: false, all: true, ts: Date.now() });
+  } catch {}
 }
 
 // Rebuild the category dropdown from categories actually present in the data.
