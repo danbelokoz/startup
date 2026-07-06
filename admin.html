@@ -263,6 +263,29 @@ function lineChart(traffic) {
   </svg>`;
 }
 
+// Bar chart: регистрации за день. days = [{date:'YYYY-MM-DD', signups:n}] (с нулевыми днями).
+function signupsChart(days) {
+  const W = 720, H = 180, P = 28;
+  const n = days.length;
+  const maxY = Math.max(1, ...days.map(d => d.signups));
+  const bw = (W - 2 * P) / Math.max(1, n);
+  const y = v => H - P - v * (H - 2 * P) / maxY;
+  const labels = days.filter((_, i) => i % Math.ceil(n / 8) === 0);
+  const fullDay = d => fmtDay(d.date) + '.' + d.date.slice(0, 4) + ', ' + new Date(d.date + 'T12:00:00').toLocaleDateString('ru-RU', { weekday: 'short' });
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;">
+    ${[0.25,0.5,0.75,1].map(f => `<line x1="${P}" x2="${W-P}" y1="${y(maxY*f)}" y2="${y(maxY*f)}" stroke="var(--border)" stroke-width="1"/>
+      <text x="${P-6}" y="${y(maxY*f)+3}" font-size="9" fill="var(--text3)" text-anchor="end">${Math.round(maxY*f)}</text>`).join('')}
+    ${days.map((d, i) => {
+      const bx = P + i * bw;
+      const barH = d.signups > 0 ? Math.max(1, (H - 2 * P) * d.signups / maxY) : 0;
+      const tip = fullDay(d) + '|Регистраций: ' + d.signups;
+      return (barH > 0 ? `<rect x="${(bx + bw*0.15).toFixed(1)}" y="${(H-P-barH).toFixed(1)}" width="${(bw*0.7).toFixed(1)}" height="${barH.toFixed(1)}" rx="1.5" fill="var(--accent)"/>` : '')
+        + `<rect x="${bx.toFixed(1)}" y="${P}" width="${bw.toFixed(1)}" height="${(H-2*P).toFixed(1)}" fill="transparent" data-tip="${esc(tip)}"/>`;
+    }).join('')}
+    ${labels.map(d => `<text x="${(P + days.indexOf(d)*bw + bw/2).toFixed(1)}" y="${H-8}" font-size="9" fill="var(--text3)" text-anchor="middle">${fmtDay(d.date)}</text>`).join('')}
+  </svg>`;
+}
+
 async function renderOverview() {
   const o = await api('/api/admin?section=overview&days=30');
   // Description coverage (our rephrase + translations). Resilient: if the section or
@@ -289,6 +312,15 @@ async function renderOverview() {
   (o.signups || []).forEach(s => signupsMap[s.day] = s.signups);
   const signups7 = t.slice(-7).reduce((a, d) => a + (signupsMap[d.date] || 0), 0);
   const newListings = (o.listingCounts && o.listingCounts.new) || 0;
+  // Регистрации по дням, выровненные на 30-дневную ось трафика (нулевые дни включены).
+  // Если трафик ещё пустой — падаем на сырой список дней из o.signups.
+  const sigDays = t.length
+    ? t.map(d => ({ date: d.date, signups: signupsMap[d.date] || 0 }))
+    : (o.signups || []).map(s => ({ date: String(s.day).slice(0, 10), signups: s.signups }));
+  const sig30 = sigDays.reduce((a, d) => a + d.signups, 0);
+  const sigPeak = sigDays.reduce((m, d) => d.signups > m.signups ? d : m, { signups: 0, date: null });
+  const sigDaysActive = sigDays.filter(d => d.signups > 0).length;
+  const sigAvg = sigDays.length ? (sig30 / sigDays.length) : 0;
 
   $('admContent').innerHTML = `
     <div class="adm-kpis">
@@ -319,9 +351,15 @@ async function renderOverview() {
     </div>
     <div class="adm-card">
       <h3>Регистрации по дням (30 дней)</h3>
-      ${(o.signups && o.signups.length)
-        ? `<table class="adm-table"><tr><th>День</th><th class="num">Регистраций</th></tr>${o.signups.map(s =>
-            `<tr><td>${fmtDay(String(s.day))}</td><td class="num">${s.signups}</td></tr>`).join('')}</table>`
+      ${sig30 > 0
+        ? `<div class="adm-kpis" style="margin-bottom:14px;">
+             <div class="adm-kpi"><div class="n">${sig30.toLocaleString()}</div><div class="l">Всего за 30 дней</div></div>
+             <div class="adm-kpi"><div class="n">${signups7.toLocaleString()}</div><div class="l">За 7 дней</div></div>
+             <div class="adm-kpi"><div class="n">${sigAvg.toFixed(1)}</div><div class="l">В среднем в день</div></div>
+             <div class="adm-kpi"><div class="n">${sigPeak.signups.toLocaleString()}${sigPeak.date ? ` <span class="adm-mini" style="font-weight:500;">${fmtDay(sigPeak.date)}</span>` : ''}</div><div class="l">Пиковый день</div></div>
+           </div>
+           ${signupsChart(sigDays)}
+           <div class="adm-mini" style="margin-top:6px;">Наведи на столбец - количество регистраций за конкретный день. Активных дней: ${sigDaysActive} из ${sigDays.length}.</div>`
         : '<div class="adm-mini">Пока нет регистраций за период.</div>'}
     </div>`;
   attachChartTips();
