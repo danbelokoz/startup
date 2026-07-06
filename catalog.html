@@ -91,6 +91,10 @@ select.sb-select:focus { border-color: var(--accent); outline: none; }
 input.sb-input { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: 7px; padding: 6px 8px; font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif; font-size: 12px; color: var(--text); outline: none; }
 input.sb-input::placeholder { color: var(--text3); font-size: 11px; }
 input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
+.sb-input-wrap { position: relative; display: block; min-width: 0; }
+.sb-input-wrap .sb-input { padding-right: 20px; }
+.sb-clear { display: none; position: absolute; top: 50%; right: 4px; transform: translateY(-50%); width: 16px; height: 16px; padding: 0; border: none; background: var(--border); color: var(--text3); border-radius: 50%; font-size: 12px; line-height: 1; cursor: pointer; align-items: center; justify-content: center; }
+.sb-clear:hover { background: var(--accent); color: #181A20; }
 .status-opts { display: flex; flex-direction: column; gap: 2px; }
 .status-opt { display: flex; align-items: center; justify-content: space-between; padding: 6px 9px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: all 0.1s; color: var(--text2); user-select: none; }
 .status-opt:hover { background: var(--bg3); }
@@ -1177,7 +1181,7 @@ function syncUrl(push) {
 function restoreFromUrl() {
   const prevOnSale = filters.onSale;
   filters = {onSale:true,category:'',sort:'revenue-desc',search:'',mrrMin:0,mrrMax:0,rev30Min:0,rev30Max:0,priceMin:0,priceMax:0,growthMin:'',growthMax:'',multipleMax:0,marginMin:0,marginMax:0,audience:'',mobile:'',saleFirst:false};
-  document.querySelectorAll('.sb-input').forEach(i=>i.value='');
+  document.querySelectorAll('.sb-input').forEach(i=>{i.value='';toggleClear(i);});
   document.querySelectorAll('.sb-select').forEach(s=>s.selectedIndex=0);
   const si=document.getElementById('searchInput'); if(si) si.value='';
   const ss=document.getElementById('sortSelect'); if(ss) ss.value='revenue-desc';
@@ -1238,13 +1242,13 @@ function onSearch(v) {
   searchTimer=setTimeout(()=>{renderLimit=60;displayItems=applyClientFilters(loadedItems);renderCards();updateCount();syncUrl();persistFilters();},300);
 }
 function applyFilters() {
-  const n=id=>{const v=parseFloat(document.getElementById(id)&&document.getElementById(id).value);return isNaN(v)?0:v;};
+  const n=id=>{const el=document.getElementById(id);const v=parseFloat(stripSep(el&&el.value));return isNaN(v)?0:v;};
   const sel=id=>{const e=document.getElementById(id);return e?e.value:'';};
   filters.mrrMin=n('mrrMin');filters.mrrMax=n('mrrMax');
   filters.rev30Min=n('rev30Min');filters.rev30Max=n('rev30Max');
   filters.priceMin=n('priceMin');filters.priceMax=n('priceMax');
-  filters.growthMin=document.getElementById('growthMin').value.trim();
-  filters.growthMax=document.getElementById('growthMax').value.trim();
+  filters.growthMin=stripSep(document.getElementById('growthMin').value).trim();
+  filters.growthMax=stripSep(document.getElementById('growthMax').value).trim();
   filters.multipleMax=parseFloat(sel('multipleSelect'))||0;
   filters.marginMin=n('marginMin');filters.marginMax=n('marginMax');
   filters.audience=sel('audienceSelect');
@@ -1307,7 +1311,7 @@ function autoExpandActiveGroups() {
 // currently typed in the panel, before Apply is pressed. Reads the inputs directly so
 // it reflects pending (uncommitted) ranges.
 function readPanelFilters() {
-  const num=id=>{const el=document.getElementById(id);const v=parseFloat(el&&el.value);return isNaN(v)?0:v;};
+  const num=id=>{const el=document.getElementById(id);const v=parseFloat(stripSep(el&&el.value));return isNaN(v)?0:v;};
   const sel=id=>{const e=document.getElementById(id);return e?e.value:'';};
   const txt=id=>{const e=document.getElementById(id);return e?e.value.trim():'';};
   return Object.assign({}, filters, {
@@ -1315,7 +1319,7 @@ function readPanelFilters() {
     mrrMin:num('mrrMin'), mrrMax:num('mrrMax'),
     rev30Min:num('rev30Min'), rev30Max:num('rev30Max'),
     priceMin:num('priceMin'), priceMax:num('priceMax'),
-    growthMin:txt('growthMin'), growthMax:txt('growthMax'),
+    growthMin:stripSep(txt('growthMin')), growthMax:stripSep(txt('growthMax')),
     multipleMax:parseFloat(sel('multipleSelect'))||0,
     marginMin:num('marginMin'), marginMax:num('marginMax'),
     audience:sel('audienceSelect'), mobile:sel('mobileSelect')
@@ -1345,7 +1349,7 @@ function updateFilterBadge() {
   refreshGroupBadges();
 }
 function resetFilters() {
-  document.querySelectorAll('.sb-input').forEach(i=>i.value='');
+  document.querySelectorAll('.sb-input').forEach(i=>{i.value='';toggleClear(i);});
   document.querySelectorAll('.sb-select').forEach(s=>s.selectedIndex=0);
   document.querySelectorAll('.status-opt').forEach(o=>o.classList.remove('sel'));
   document.querySelector('.status-opt[data-filter="sale"]').classList.add('sel');
@@ -1366,13 +1370,13 @@ function persistFilters() {
 // Reflect the current `filters` object into every sidebar control (used when we
 // rehydrate a saved snapshot on Back). 0 / '' mean "no filter" → shown as an empty field.
 function populateFilterInputs() {
-  const setNum=(id,v)=>{const e=document.getElementById(id); if(e) e.value = v ? v : '';};
+  const setNum=(id,v)=>{const e=document.getElementById(id); if(e){ e.value = v ? fmtSep(v) : ''; toggleClear(e); }};
   setNum('mrrMin',filters.mrrMin); setNum('mrrMax',filters.mrrMax);
   setNum('rev30Min',filters.rev30Min); setNum('rev30Max',filters.rev30Max);
   setNum('priceMin',filters.priceMin); setNum('priceMax',filters.priceMax);
   setNum('marginMin',filters.marginMin); setNum('marginMax',filters.marginMax);
-  const gmin=document.getElementById('growthMin'); if(gmin) gmin.value=filters.growthMin||'';
-  const gmax=document.getElementById('growthMax'); if(gmax) gmax.value=filters.growthMax||'';
+  const gmin=document.getElementById('growthMin'); if(gmin){ gmin.value=filters.growthMin?fmtSep(filters.growthMin):''; toggleClear(gmin); }
+  const gmax=document.getElementById('growthMax'); if(gmax){ gmax.value=filters.growthMax?fmtSep(filters.growthMax):''; toggleClear(gmax); }
   const ms=document.getElementById('multipleSelect'); if(ms) ms.value=filters.multipleMax?String(filters.multipleMax):'';
   const as=document.getElementById('audienceSelect'); if(as) as.value=filters.audience||'';
   const mo=document.getElementById('mobileSelect'); if(mo) mo.value=filters.mobile||'';
@@ -1478,6 +1482,57 @@ function restoreSavedFilters() {
 // consume the marker here too - otherwise it would leak into the *next* fresh open and
 // wrongly restore filters there.
 window.addEventListener('pageshow', e => { if (e.persisted) { try { sessionStorage.removeItem('sm_cat_back'); } catch {} } });
+
+// --- Numeric range inputs: thousands separators + per-field clear (×) -------
+// Strip separators back to a raw parseable number string.
+const stripSep = s => String(s==null?'':s).replace(/,/g,'');
+// Group the integer part with commas, preserving a leading "-" and a trailing "."
+// while the user is still typing (e.g. "1000." -> "1,000.").
+function fmtSep(raw){
+  let s = stripSep(raw);
+  const neg = s.charAt(0)==='-';
+  s = s.replace(/[^\d.]/g,'');
+  const dot = s.indexOf('.');
+  let intp = dot>=0 ? s.slice(0,dot) : s;
+  const dec = dot>=0 ? s.slice(dot+1).replace(/\./g,'') : null;
+  intp = intp.replace(/^0+(?=\d)/,'');
+  const grouped = intp ? intp.replace(/\B(?=(\d{3})+(?!\d))/g,',') : (dec!==null?'0':'');
+  return (neg?'-':'') + grouped + (dec!==null?'.'+dec:'');
+}
+// Show/hide the clear button depending on whether the field has a value.
+function toggleClear(inp){
+  const w = inp.closest && inp.closest('.sb-input-wrap'); if(!w) return;
+  const c = w.querySelector('.sb-clear'); if(c) c.style.display = inp.value ? 'flex' : 'none';
+}
+// Reformat an input with separators, keeping the caret at the same digit offset.
+function formatInput(inp){
+  const before = inp.value.slice(0, inp.selectionStart||0).replace(/\D/g,'').length;
+  const out = fmtSep(inp.value);
+  if(out === inp.value) return;
+  inp.value = out;
+  let pos=0, seen=0;
+  while(pos<out.length && seen<before){ if(/\d/.test(out[pos])) seen++; pos++; }
+  try{ inp.setSelectionRange(pos,pos); }catch{}
+}
+(function enhanceRangeInputs(){
+  document.querySelectorAll('.range-row .sb-input').forEach(inp=>{
+    inp.setAttribute('inputmode','decimal');
+    const wrap=document.createElement('span'); wrap.className='sb-input-wrap';
+    inp.parentNode.insertBefore(wrap, inp); wrap.appendChild(inp);
+    const clr=document.createElement('button');
+    clr.type='button'; clr.className='sb-clear'; clr.tabIndex=-1;
+    clr.setAttribute('aria-label','Clear'); clr.innerHTML='&times;';
+    wrap.appendChild(clr);
+    inp.addEventListener('input', ()=>{ formatInput(inp); toggleClear(inp); });
+    inp.addEventListener('change', ()=>{ formatInput(inp); toggleClear(inp); });
+    clr.addEventListener('click', ()=>{
+      inp.value=''; toggleClear(inp);
+      inp.dispatchEvent(new Event('input',{bubbles:true}));
+      inp.focus();
+    });
+    toggleClear(inp);
+  });
+})();
 
 // Live "Show N" preview: recount as the user edits any control in the panel.
 (function wireApplyCount(){
