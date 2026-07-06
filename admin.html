@@ -103,6 +103,7 @@ a.adm-title:hover { opacity: 0.82; }
     <button class="adm-tab" data-tab="topviews" onclick="openTab('topviews')">Топ просмотров</button>
     <button class="adm-tab" data-tab="parsers" onclick="openTab('parsers')">Парсеры</button>
     <button class="adm-tab" data-tab="botvisits" onclick="openTab('botvisits')">ИИ-боты</button>
+    <button class="adm-tab" data-tab="card" onclick="openTab('card')">Карточка</button>
   </div>
   <div id="admContent"></div>
 </div>
@@ -175,7 +176,7 @@ const MSK_TZ = 'Europe/Moscow';
 const fmtDateTime = iso => new Date(iso).toLocaleString('ru-RU', { timeZone: MSK_TZ, day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
 const fmtMskShort = ms => new Date(ms).toLocaleString('ru-RU', { timeZone: MSK_TZ, day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
 
-const TAB_RENDERERS = { overview: renderOverview, listings: renderListings, users: renderUsers, topviews: renderTopviews, parsers: renderParsers, botvisits: renderBotvisits };
+const TAB_RENDERERS = { overview: renderOverview, listings: renderListings, users: renderUsers, topviews: renderTopviews, parsers: renderParsers, botvisits: renderBotvisits, card: renderCard };
 // Active tab lives in the URL hash (#parsers, …) so a page refresh stays on the same
 // tab and browser Back/Forward steps through the tabs you visited - instead of always
 // snapping back to "Обзор". The hashchange handler is the single place that renders.
@@ -752,6 +753,18 @@ async function renderParsers() {
     </div>
   </div>`;
   attachChartTips();
+}
+
+/* ── Карточка стартапа ────────────────────────────────────────────────────────
+ * Генератор PDF-подобной карточки: встраиваем /card.html в iframe (тот же origin,
+ * frame-ancestors 'self' в CSP это разрешает). Вся логика поиска, рендера и
+ * экспорта в PNG живёт внутри card.html. */
+async function renderCard() {
+  $('admContent').innerHTML = `
+    <div class="adm-card" style="padding:0;overflow:hidden;">
+      <iframe src="/card.html" title="Генератор карточки"
+        style="width:100%;height:calc(100vh - 150px);min-height:640px;border:0;display:block;background:#0C0D10;"></iframe>
+    </div>`;
 }
 
 /* ── Вход ──────────────────────────────────────────────────────────────────── */
