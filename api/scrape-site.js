@@ -144,6 +144,25 @@ function hostnameKey(url) {
   catch { return null; }
 }
 
+// The Redis cache key must distinguish different listings hosted on the SAME
+// domain. App Store (apps.apple.com), Play Store (play.google.com), itch.io,
+// Gumroad, etc. all share one hostname across every app and differ only by
+// path — keying on hostname alone let the first-scraped app poison the cache
+// for every other app on that host (e.g. Tariq served Stat AI's OG data).
+// Root-path sites (the common case, a startup's own domain) still key by host
+// alone; deeper paths fold the path in so they don't collide.
+function siteCacheKey(url) {
+  try {
+    const u = new URL(url);
+    const host = u.hostname.toLowerCase().replace(/^www\./, '');
+    const path = u.pathname.replace(/\/+$/, '');
+    const disc = path && path !== '/'
+      ? '_' + path.replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').slice(0, 80)
+      : '';
+    return `sm_site3_${host}${disc}`;
+  } catch { return null; }
+}
+
 // ── SSRF guard ────────────────────────────────────────────────────────────────
 // The endpoint fetches a caller-supplied URL, so without this it's an open proxy:
 // anyone could point it at internal services or the cloud-metadata endpoint. We
@@ -249,7 +268,7 @@ export default async function handler(req, res) {
   const host = hostnameKey(rawUrl);
   if (!host) return res.status(400).json({ error: 'Invalid url' });
 
-  const cacheKey = `sm_site2_${host}`; // v2: bumped after thum.io URL fix (encodeURIComponent → raw) to drop poisoned entries
+  const cacheKey = siteCacheKey(rawUrl); // v3: keyed by host+path — v2 keyed by host alone, colliding all App Store / Play Store apps
   const cached = await redisGet(cacheKey);
   if (cached) {
     res.setHeader('X-Cache', 'HIT');

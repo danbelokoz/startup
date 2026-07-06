@@ -29,9 +29,18 @@ async function redisGet(key) {
   } catch { return null; }
 }
 
-function hostKey(url) {
-  try { return new URL(url).hostname.toLowerCase().replace(/^www\./,''); }
-  catch { return null; }
+// Must stay identical to siteCacheKey() in scrape-site.js — keyed by host+path
+// so App Store / Play Store apps (shared hostname) don't collide.
+function siteCacheKey(url) {
+  try {
+    const u = new URL(url);
+    const host = u.hostname.toLowerCase().replace(/^www\./, '');
+    const path = u.pathname.replace(/\/+$/, '');
+    const disc = path && path !== '/'
+      ? '_' + path.replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').slice(0, 80)
+      : '';
+    return `sm_site3_${host}${disc}`;
+  } catch { return null; }
 }
 
 function originFromReq(req) {
@@ -96,9 +105,9 @@ export default async function handler(req, res) {
   let toScrape = startups;
   if (!force) {
     const checks = await Promise.all(startups.map(async (s) => {
-      const host = hostKey(s.website);
-      if (!host) return null;
-      const cached = await redisGet(`sm_site2_${host}`); // keep in sync with scrape-site.js cache key version
+      const key = siteCacheKey(s.website);
+      if (!key) return null;
+      const cached = await redisGet(key);
       return cached ? null : s;
     }));
     toScrape = checks.filter(Boolean);
