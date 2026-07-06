@@ -1484,10 +1484,11 @@ function restoreSavedFilters() {
 window.addEventListener('pageshow', e => { if (e.persisted) { try { sessionStorage.removeItem('sm_cat_back'); } catch {} } });
 
 // --- Numeric range inputs: thousands separators + per-field clear (×) -------
-// Strip separators back to a raw parseable number string.
-const stripSep = s => String(s==null?'':s).replace(/,/g,'');
-// Group the integer part with commas, preserving a leading "-" and a trailing "."
-// while the user is still typing (e.g. "1000." -> "1,000.").
+// Strip separators back to a raw parseable number string (spaces, and any stray
+// commas left over from an older build's persisted state).
+const stripSep = s => String(s==null?'':s).replace(/[\s,]/g,'');
+// Group the integer part with spaces, preserving a leading "-" and a trailing "."
+// while the user is still typing (e.g. "1000." -> "1 000.").
 function fmtSep(raw){
   let s = stripSep(raw);
   const neg = s.charAt(0)==='-';
@@ -1496,7 +1497,7 @@ function fmtSep(raw){
   let intp = dot>=0 ? s.slice(0,dot) : s;
   const dec = dot>=0 ? s.slice(dot+1).replace(/\./g,'') : null;
   intp = intp.replace(/^0+(?=\d)/,'');
-  const grouped = intp ? intp.replace(/\B(?=(\d{3})+(?!\d))/g,',') : (dec!==null?'0':'');
+  const grouped = intp ? intp.replace(/\B(?=(\d{3})+(?!\d))/g,' ') : (dec!==null?'0':'');
   return (neg?'-':'') + grouped + (dec!==null?'.'+dec:'');
 }
 // Show/hide the clear button depending on whether the field has a value.
