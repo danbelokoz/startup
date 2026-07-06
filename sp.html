@@ -504,7 +504,7 @@ function titleFromSlug(slug) {
 async function renderArchived(slug) {
   let rev = [];
   try {
-    const r = await fetch(`/api/revenue-history?slug=${encodeURIComponent(slug)}&days=365`);
+    const r = await fetch(`/api/revenue-history?slug=${encodeURIComponent(slug)}&days=400`);
     rev = (await r.json()).data || [];
   } catch(e) {}
   if (rev.length) {
@@ -1188,7 +1188,7 @@ async function initChart(s) {
     fetch('/api/history?slug=' + encodeURIComponent(s.slug) + '&days=365')
       .then(r => r.json()).then(j => { _chartData = Array.isArray(j.data) ? j.data : []; })
       .catch(() => { _chartData = []; }),
-    fetch('/api/revenue-history?slug=' + encodeURIComponent(s.slug) + '&days=365')
+    fetch('/api/revenue-history?slug=' + encodeURIComponent(s.slug) + '&days=400')
       .then(r => r.json()).then(j => { _revenueHistory = Array.isArray(j.data) ? j.data : []; })
       .catch(() => { _revenueHistory = []; }),
   ];

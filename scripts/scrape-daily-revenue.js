@@ -308,7 +308,12 @@ function normalizeAmount(points) {
   }));
 }
 
-const MAX_DAYS = 180; // keep only last 180 days — protects Supabase free tier (500 MB)
+// Keep the last 400 days — enough to surface the full prior calendar year (2025)
+// while staying bounded (some startups have data back to 2011, which we don't need).
+// 400 also matches the /api/history revenue window cap, so we never store days the
+// endpoint can't serve. At ~2k startups this is ~800k rows, well under the Supabase
+// free-tier 500 MB budget.
+const MAX_DAYS = 400;
 
 async function upsertRevenue(slug, rawPoints) {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
