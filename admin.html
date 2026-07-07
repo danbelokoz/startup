@@ -72,6 +72,15 @@ a.adm-title:hover { opacity: 0.82; }
 .adm-del:hover { color: #fff; background: #f6465d; border-color: #f6465d; }
 .adm-del:disabled { opacity: 0.5; cursor: default; }
 .adm-pill { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--bg3); border: 1px solid var(--border2); color: var(--text2); }
+/* Votes tab: action buttons + inline number inputs */
+.adm-btn { border: 1px solid var(--border2); background: var(--bg3); border-radius: 8px; font-size: 12px; font-weight: 600; padding: 7px 14px; cursor: pointer; color: var(--text); font-family: inherit; }
+.adm-btn:hover { border-color: var(--accent); color: var(--accent); }
+.adm-btn:disabled { opacity: 0.5; cursor: default; }
+.adm-btn-sm { border: 1px solid var(--border2); background: var(--bg3); border-radius: 7px; font-size: 11px; font-weight: 700; padding: 5px 9px; cursor: pointer; color: var(--text2); font-family: inherit; margin-left: 4px; }
+.adm-btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+.adm-btn-sm:disabled { opacity: 0.5; cursor: default; }
+.adm-vinput, input[type=number].adm-vinput { background: var(--bg2); border: 1px solid var(--border2); border-radius: 7px; color: var(--text); font-family: inherit; font-size: 13px; padding: 5px 8px; }
+.adm-card input[type=number] { background: var(--bg2); border: 1px solid var(--border2); border-radius: 7px; color: var(--text); font-family: inherit; font-size: 13px; padding: 5px 8px; }
 
 .adm-msg { text-align: center; padding: 70px 24px; color: var(--text3); font-size: 14px; }
 .adm-msg a { color: var(--accent); font-weight: 600; }
@@ -101,6 +110,7 @@ a.adm-title:hover { opacity: 0.82; }
     <button class="adm-tab" data-tab="listings" onclick="openTab('listings')">Заявки</button>
     <button class="adm-tab" data-tab="users" onclick="openTab('users')">Регистрации</button>
     <button class="adm-tab" data-tab="topviews" onclick="openTab('topviews')">Топ просмотров</button>
+    <button class="adm-tab" data-tab="votes" onclick="openTab('votes')">Голоса</button>
     <button class="adm-tab" data-tab="parsers" onclick="openTab('parsers')">Парсеры</button>
     <button class="adm-tab" data-tab="botvisits" onclick="openTab('botvisits')">ИИ-боты</button>
     <button class="adm-tab" data-tab="card" onclick="openTab('card')">Карточка</button>
@@ -176,7 +186,7 @@ const MSK_TZ = 'Europe/Moscow';
 const fmtDateTime = iso => new Date(iso).toLocaleString('ru-RU', { timeZone: MSK_TZ, day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
 const fmtMskShort = ms => new Date(ms).toLocaleString('ru-RU', { timeZone: MSK_TZ, day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
 
-const TAB_RENDERERS = { overview: renderOverview, listings: renderListings, users: renderUsers, topviews: renderTopviews, parsers: renderParsers, botvisits: renderBotvisits, card: renderCard };
+const TAB_RENDERERS = { overview: renderOverview, listings: renderListings, users: renderUsers, topviews: renderTopviews, votes: renderVotes, parsers: renderParsers, botvisits: renderBotvisits, card: renderCard };
 // Active tab lives in the URL hash (#parsers, …) so a page refresh stays on the same
 // tab and browser Back/Forward steps through the tabs you visited - instead of always
 // snapping back to "Обзор". The hashchange handler is the single place that renders.
@@ -513,6 +523,121 @@ async function renderTopviews() {
       </tr>`).join('')}</table>`
     : '<div class="adm-mini">Пока пусто: гостевые просмотры начнут копиться после деплоя, просмотры юзеров - из таблицы startup_views.</div>'}
   </div>`;
+}
+
+/* ── Голоса (Стартап месяца) ──────────────────────────────────────────────────
+ * Управление голосованием на /vote. Владелец может: подкрутить показываемые голоса
+ * любому стартапу, задать диапазон почасового авто-прироста (или выключить его),
+ * пересобрать набор из 30 кандидатов, и видит реальные голоса зарегистрированных
+ * пользователей отдельно от «нарисованных». Данные в Redis (api/_votes.js). */
+const admMoney = d => d == null ? '—' : (d >= 1e6 ? '$' + (d/1e6).toFixed(1) + 'M' : d >= 1e3 ? '$' + (d/1e3).toFixed(1) + 'K' : '$' + Math.round(d).toLocaleString());
+let votesData = null;
+
+async function renderVotes() {
+  const d = await api('/api/admin?section=votes');
+  votesData = d;
+  const c = d.config || { enabled: true, min: 1, max: 10 };
+  const monthLbl = d.ym || '';
+
+  const rows = (d.candidates || []).map((s, i) => `<tr>
+    <td>${i + 1}</td>
+    <td><a href="/startup/${encodeURIComponent(s.slug)}" target="_blank">${esc(s.name || s.slug)}</a>
+        <div class="adm-mini">${esc(s.slug)}</div></td>
+    <td class="num">${admMoney(s.mrr)}</td>
+    <td class="num"><b>${(s.real || 0).toLocaleString()}</b></td>
+    <td class="num">
+      <input class="adm-vinput" id="v_${esc(s.slug)}" type="number" min="0" value="${s.votes}" style="width:96px;"/>
+      <button class="adm-btn-sm" onclick="saveVoteCount('${esc(s.slug)}')">OK</button>
+    </td>
+  </tr>`).join('');
+
+  const voterRows = (d.voters || []).length ? d.voters.map(v => `<tr>
+    <td>${esc(v.email || v.userId)}</td>
+    <td><a href="/startup/${encodeURIComponent(v.slug || '')}" target="_blank">${esc(v.name || v.slug || '—')}</a></td>
+    <td>${v.ts ? fmtDateTime(new Date(v.ts).toISOString()) : '—'}</td>
+  </tr>`).join('') : '<tr><td colspan="3" class="adm-mini">Пока никто из зарегистрированных не голосовал.</td></tr>';
+
+  $('admContent').innerHTML = `
+    <div class="adm-kpis">
+      <div class="adm-kpi"><div class="n">${(d.realTotal || 0).toLocaleString()}</div><div class="l">Реальных голосов</div></div>
+      <div class="adm-kpi"><div class="n">${(d.voters || []).length.toLocaleString()}</div><div class="l">Проголосовало юзеров</div></div>
+      <div class="adm-kpi"><div class="n">${(d.dispTotal || 0).toLocaleString()}</div><div class="l">Показывается всего</div></div>
+      <div class="adm-kpi"><div class="n">${esc(monthLbl)}</div><div class="l">Месяц голосования</div></div>
+    </div>
+
+    <div class="adm-card">
+      <h3>Авто-прирост голосов</h3>
+      <div class="adm-mini" style="margin-bottom:12px;">Раз в час каждому кандидату добавляется случайное число голосов из диапазона ниже. Применяется при заходах на страницу (без отдельного крона).</div>
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+          <input type="checkbox" id="v_enabled" ${c.enabled ? 'checked' : ''}/> Включён
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;">от <input id="v_min" type="number" min="0" value="${c.min}" style="width:70px;"/></label>
+        <label style="display:flex;align-items:center;gap:6px;">до <input id="v_max" type="number" min="0" value="${c.max}" style="width:70px;"/></label>
+        <button class="adm-btn" onclick="saveVoteConfig(this)">Сохранить</button>
+        <span id="v_cfg_msg" class="adm-mini"></span>
+      </div>
+    </div>
+
+    <div class="adm-card">
+      <h3>Кандидаты · ${monthLbl}
+        <button class="adm-btn" style="float:right;" onclick="rebuildVoteSet(this)">Пересобрать набор</button>
+      </h3>
+      <div class="adm-mini" style="margin-bottom:10px;">«Показывается» — итоговое число на странице (нарисованная база + авто-прирост + реальные голоса + твои правки). Меняешь значение → OK. «Реальные» — только голоса зарегистрированных.</div>
+      <table class="adm-table">
+        <tr><th>#</th><th>Стартап</th><th class="num">MRR</th><th class="num">Реальные</th><th class="num">Показывается</th></tr>
+        ${rows}
+      </table>
+    </div>
+
+    <div class="adm-card">
+      <h3>Кто и за кого проголосовал</h3>
+      <table class="adm-table">
+        <tr><th>Пользователь</th><th>Голос за</th><th>Когда</th></tr>
+        ${voterRows}
+      </table>
+    </div>`;
+}
+
+async function saveVoteCount(slug) {
+  const inp = document.getElementById('v_' + slug);
+  if (!inp) return;
+  const votes = Math.max(0, parseInt(inp.value, 10) || 0);
+  inp.disabled = true;
+  try {
+    const r = await api('/api/admin', { method: 'POST', body: JSON.stringify({ action: 'vote_set', slug, votes }) });
+    if (!r.ok) throw new Error();
+    inp.value = r.votes;
+    inp.disabled = false;
+    inp.style.outline = '2px solid var(--accent)';
+    setTimeout(() => { inp.style.outline = ''; }, 900);
+  } catch { inp.disabled = false; alert('Не удалось сохранить голоса'); }
+}
+
+async function saveVoteConfig(btn) {
+  const enabled = document.getElementById('v_enabled').checked;
+  const min = Math.max(0, parseInt(document.getElementById('v_min').value, 10) || 0);
+  const max = Math.max(0, parseInt(document.getElementById('v_max').value, 10) || 0);
+  btn.disabled = true;
+  const msg = document.getElementById('v_cfg_msg');
+  try {
+    const r = await api('/api/admin', { method: 'POST', body: JSON.stringify({ action: 'vote_config', enabled, min, max }) });
+    if (!r.ok) throw new Error();
+    document.getElementById('v_min').value = r.config.min;
+    document.getElementById('v_max').value = r.config.max;
+    msg.textContent = 'Сохранено ✓'; msg.style.color = 'var(--accent)';
+  } catch { msg.textContent = 'Ошибка'; msg.style.color = 'var(--danger, #f6465d)'; }
+  finally { btn.disabled = false; setTimeout(() => { msg.textContent = ''; }, 2500); }
+}
+
+async function rebuildVoteSet(btn) {
+  if (!confirm('Пересобрать набор из 30 кандидатов на этот месяц? Реальные голоса и правки сохранятся, но список стартапов обновится.')) return;
+  btn.disabled = true;
+  try {
+    const r = await api('/api/admin', { method: 'POST', body: JSON.stringify({ action: 'vote_rebuild' }) });
+    if (!r.ok) throw new Error();
+    renderVotes();
+  } catch { btn.disabled = false; alert('Не удалось пересобрать набор'); }
 }
 
 /* ── ИИ-боты (аудит краулинга) ─────────────────────────────────────────────────

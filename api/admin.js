@@ -18,6 +18,13 @@
 // lets the owner keep test signups out of the stats without deleting real users.
 
 import { redisPipeline, sb, getUser, supaConfigured, decryptSecret } from './_lib.js';
+import { adminBoard, adminSetVotes, adminRebuild, setConfig } from './_votes.js';
+
+function baseUrl(req) {
+  const proto = String(req.headers['x-forwarded-proto'] || 'https').split(',')[0].trim();
+  const host  = req.headers['x-forwarded-host'] || req.headers.host;
+  return `${proto}://${host}`;
+}
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const STATUSES = ['new', 'processing', 'listed', 'rejected'];
@@ -353,6 +360,19 @@ export default async function handler(req, res) {
         });
         return res.status(200).json({ ok });
       }
+      // ── Votes ("Голоса" tab) ──────────────────────────────────────────────
+      if (body.action === 'vote_set') {
+        const r = await adminSetVotes(String(body.slug || ''), body.votes);
+        return res.status(r.ok ? 200 : 400).json(r);
+      }
+      if (body.action === 'vote_config') {
+        const cfg = await setConfig({ enabled: body.enabled, min: body.min, max: body.max });
+        return res.status(200).json({ ok: true, config: cfg });
+      }
+      if (body.action === 'vote_rebuild') {
+        const r = await adminRebuild({ baseUrl: baseUrl(req) });
+        return res.status(200).json(r);
+      }
       if (body.action === 'hide_user' || body.action === 'restore_user') {
         // Analytics-only: add/remove the user id in a Redis set. The Supabase
         // account is never touched — this just filters them out of the counts.
@@ -371,6 +391,7 @@ export default async function handler(req, res) {
       case 'parsers':  return await parsers(res);
       case 'botvisits': return await botvisits(res);
       case 'topviews': return await topviews(days, res);
+      case 'votes':    return res.status(200).json(await adminBoard({ baseUrl: baseUrl(req) }));
       case 'listings': {
         const { ok, data } = await sb(
           '/rest/v1/listing_requests'

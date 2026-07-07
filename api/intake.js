@@ -9,6 +9,7 @@
 // sha256(ip|ua|day) that rotates daily. Counters live in Redis ~100 days.
 
 import { redisPipeline, sb, getUser, supaConfigured, encryptSecret, clientIp, rateOk } from './_lib.js';
+import { getBoard, castVote } from './_votes.js';
 
 const COUNTER_TTL = 100 * 86400;
 const BOT_RE = /bot|crawl|spider|preview|fetch|monitor|lighthouse|headless|curl|python/i;
@@ -105,12 +106,52 @@ async function handleListing(req, res) {
   return res.status(200).json({ ok });
 }
 
+// ── vote (Startup of the Month) ─────────────────────────────────────────────────
+// GET  /api/vote → public board (candidates + live vote counts + this user's choice)
+// POST /api/vote → cast a vote (registered users only, one per month)
+// Both map here via the /api/vote rewrite. Vote logic lives in _votes.js.
+function baseUrl(req) {
+  const proto = String(req.headers['x-forwarded-proto'] || 'https').split(',')[0].trim();
+  const host  = req.headers['x-forwarded-host'] || req.headers.host;
+  return `${proto}://${host}`;
+}
+async function handleVote(req, res) {
+  const token = req.headers.authorization?.replace(/^Bearer\s+/i, '') || null;
+  if (req.method === 'GET') {
+    // Live counts — never let a browser/CDN serve a stale board.
+    res.setHeader('Cache-Control', 'no-store');
+    const board = await getBoard({ baseUrl: baseUrl(req), token });
+    return res.status(200).json(board);
+  }
+  if (req.method === 'POST') {
+    const slug = String(parseBody(req).slug || '').slice(0, 160);
+    if (!slug) return res.status(400).json({ error: 'Missing slug' });
+    if (!token) return res.status(401).json({ error: 'Sign in to vote' });
+    const { status, body } = await castVote({ token, slug });
+    return res.status(status).json(body);
+  }
+  return res.status(405).json({ error: 'GET or POST' });
+}
+
 // ── router ────────────────────────────────────────────────────────────────────
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
+
+  // vote handles its own methods (GET board + POST cast) with a per-IP limit.
+  if (req.query.op === 'vote') {
+    const ip = clientIp(req);
+    const limit = req.method === 'POST' ? 12 : 120;
+    if (!(await rateOk(`intake_vote_${req.method}`, ip, limit, 60))) {
+      res.setHeader('Retry-After', '30');
+      return res.status(429).json({ error: 'Too many requests' });
+    }
+    try { return await handleVote(req, res); }
+    catch { return res.status(500).json({ error: 'Internal error' }); }
+  }
+
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
   // Per-IP rate limit. track is a per-pageview beacon (generous); listing is a

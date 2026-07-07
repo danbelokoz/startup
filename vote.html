@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Startup of the Month — vote for the best verified startup · Startup Market</title>
+<meta name="description" content="Vote for the startup of the month. A curated shortlist of verified startups with real MRR — cast your vote (registered users only) and crown this month's winner."/>
+<link rel="canonical" href="https://startupmarket.tech/vote"/>
+<meta property="og:type" content="website"/>
+<meta property="og:site_name" content="Startup Market"/>
+<meta property="og:url" content="https://startupmarket.tech/vote"/>
+<meta property="og:title" content="Startup of the Month — vote for the best verified startup"/>
+<meta property="og:description" content="A curated shortlist of verified startups with real MRR. Cast your vote and crown this month's winner."/>
+<meta property="og:image" content="https://startupmarket.tech/apple-touch-icon.png"/>
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Startup of the Month — vote for the best verified startup"/>
+<meta name="twitter:description" content="A curated shortlist of verified startups with real MRR. Cast your vote and crown this month's winner."/>
+<meta name="twitter:image" content="https://startupmarket.tech/apple-touch-icon.png"/>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://startupmarket.tech/"},{"@type":"ListItem","position":2,"name":"Startup of the Month","item":"https://startupmarket.tech/vote"}]}</script>
+<link rel="icon" href="/favicon.ico?v=3" sizes="any"/>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=3"/>
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=3"/>
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=3"/>
+<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=3"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap"/>
+<link rel="stylesheet" href="/shared.css"/>
+<script src="/auth-config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="/shared.js"></script>
+<style>
+.vote-wrap { max-width: 980px; margin: 0 auto; padding: 36px 20px 80px; }
+.vote-head { text-align: center; margin-bottom: 8px; }
+.vote-kicker { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); background: rgba(252,213,53,0.1); border: 1px solid rgba(252,213,53,0.25); padding: 6px 13px; border-radius: 999px; margin-bottom: 14px; }
+.vote-head h1 { font-size: 33px; font-weight: 700; letter-spacing: -1px; color: var(--text); margin-bottom: 8px; }
+.vote-head p { font-size: 14px; color: var(--text2); max-width: 580px; margin: 0 auto; line-height: 1.5; }
+.vote-meta { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; margin: 18px 0 26px; font-size: 12.5px; color: var(--text3); font-weight: 600; }
+.vote-meta .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--text3); opacity: 0.6; }
+.vote-meta b { color: var(--text2); }
+
+/* ── Winner spotlight ── */
+.champ { position: relative; background:
+    radial-gradient(120% 130% at 50% 0%, rgba(252,213,53,0.14), transparent 60%), var(--bg2);
+  border: 1px solid rgba(252,213,53,0.32); border-radius: 22px; padding: 30px 26px 26px; text-align: center; margin-bottom: 30px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.25); }
+.champ::before { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(252,213,53,0.05), transparent 40%); pointer-events: none; }
+.champ-crown { font-size: 30px; line-height: 1; margin-bottom: 10px; }
+.champ-label { font-size: 11.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 16px; }
+.champ-body { display: flex; align-items: center; justify-content: center; gap: 18px; flex-wrap: wrap; }
+.champ-logo { width: 72px; height: 72px; border-radius: 18px; background: var(--bg3); border: 1px solid var(--border2); display: inline-flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 700; color: var(--text2); flex-shrink: 0; overflow: hidden; }
+.champ-logo img { width: 100%; height: 100%; object-fit: cover; }
+.champ-info { text-align: left; min-width: 0; }
+.champ-name { font-size: 26px; font-weight: 700; letter-spacing: -0.6px; color: var(--text); margin-bottom: 4px; display: block; text-decoration: none; }
+.champ-name:hover { color: var(--accent); }
+.champ-sub { font-size: 13px; color: var(--text3); font-weight: 500; }
+.champ-votes { display: flex; align-items: baseline; gap: 8px; margin-top: 12px; }
+.champ-votes b { font-size: 30px; font-weight: 700; letter-spacing: -0.5px; color: var(--accent); }
+.champ-votes span { font-size: 13px; color: var(--text3); font-weight: 600; }
+@media (max-width: 560px) { .champ-info { text-align: center; } .champ-votes { justify-content: center; } }
+
+/* ── List ── */
+.vote-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 20px; padding: 8px; box-shadow: 0 6px 28px rgba(0,0,0,0.08); }
+.vote-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px 12px; }
+.vote-card-title { display: flex; align-items: center; gap: 8px; font-size: 17px; font-weight: 700; letter-spacing: -0.3px; color: var(--text); }
+.vote-card-title svg { color: var(--accent); }
+.vote-hint { font-size: 12px; color: var(--text3); font-weight: 600; }
+
+.vrow { display: grid; grid-template-columns: 44px minmax(0,1fr) 96px 132px; align-items: center; gap: 10px; padding: 11px 14px; border-radius: 14px; border-bottom: 1px solid var(--border); transition: background 0.12s; }
+.vrow:last-child { border-bottom: none; }
+.vrow.leader { background: rgba(252,213,53,0.05); }
+.vrow-rank { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; font-size: 13px; font-weight: 700; color: var(--text3); background: var(--bg3); }
+.vrow-rank.gold { background: linear-gradient(145deg,#ffe08a,#f5b301); color:#5c4500; }
+.vrow-rank.silver { background: linear-gradient(145deg,#eef0f3,#c2c7cf); color:#4a4f57; }
+.vrow-rank.bronze { background: linear-gradient(145deg,#f0c69b,#cd8b4f); color:#5a3413; }
+.vrow-main { display: flex; align-items: center; gap: 12px; min-width: 0; text-decoration: none; }
+.vrow-logo { width: 40px; height: 40px; border-radius: 11px; background: var(--bg3); border: 1px solid var(--border); display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: var(--text2); flex-shrink: 0; overflow: hidden; }
+.vrow-logo img { width: 100%; height: 100%; object-fit: cover; }
+.vrow-nm { min-width: 0; }
+.vrow-name { font-size: 15px; font-weight: 600; color: var(--text); letter-spacing: -0.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vrow-main:hover .vrow-name { color: var(--accent); }
+.vrow-mrr { font-size: 12px; color: var(--text3); font-weight: 600; margin-top: 2px; }
+.vrow-votes { text-align: right; justify-self: end; }
+.vrow-votes b { font-size: 16px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
+.vrow-votes span { display: block; font-size: 10.5px; color: var(--text3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+
+.vbtn { justify-self: end; display: inline-flex; align-items: center; gap: 6px; font-family: inherit; font-size: 13px; font-weight: 700; padding: 9px 16px; border-radius: 11px; cursor: pointer; border: 1px solid var(--border2); background: var(--bg3); color: var(--text2); transition: all 0.12s; white-space: nowrap; }
+.vbtn:hover { border-color: var(--accent); color: var(--accent); }
+.vbtn svg { width: 15px; height: 15px; }
+.vbtn.voted { background: var(--accent); border-color: var(--accent); color: #181A20; cursor: default; }
+.vbtn.voted:hover { color: #181A20; }
+.vbtn.disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+
+.vote-foot { text-align: center; margin-top: 22px; font-size: 12.5px; color: var(--text3); line-height: 1.6; }
+.vote-foot a { color: var(--accent); font-weight: 600; text-decoration: none; }
+
+.vote-msg { text-align: center; padding: 70px 24px; color: var(--text3); font-size: 14px; }
+.vote-msg .bar { width: 160px; height: 3px; background: var(--border); border-radius: 2px; margin: 16px auto 0; overflow: hidden; }
+.vote-msg .bar > div { height: 100%; width: 40%; background: var(--accent); border-radius: 2px; animation: loadpulse 1.5s ease-in-out infinite; }
+@keyframes loadpulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* toast */
+.vote-toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(20px); background: var(--bg3); border: 1px solid var(--border2); color: var(--text); font-size: 13.5px; font-weight: 600; padding: 12px 20px; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.35); opacity: 0; pointer-events: none; transition: all 0.25s; z-index: 200; max-width: 90vw; }
+.vote-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+@media (max-width: 640px) {
+  .vote-head h1 { font-size: 26px; }
+  .vrow { grid-template-columns: 30px minmax(0,1fr) auto; gap: 8px; padding: 10px 8px; }
+  .vrow-votes { display: none; }
+  .champ-name { font-size: 22px; }
+  .vote-card-head { padding: 14px 12px 10px; }
+  .vbtn { padding: 8px 12px; font-size: 12px; }
+}
+</style>
+</head>
+<body>
+
+<div id="navPlaceholder"></div>
+
+<div class="vote-wrap">
+  <div class="vote-head">
+    <span class="vote-kicker">🏆 <span id="tKicker">Startup of the Month</span></span>
+    <h1 id="tTitle">Vote for the best startup of the month</h1>
+    <p id="tSub">A curated shortlist of verified startups with real MRR. One vote per month — help crown this month's winner.</p>
+  </div>
+  <div class="vote-meta">
+    <span id="tMonth">—</span><span class="dot"></span>
+    <span><b id="tCandCount">30</b> <span id="tCandLabel">candidates</span></span><span class="dot"></span>
+    <span><span id="tEndsIn">Voting ends in</span> <b id="tCountdown">—</b></span>
+  </div>
+
+  <div id="champ"></div>
+
+  <div class="vote-card">
+    <div class="vote-card-head">
+      <div class="vote-card-title">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z"/></svg>
+        <span id="tLeaderboard">Leaderboard</span>
+      </div>
+      <span class="vote-hint" id="tHint">Registered users can vote</span>
+    </div>
+    <div id="voteList">
+      <div class="vote-msg"><span id="tLoading">Loading candidates…</span><div class="bar"><div></div></div></div>
+    </div>
+  </div>
+
+  <div class="vote-foot" id="tFoot"></div>
+</div>
+
+<div class="vote-toast" id="voteToast"></div>
+
+<footer>© 2026 Startup Market</footer>
+
+<script>
+applyLangToDoc();
+document.getElementById('navPlaceholder').innerHTML = buildNavHTML('vote');
+initNavAuth();
+
+// ── Page-local translations (7 langs) ──────────────────────────────────────
+const VT = {
+  en:{ kicker:'Startup of the Month', title:'Vote for the best startup of the month', sub:"A curated shortlist of verified startups with real MRR. One vote per month — help crown this month's winner.", candLabel:'candidates', endsIn:'Voting ends in', leaderboard:'Leaderboard', hint:'Registered users can vote', winner:'This month’s leader', votes:'votes', mrr:'MRR', vote:'Vote', voted:'Voted', signIn:'Sign in to vote', loading:'Loading candidates…', empty:'Candidates are warming up — check back shortly.', foot:'Votes reset on the 1st of each month. The startup with the most votes becomes Startup of the Month. Anyone can browse; only registered users can vote.', toastVoted:'Your vote has been counted 🎉', toastAlready:'You’ve already voted this month.', days:'d', hours:'h', mins:'m' },
+  ru:{ kicker:'Стартап месяца', title:'Голосуй за лучший стартап месяца', sub:'Отобранный шорт-лист проверенных стартапов с реальным MRR. Один голос в месяц — помоги выбрать победителя.', candLabel:'кандидатов', endsIn:'До конца голосования', leaderboard:'Рейтинг', hint:'Голосовать могут зарегистрированные', winner:'Лидер месяца', votes:'голосов', mrr:'MRR', vote:'Голос', voted:'Голос учтён', signIn:'Войдите, чтобы голосовать', loading:'Загружаем кандидатов…', empty:'Кандидаты подгружаются — загляните чуть позже.', foot:'Голоса обнуляются 1-го числа каждого месяца. Стартап с наибольшим числом голосов становится «Стартапом месяца». Смотреть могут все; голосовать — только зарегистрированные.', toastVoted:'Ваш голос учтён 🎉', toastAlready:'Вы уже голосовали в этом месяце.', days:'д', hours:'ч', mins:'м' },
+  de:{ kicker:'Startup des Monats', title:'Stimme für das beste Startup des Monats', sub:'Eine kuratierte Auswahl verifizierter Startups mit echtem MRR. Eine Stimme pro Monat — kröne den Sieger.', candLabel:'Kandidaten', endsIn:'Abstimmung endet in', leaderboard:'Rangliste', hint:'Registrierte Nutzer können abstimmen', winner:'Führend diesen Monat', votes:'Stimmen', mrr:'MRR', vote:'Wählen', voted:'Gewählt', signIn:'Zum Abstimmen anmelden', loading:'Kandidaten werden geladen…', empty:'Kandidaten werden vorbereitet — schau bald wieder vorbei.', foot:'Stimmen werden am 1. jedes Monats zurückgesetzt. Das Startup mit den meisten Stimmen wird Startup des Monats. Ansehen kann jeder; abstimmen nur registrierte Nutzer.', toastVoted:'Deine Stimme wurde gezählt 🎉', toastAlready:'Du hast diesen Monat bereits abgestimmt.', days:'T', hours:'Std', mins:'Min' },
+  fr:{ kicker:'Startup du mois', title:'Votez pour la meilleure startup du mois', sub:'Une sélection de startups vérifiées avec un MRR réel. Un vote par mois — aidez à couronner le gagnant.', candLabel:'candidats', endsIn:'Fin du vote dans', leaderboard:'Classement', hint:'Les utilisateurs inscrits peuvent voter', winner:'En tête ce mois-ci', votes:'votes', mrr:'MRR', vote:'Voter', voted:'Voté', signIn:'Connectez-vous pour voter', loading:'Chargement des candidats…', empty:'Les candidats se préparent — revenez bientôt.', foot:'Les votes sont remis à zéro le 1er de chaque mois. La startup avec le plus de votes devient la Startup du mois. Tout le monde peut consulter ; seuls les inscrits peuvent voter.', toastVoted:'Votre vote a été comptabilisé 🎉', toastAlready:'Vous avez déjà voté ce mois-ci.', days:'j', hours:'h', mins:'min' },
+  it:{ kicker:'Startup del mese', title:'Vota la migliore startup del mese', sub:'Una selezione di startup verificate con MRR reale. Un voto al mese — aiuta a incoronare il vincitore.', candLabel:'candidati', endsIn:'Il voto termina tra', leaderboard:'Classifica', hint:'Possono votare gli utenti registrati', winner:'In testa questo mese', votes:'voti', mrr:'MRR', vote:'Vota', voted:'Votato', signIn:'Accedi per votare', loading:'Caricamento candidati…', empty:'I candidati si stanno preparando — torna a breve.', foot:'I voti si azzerano il 1° di ogni mese. La startup con più voti diventa Startup del mese. Chiunque può sfogliare; solo gli utenti registrati possono votare.', toastVoted:'Il tuo voto è stato registrato 🎉', toastAlready:'Hai già votato questo mese.', days:'g', hours:'h', mins:'min' },
+  zh:{ kicker:'本月创业公司', title:'为本月最佳创业公司投票', sub:'精选经过验证、拥有真实 MRR 的创业公司。每月一票——助力选出赢家。', candLabel:'候选', endsIn:'投票结束还剩', leaderboard:'排行榜', hint:'注册用户可投票', winner:'本月领先', votes:'票', mrr:'MRR', vote:'投票', voted:'已投', signIn:'登录后投票', loading:'正在加载候选…', empty:'候选正在准备中——请稍后再来。', foot:'每月 1 日票数清零。得票最多的创业公司成为本月创业公司。任何人都可浏览；仅注册用户可投票。', toastVoted:'你的投票已记录 🎉', toastAlready:'你本月已经投过票了。', days:'天', hours:'时', mins:'分' },
+  ar:{ kicker:'شركة الشهر', title:'صوّت لأفضل شركة ناشئة هذا الشهر', sub:'قائمة مختارة من الشركات الموثّقة بإيرادات MRR حقيقية. صوت واحد شهريًا — ساعد في تتويج الفائز.', candLabel:'مرشحين', endsIn:'ينتهي التصويت خلال', leaderboard:'المتصدرون', hint:'يمكن للمستخدمين المسجّلين التصويت', winner:'المتصدّر هذا الشهر', votes:'أصوات', mrr:'MRR', vote:'صوّت', voted:'تم التصويت', signIn:'سجّل الدخول للتصويت', loading:'جارٍ تحميل المرشحين…', empty:'يتم تجهيز المرشحين — عد قريبًا.', foot:'تُعاد الأصوات إلى الصفر في الأول من كل شهر. الشركة صاحبة أكثر الأصوات تصبح شركة الشهر. يمكن للجميع التصفح؛ التصويت للمسجّلين فقط.', toastVoted:'تم احتساب صوتك 🎉', toastAlready:'لقد صوّتّ بالفعل هذا الشهر.', days:'ي', hours:'س', mins:'د' },
+};
+function vt(k){ const l=getLang(); return (VT[l]||VT.en)[k] || VT.en[k] || ''; }
+
+let CAND_COUNT = 30;   // updated from the server board once loaded
+
+const now = new Date();
+
+// Server owns the board now: the 30 candidates, everyone's real votes, the drawn
+// "organic" base and the hourly auto-growth all live in Redis (see api/_votes.js).
+// The page just reads /api/vote and renders it.
+let board = { candidates: [], myVote: null, endsAt: null, building: false };
+let retryTimer = null;
+
+function authToken(){ return (window._session && window._session.access_token) || null; }
+function isAuthed(){ return !!(window._session && window._session.user); }
+
+async function loadBoard() {
+  const host = document.getElementById('voteList');
+  try {
+    const token = authToken();
+    const r = await fetch('/api/vote', { headers: token ? { Authorization: 'Bearer ' + token } : {} });
+    const j = await r.json();
+    board = { candidates: j.candidates || [], myVote: j.myVote || null, endsAt: j.endsAt || null, building: !!j.building };
+    if (board.candidates.length) CAND_COUNT = board.candidates.length;
+    document.getElementById('tCandCount').textContent = CAND_COUNT;
+    if (!board.candidates.length) {
+      host.innerHTML = '<div class="vote-msg"><span>' + vt(board.building ? 'loading' : 'empty') + '</span>'
+        + (board.building ? '<div class="bar"><div></div></div>' : '') + '</div>';
+      // Still assembling the monthly set on the server — try again shortly.
+      if (board.building) { clearTimeout(retryTimer); retryTimer = setTimeout(loadBoard, 2500); }
+      return;
+    }
+    render();
+  } catch {
+    host.innerHTML = '<div class="vote-msg">' + vt('empty') + '</div>';
+  }
+}
+
+// Server returns candidates already sorted by votes, descending.
+function ranked(){ return board.candidates; }
+
+function logoHTML(s, cls){
+  const init = (s.name || '?').slice(0,2).toUpperCase();
+  const inner = s.icon
+    ? '<img src="' + escHtml(s.icon) + '" loading="lazy" onerror="this.parentElement.textContent=\'' + init + '\'"/>'
+    : init;
+  return '<span class="' + cls + '">' + inner + '</span>';
+}
+
+function champHTML(s){
+  const votes = s.votes;
+  return '<div class="champ">' +
+    '<div class="champ-crown">👑</div>' +
+    '<div class="champ-label">' + vt('winner') + '</div>' +
+    '<div class="champ-body">' +
+      logoHTML(s, 'champ-logo') +
+      '<div class="champ-info">' +
+        '<a class="champ-name" href="/startup/' + escHtml(s.slug) + '.html">' + escHtml(s.name) + '</a>' +
+        '<div class="champ-sub">' + vt('mrr') + ' ' + (s.mrr ? formatMoney(s.mrr) : '—') + '</div>' +
+        '<div class="champ-votes"><b>' + votes.toLocaleString() + '</b><span>' + vt('votes') + '</span></div>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+const HEART = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/></svg>';
+const CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+
+function rowHTML(s, i){
+  const rank = i + 1;
+  const medal = rank===1?' gold':rank===2?' silver':rank===3?' bronze':'';
+  const votes = s.votes;
+  const mine = board.myVote;
+  const isMine = mine === s.slug;
+  let btn;
+  if (isMine) {
+    btn = '<button class="vbtn voted" disabled>' + CHECK + vt('voted') + '</button>';
+  } else if (mine) {
+    // already spent this month's vote elsewhere
+    btn = '<button class="vbtn disabled" disabled>' + HEART + vt('vote') + '</button>';
+  } else {
+    btn = '<button class="vbtn" onclick="castVote(\'' + escHtml(s.slug) + '\')">' + HEART + vt('vote') + '</button>';
+  }
+  return '<div class="vrow' + (rank===1?' leader':'') + '">' +
+    '<span class="vrow-rank' + medal + '">' + rank + '</span>' +
+    '<a class="vrow-main" href="/startup/' + escHtml(s.slug) + '.html">' +
+      logoHTML(s, 'vrow-logo') +
+      '<span class="vrow-nm"><div class="vrow-name">' + escHtml(s.name) + '</div>' +
+        '<div class="vrow-mrr">' + vt('mrr') + ' ' + (s.mrr ? formatMoney(s.mrr) : '—') + '</div></span>' +
+    '</a>' +
+    '<span class="vrow-votes"><b>' + votes.toLocaleString() + '</b><span>' + vt('votes') + '</span></span>' +
+    btn +
+  '</div>';
+}
+
+function render(){
+  const arr = ranked();
+  document.getElementById('champ').innerHTML = arr.length ? champHTML(arr[0]) : '';
+  document.getElementById('voteList').innerHTML = arr.map((s,i) => rowHTML(s,i)).join('');
+}
+
+let voting = false;
+async function castVote(slug){
+  if (!isAuthed()) {
+    // Registered-only: bounce to auth, returning here afterwards.
+    const from = encodeURIComponent(location.pathname + location.search);
+    location.href = '/auth.html?from=' + from;
+    return;
+  }
+  if (board.myVote || voting) { if (board.myVote) toast(vt('toastAlready')); return; }
+  voting = true;
+  try {
+    const token = authToken();
+    const r = await fetch('/api/vote', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) },
+      body: JSON.stringify({ slug }),
+    });
+    if (r.status === 401) {   // session expired mid-session → re-auth
+      const from = encodeURIComponent(location.pathname + location.search);
+      location.href = '/auth.html?from=' + from; return;
+    }
+    const j = await r.json().catch(() => ({}));
+    if (j && j.myVote) board.myVote = j.myVote;
+    toast(vt(j && j.already ? 'toastAlready' : 'toastVoted'));
+    await loadBoard();        // pull fresh, re-sorted counts (incl. this vote)
+  } catch {
+    toast(vt('empty'));
+  } finally {
+    voting = false;
+  }
+}
+
+let toastTimer;
+function toast(msg){
+  const el = document.getElementById('voteToast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+// ── Static i18n text + monthly meta ──────────────────────────────────────────
+function applyText(){
+  document.getElementById('tKicker').textContent = vt('kicker');
+  document.getElementById('tTitle').textContent = vt('title');
+  document.getElementById('tSub').textContent = vt('sub');
+  document.getElementById('tCandLabel').textContent = vt('candLabel');
+  document.getElementById('tCandCount').textContent = CAND_COUNT;
+  document.getElementById('tEndsIn').textContent = vt('endsIn');
+  document.getElementById('tLeaderboard').textContent = vt('leaderboard');
+  document.getElementById('tHint').textContent = vt('hint');
+  document.getElementById('tLoading').textContent = vt('loading');
+  document.getElementById('tFoot').textContent = vt('foot');
+  const locale = { en:'en-US', ru:'ru-RU', de:'de-DE', fr:'fr-FR', it:'it-IT', zh:'zh-CN', ar:'ar' }[getLang()] || 'en-US';
+  document.getElementById('tMonth').textContent = now.toLocaleDateString(locale, { month:'long', year:'numeric' });
+}
+
+function tickCountdown(){
+  // End of the voting month comes from the server (UTC 1st of next month); fall back
+  // to a local estimate until the board loads.
+  const end = board.endsAt ? new Date(board.endsAt)
+            : new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const diff = end - new Date();
+  const el = document.getElementById('tCountdown');
+  if (diff <= 0) { el.textContent = '—'; return; }
+  const d = Math.floor(diff / 86400000);
+  const h = Math.floor((diff % 86400000) / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  el.textContent = d + vt('days') + ' ' + h + vt('hours') + ' ' + m + vt('mins');
+}
+
+applyText();
+tickCountdown();
+setInterval(tickCountdown, 30000);
+loadBoard();
+
+// The board is first fetched without a token (auth resolves async), so myVote comes
+// back null. Re-fetch once the Supabase session lands so a logged-in user sees their
+// existing vote reflected. Poll briefly for window._session, then reload once.
+let authTries = 0;
+const authWait = setInterval(() => {
+  if (window._session !== undefined || ++authTries > 12) {   // resolved, or ~6s elapsed
+    clearInterval(authWait);
+    if (isAuthed()) loadBoard();
+  }
+}, 500);
+</script>
+</body>
+</html>
