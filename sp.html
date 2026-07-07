@@ -715,6 +715,18 @@ function renderStartup(s) {
       }).join('')}</div>`
     : '';
 
+  // Founder - upstream (TrustMRR) sends only the X handle, never a plain xFounderName,
+  // so key the row off the handle and show it linked to the founder's X profile.
+  // Blurred (and unlinked) for guests, matching the cofounder chips above.
+  const founderName = s.xFounderName || (s.xHandle ? '@' + s.xHandle : '');
+  const founderRow = founderName
+    ? `<tr><td>Founder</td><td>${
+        wantBlur ? `<span class="paywall-blur owner-blur">${escHtml(founderName)}</span>`
+        : s.xHandle ? `<a href="https://x.com/${escHtml(s.xHandle)}" target="_blank" style="color:inherit;text-decoration:none">${escHtml(founderName)}</a>`
+        : escHtml(founderName)
+      }</td></tr>`
+    : '';
+
   const listedDate = s.firstListedForSaleAt
     ? `<div class="sale-listed">First listed: ${new Date(s.firstListedForSaleAt).toLocaleDateString(getLang(),{year:'numeric',month:'short',day:'numeric'})}${
         (() => { const d = Math.floor((Date.now() - new Date(s.firstListedForSaleAt).getTime())/86400000); return d >= 0 ? ` <span style="color:var(--text3)">(${d}d ago)</span>` : ''; })()
@@ -907,7 +919,7 @@ function renderStartup(s) {
       ${ai.businessType && ai.businessType !== 'Unknown' ?`<tr><td>Business type</td><td>${escHtml(ai.businessType)}</td></tr>`:''}
       ${ai.pricingModel?`<tr><td>Pricing model</td><td>${escHtml(ai.pricingModel)}</td></tr>`:''}
       ${s.paymentProvider?`<tr><td>${t('startupPage','provider')}</td><td>${s.paymentProvider}</td></tr>`:''}
-      ${s.xFounderName?`<tr><td>Founder</td><td>${wantBlur ? `<span class="paywall-blur owner-blur">${escHtml(s.xFounderName)}</span>` : escHtml(s.xFounderName)}</td></tr>`:''}
+      ${founderRow}
     </table>
 
     ${cofoundersHtml}
