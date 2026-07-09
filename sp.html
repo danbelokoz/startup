@@ -741,7 +741,7 @@ function renderStartup(s) {
   const founderName = s.xFounderName || (s.xHandle ? '@' + s.xHandle : '');
   // Founder avatar straight from the X profile picture (TrustMRR passthrough).
   const founderPic = s.xProfilePicture
-    ? `<img class="founder-avatar" src="${escHtml(s.xProfilePicture)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()"/>`
+    ? `<img class="founder-avatar" src="${escHtml(s.xProfilePicture)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()"/>`
     : '';
   const founderRow = founderName
     ? `<tr><td>Founder</td><td>${
