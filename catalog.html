@@ -1162,7 +1162,7 @@ async function fetchTotalsMeta() {
       dbOnSale = s.onSale != null ? s.onSale : dbOnSale;
       if (s.rev30 != null) dbRev30 = s.rev30;
       if (s.mrr   != null) dbMrr   = s.mrr;
-      updateStats();
+      updateStats(); updateCount();
       return;
     }
     const [a, b] = await Promise.all([
@@ -1171,7 +1171,7 @@ async function fetchTotalsMeta() {
     ]);
     if (a && a.meta && a.meta.total != null) dbTotal  = a.meta.total;
     if (b && b.meta && b.meta.total != null) dbOnSale = b.meta.total;
-    updateStats();
+    updateStats(); updateCount();
   } catch {}
 }
 
