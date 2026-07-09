@@ -165,6 +165,40 @@ async function writeArchive(allStartups) {
   return written;
 }
 
+// "Date added" map for the catalog "Added within N days" filter. We don't get a
+// listing date from TrustMRR, so we approximate it with first_seen — the earliest
+// day we saw the startup, stamped once in startup_archive (see
+// supabase-first-seen-migration.sql). Read it back after the archive upsert and
+// publish a compact { slug: 'YYYY-MM-DD' } blob to Redis; api/stats.js serves it to
+// the catalog. ~7400 × ~40 bytes ≈ 300 KB — comfortably a single Redis value.
+async function writeFirstSeen() {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !KV_REST_API_URL) return 0;
+  const headers = {
+    'apikey':        SUPABASE_SERVICE_ROLE_KEY,
+    'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+  };
+  const map = {};
+  // Page through startup_archive with Range headers (PostgREST caps a response at
+  // 1000 rows by default); select only the two columns we need.
+  for (let offset = 0; ; offset += 1000) {
+    let rows;
+    try {
+      const r = await fetch(
+        `${SUPABASE_URL}/rest/v1/startup_archive?select=slug,first_seen&first_seen=not.is.null`,
+        { headers: { ...headers, 'Range-Unit': 'items', 'Range': `${offset}-${offset + 999}` } },
+      );
+      if (!r.ok) { console.log(`  ⚠ first_seen read ${offset} → ${r.status}`); break; }
+      rows = await r.json();
+    } catch (e) { console.log(`  ⚠ first_seen read ${offset} error: ${e.message}`); break; }
+    if (!Array.isArray(rows) || rows.length === 0) break;
+    for (const row of rows) if (row && row.slug && row.first_seen) map[row.slug] = row.first_seen;
+    if (rows.length < 1000) break;
+  }
+  const n = Object.keys(map).length;
+  if (n) await redisSet('sm_first_seen_v1', { m: map, updatedAt: new Date().toISOString() }, 26 * 3600);
+  return n;
+}
+
 // Slug list for the dynamic /sitemap.xml (served by middleware.js straight from Redis).
 // Kept ~26h so a single missed sweep doesn't blank the sitemap; middleware falls back to
 // the main pages when the key is absent.
@@ -241,10 +275,11 @@ async function main() {
 
   const { written, pruned } = await writeSnapshots(allStartups);
   const archived = await writeArchive(allStartups);
+  const firstSeen = await writeFirstSeen();   // after archive: new rows exist before we read back
   const sitemapCount = await writeSitemap(allStartups);
 
   console.log(`\n─────────────────────────────────────`);
-  console.log(`Pages: ${page - 1} · startups: ${totalStartups} · snapshots: ${written} · archive: ${archived} · pruned: ${pruned} · sitemap: ${sitemapCount}`);
+  console.log(`Pages: ${page - 1} · startups: ${totalStartups} · snapshots: ${written} · archive: ${archived} · firstSeen: ${firstSeen} · pruned: ${pruned} · sitemap: ${sitemapCount}`);
 
   await recordParserRun('catalog', true, written, `${page - 1} стр. · снимков: ${written} · архив: ${archived} · sitemap: ${sitemapCount}`, totalStartups);
 }

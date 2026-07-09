@@ -362,6 +362,16 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
         </button>
         <div class="fgroup-b">
           <div class="sb-sub">
+            <div class="sb-label"><span data-i18n="idx.fltAdded">Добавлены</span> <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box" data-i18n="idx.tipAdded">Примерная дата появления стартапа на площадке (по нашим наблюдениям)</span></span></div>
+            <select class="sb-select" id="addedSelect" onchange="onAddedChange(this.value)">
+              <option value="0" data-i18n="idx.fltAddedAny">За всё время</option>
+              <option value="1" data-i18n="idx.fltAdded1d">За 24 часа</option>
+              <option value="7" data-i18n="idx.fltAdded7d">За 7 дней</option>
+              <option value="30" data-i18n="idx.fltAdded30d">За 30 дней</option>
+              <option value="90" data-i18n="idx.fltAdded90d">За 90 дней</option>
+            </select>
+          </div>
+          <div class="sb-sub">
             <div class="sb-label"><span data-i18n="idx.fltMargin">Маржа прибыли</span></div>
             <div class="range-row"><input class="sb-input" id="marginMin" type="text" placeholder="Min %"><div class="range-sep">-</div><input class="sb-input" id="marginMax" type="text" placeholder="Max %"></div>
           </div>
@@ -502,8 +512,17 @@ let filters = {
   mrrMin:0, mrrMax:0, rev30Min:0, rev30Max:0,
   priceMin:0, priceMax:0, growthMin:'', growthMax:'',
   multipleMax:0, marginMin:0, marginMax:0,
-  audience:'', mobile:'', saleFirst:false
+  audience:'', mobile:'', addedWithin:0, saleFirst:false
 };
+
+// "Date added" filter data. TrustMRR gives no listing date, so we approximate it with
+// the earliest day we saw each startup: a { slug: 'YYYY-MM-DD' } map published nightly
+// to Redis by the catalog sweep and served by /api/stats?section=firstseen. Loaded once,
+// cached in localStorage (24h). Until it's ready the date filter is a no-op so the grid
+// never blanks; fetchFirstSeen() re-applies once the map arrives.
+let firstSeenMap = {};
+let firstSeenReady = false;
+const FS_LS_KEY = 'sm_first_seen_v1';
 
 /* ── CACHE ─────────────────────────────────────────────────────────────────── */
 function cacheRead() {
@@ -892,7 +911,12 @@ function sortItems(arr) {
 function applyClientFilters(items, f) {
   f = f || filters;
   const q = (f.search||'').toLowerCase();
+  // "Added within N days": only enforce once the first-seen map has loaded, otherwise
+  // it's a no-op so the grid never blanks while the map is still in flight.
+  const addedCutoff = (f.addedWithin>0 && firstSeenReady)
+    ? Date.now() - f.addedWithin*86400000 : 0;
   const filtered = items.filter(s => {
+    if (addedCutoff) { const fs = firstSeenMap[s.slug]; if (!fs || Date.parse(fs+'T00:00:00Z') < addedCutoff) return false; }
     if (q && !s.name.toLowerCase().includes(q) && !(s.description||'').toLowerCase().includes(q)) return false;
     if (f.category && (s.category||'') !== f.category) return false;
     const mrr   = s.revenue&&s.revenue.mrr||0;
@@ -1175,6 +1199,28 @@ async function fetchTotalsMeta() {
   } catch {}
 }
 
+// Load the "date added" map (slug → earliest-seen date) for the "Added within N days"
+// filter. Instant from localStorage (24h TTL), then a background refresh. When it lands,
+// re-apply so an already-selected date window takes effect without a manual re-trigger.
+async function fetchFirstSeen() {
+  const applyMap = (map) => {
+    if (!map || !Object.keys(map).length) return;
+    firstSeenMap = map; firstSeenReady = true;
+    if (filters.addedWithin > 0) { displayItems = applyClientFilters(loadedItems); renderCards(); updateCount(); }
+  };
+  let cached = null;
+  try { cached = JSON.parse(localStorage.getItem(FS_LS_KEY)||'null'); } catch {}
+  if (cached && cached.map && cached.ts && Date.now()-cached.ts < 24*3600*1000) applyMap(cached.map);
+  if (cached && cached.ts && Date.now()-cached.ts < 6*3600*1000) return;   // fresh enough
+  try {
+    const r = await fetch(API+'/stats?section=firstseen').then(r=>r.json()).catch(()=>null);
+    if (r && r.map && Object.keys(r.map).length) {
+      try { localStorage.setItem(FS_LS_KEY, JSON.stringify({map:r.map, ts:Date.now()})); } catch {}
+      applyMap(r.map);
+    }
+  } catch {}
+}
+
 // True when the user has narrowed the catalog with anything beyond the on-sale/all
 // status toggle (search, category, or any range). Sorting doesn't count - same set.
 function hasActiveFilter() {
@@ -1182,7 +1228,7 @@ function hasActiveFilter() {
     filters.mrrMin || filters.mrrMax || filters.rev30Min || filters.rev30Max ||
     filters.priceMin || filters.priceMax || filters.growthMin!=='' || filters.growthMax!=='' ||
     filters.multipleMax || filters.marginMin || filters.marginMax ||
-    filters.audience || filters.mobile);
+    filters.audience || filters.mobile || filters.addedWithin);
 }
 
 function updateCount() {
@@ -1268,7 +1314,7 @@ function syncUrl(push) {
 // default "sale") is actually cleared, then overlay applyUrlParams().
 function restoreFromUrl() {
   const prevOnSale = filters.onSale;
-  filters = {onSale:true,category:'',sort:'revenue-desc',search:'',mrrMin:0,mrrMax:0,rev30Min:0,rev30Max:0,priceMin:0,priceMax:0,growthMin:'',growthMax:'',multipleMax:0,marginMin:0,marginMax:0,audience:'',mobile:'',saleFirst:false};
+  filters = {onSale:true,category:'',sort:'revenue-desc',search:'',mrrMin:0,mrrMax:0,rev30Min:0,rev30Max:0,priceMin:0,priceMax:0,growthMin:'',growthMax:'',multipleMax:0,marginMin:0,marginMax:0,audience:'',mobile:'',addedWithin:0,saleFirst:false};
   document.querySelectorAll('.sb-input').forEach(i=>{i.value='';toggleClear(i);});
   document.querySelectorAll('.sb-select').forEach(s=>s.selectedIndex=0);
   const si=document.getElementById('searchInput'); if(si) si.value='';
@@ -1325,6 +1371,10 @@ function onSortChange(v) {
   filters.sort = v; renderLimit = 60;
   displayItems = applyClientFilters(loadedItems); renderCards(); updateCount(); syncUrl(true); persistFilters();
 }
+function onAddedChange(v) {
+  filters.addedWithin = parseInt(v,10)||0; renderLimit = 60;
+  displayItems = applyClientFilters(loadedItems); renderCards(); updateCount(); persistFilters();
+}
 function onSearch(v) {
   filters.search=v.trim(); clearTimeout(searchTimer);
   searchTimer=setTimeout(()=>{renderLimit=60;displayItems=applyClientFilters(loadedItems);renderCards();updateCount();syncUrl();persistFilters();},300);
@@ -1341,6 +1391,7 @@ function applyFilters() {
   filters.marginMin=n('marginMin');filters.marginMax=n('marginMax');
   filters.audience=sel('audienceSelect');
   filters.mobile=sel('mobileSelect');
+  filters.addedWithin=parseInt(sel('addedSelect'),10)||0;
   renderLimit=60;
   displayItems=applyClientFilters(loadedItems);
   renderCards();updateCount();
@@ -1377,7 +1428,7 @@ function groupCounts() {
     categories: filters.category ? 1 : 0,
     fin: (filters.rev30Min||filters.rev30Max?1:0) + (filters.mrrMin||filters.mrrMax?1:0),
     deal: (filters.growthMin!==''||filters.growthMax!==''?1:0) + (filters.priceMin||filters.priceMax?1:0) + (filters.multipleMax?1:0),
-    more: (filters.marginMin||filters.marginMax?1:0) + (filters.audience?1:0) + (filters.mobile?1:0)
+    more: (filters.marginMin||filters.marginMax?1:0) + (filters.audience?1:0) + (filters.mobile?1:0) + (filters.addedWithin?1:0)
   };
 }
 function refreshGroupBadges() {
@@ -1410,7 +1461,8 @@ function readPanelFilters() {
     growthMin:stripSep(txt('growthMin')), growthMax:stripSep(txt('growthMax')),
     multipleMax:parseFloat(sel('multipleSelect'))||0,
     marginMin:num('marginMin'), marginMax:num('marginMax'),
-    audience:sel('audienceSelect'), mobile:sel('mobileSelect')
+    audience:sel('audienceSelect'), mobile:sel('mobileSelect'),
+    addedWithin:parseInt(sel('addedSelect'),10)||0
   });
 }
 function updateApplyCount() {
@@ -1430,6 +1482,7 @@ function updateFilterBadge() {
   if (filters.marginMin||filters.marginMax) n++;
   if (filters.audience) n++;
   if (filters.mobile) n++;
+  if (filters.addedWithin) n++;
   if (filters.onSale!==true) n++;
   const btn=document.getElementById('filterToggle'), b=document.getElementById('filterBadge');
   if (btn) btn.classList.toggle('has-active', n>0);
@@ -1445,7 +1498,7 @@ function resetFilters() {
   const ss=document.getElementById('sortSelect'); if(ss) ss.value='revenue-desc';
   const cdl=document.getElementById('catDDLabel'); if(cdl) cdl.textContent=t('idx','fltCatsAll');
   closeCatDD(); _catSig='';
-  filters={onSale:true,category:'',sort:'revenue-desc',search:'',mrrMin:0,mrrMax:0,rev30Min:0,rev30Max:0,priceMin:0,priceMax:0,growthMin:'',growthMax:'',multipleMax:0,marginMin:0,marginMax:0,audience:'',mobile:'',saleFirst:false};
+  filters={onSale:true,category:'',sort:'revenue-desc',search:'',mrrMin:0,mrrMax:0,rev30Min:0,rev30Max:0,priceMin:0,priceMax:0,growthMin:'',growthMax:'',multipleMax:0,marginMin:0,marginMax:0,audience:'',mobile:'',addedWithin:0,saleFirst:false};
   syncUrl(true); persistFilters();
   reloadFromAPI();
 }
@@ -1468,6 +1521,7 @@ function populateFilterInputs() {
   const ms=document.getElementById('multipleSelect'); if(ms) ms.value=filters.multipleMax?String(filters.multipleMax):'';
   const as=document.getElementById('audienceSelect'); if(as) as.value=filters.audience||'';
   const mo=document.getElementById('mobileSelect'); if(mo) mo.value=filters.mobile||'';
+  const ad=document.getElementById('addedSelect'); if(ad) ad.value=filters.addedWithin?String(filters.addedWithin):'0';
   const si=document.getElementById('searchInput'); if(si) si.value=filters.search||'';
   const ss=document.getElementById('sortSelect'); if(ss) ss.value=filters.sort||'revenue-desc';
   const cdl=document.getElementById('catDDLabel'); if(cdl) cdl.textContent=filters.category||t('idx','fltCatsAll');
@@ -1634,6 +1688,7 @@ function formatInput(inp){
 if (!restoreSavedFilters()) applyUrlParams();
 loadInitial();
 fetchTotalsMeta();
+fetchFirstSeen();
 </script>
 </body>
 </html>

@@ -80,6 +80,17 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
+  // "Date added" map for the catalog "Added within N days" filter: { slug: 'YYYY-MM-DD' }
+  // of the earliest day we saw each startup. Written nightly by scripts/refresh-catalog.js
+  // (writeFirstSeen) — see supabase-first-seen-migration.sql. Served here so we don't spend
+  // one of the 12 Hobby serverless slots on a dedicated endpoint.
+  if ((req.query && req.query.section) === 'firstseen') {
+    const fs = await redisGet('sm_first_seen_v1');
+    res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=86400');
+    res.setHeader('X-Cache', fs ? 'HIT' : 'EMPTY');
+    return res.status(200).json({ map: (fs && fs.m) || {}, updatedAt: (fs && fs.updatedAt) || null });
+  }
+
   const cached = await redisGet(STATS_KEY);
   if (cached && cached.total != null) {
     res.setHeader('X-Cache', 'HIT');
