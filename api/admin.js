@@ -64,12 +64,13 @@ async function overview(days, res) {
   const dates = lastDays(days);
 
   const cmds = [];
-  for (const d of dates) cmds.push(['GET', `sm_pv_${d}`], ['PFCOUNT', `sm_uv_${d}`]);
+  for (const d of dates) cmds.push(['GET', `sm_pv_${d}`], ['PFCOUNT', `sm_uv_${d}`], ['PFCOUNT', `sm_ruv_${d}`]);
   const pipe = (await redisPipeline(cmds)) || [];
   const traffic = dates.map((date, i) => ({
     date,
-    pageviews: parseInt(pipe[i * 2] && pipe[i * 2].result, 10) || 0,
-    visitors:  parseInt(pipe[i * 2 + 1] && pipe[i * 2 + 1].result, 10) || 0,
+    pageviews:    parseInt(pipe[i * 3] && pipe[i * 3].result, 10) || 0,
+    visitors:     parseInt(pipe[i * 3 + 1] && pipe[i * 3 + 1].result, 10) || 0,
+    regVisitors:  parseInt(pipe[i * 3 + 2] && pipe[i * 3 + 2].result, 10) || 0,
   }));
 
   let signups = [], totalUsers = null, listingCounts = {};

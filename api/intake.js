@@ -46,6 +46,14 @@ async function handleTrack(req, res) {
   if (slug) {
     cmds.push(['ZINCRBY', `sm_sv_${day}`, 1, slug], ['EXPIRE', `sm_sv_${day}`, COUNTER_TTL]);
   }
+  // Unique registered users per day. The client sends its Supabase user id (which
+  // it already holds in the session); we never store the raw id — only a salted
+  // hash goes into a HyperLogLog, so it stays private and costs no Supabase call.
+  const uid = typeof body.u === 'string' && /^[0-9a-f-]{16,64}$/i.test(body.u) ? body.u : '';
+  if (uid) {
+    const ruid = await sha256hex(`${uid}|${process.env.CRON_SECRET || 'sm'}`);
+    cmds.push(['PFADD', `sm_ruv_${day}`, ruid], ['EXPIRE', `sm_ruv_${day}`, COUNTER_TTL]);
+  }
   const pipe = await redisPipeline(cmds);
   // Health check: ?debug=1 reports whether the Redis writes landed (no values leaked).
   if (req.query.debug === '1') {

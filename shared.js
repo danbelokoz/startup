@@ -1138,7 +1138,7 @@ async function submitSellForm(modal) {
 // Anonymous page-load ping feeding the admin dashboard counters. No cookies and
 // no client ids - daily uniqueness is derived server-side from a salted
 // ip+ua hash that rotates every day. The admin page itself is not counted.
-(function trackVisit() {
+(async function trackVisit() {
   try {
     const path = location.pathname;
     if (path.startsWith('/admin')) return;
@@ -1153,10 +1153,20 @@ async function submitSellForm(modal) {
       p = 'startup';
       s = decodeURIComponent(path.split('/')[2] || '').replace(/\.html$/, '');
     }
+    // Attach the logged-in user's id so the server can count unique registered
+    // visitors (salted-hashed into a HyperLogLog — never stored raw). trackVisit
+    // runs while shared.js parses, before the page calls initNavAuth(), so briefly
+    // wait for the Supabase client. Best-effort — the beacon fires either way.
+    let u;
+    try {
+      for (let i = 0; i < 30 && !window._sb; i++) await new Promise(r => setTimeout(r, 100));
+      const sess = window._sb ? (await window._sb.auth.getSession()).data.session : null;
+      if (sess && sess.user && sess.user.id) u = sess.user.id;
+    } catch {}
     fetch('/api/track', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ p, s }),
+      body: JSON.stringify({ p, s, u }),
       keepalive: true,
     }).catch(() => {});
   } catch {}
