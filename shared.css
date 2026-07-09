@@ -43,6 +43,9 @@ body {
 }
 
 /* NAV - flex row: logo + tabs grouped on the left, controls pushed to the right */
+/* The nav is injected into #navPlaceholder; a sticky child only sticks within its
+   parent's box, so the wrapper itself must be sticky or the nav scrolls away. */
+#navPlaceholder { position: sticky; top: 0; z-index: 100; }
 nav {
   position: sticky; top: 0; z-index: 100;
   background: rgba(11,14,17,0.92);

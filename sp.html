@@ -11,7 +11,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=3" />
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=3" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=3" />
-  <link rel="stylesheet" href="/shared.css" />
+  <link rel="stylesheet" href="/shared.css?v=2" />
   <style>
     .back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--text2); font-size: 14px; text-decoration: none; padding: 8px 0; transition: color 0.15s; }
     .back-link:hover { color: var(--accent); }
@@ -248,6 +248,15 @@
   .chart-pill { font-size: 12px; font-weight: 600; color: var(--text3); background: transparent; border: none; border-radius: 6px; padding: 5px 11px; cursor: pointer; font-family: inherit; line-height: 1; transition: color 0.12s, background 0.12s; white-space: nowrap; }
   .chart-pill:hover { color: var(--text); }
   .chart-pill.active { background: var(--accent); color: #181A20; }
+  /* Mobile: metric select + period pills overflow the card on one row —
+     stack them full-width so nothing clips at the right edge */
+  @media (max-width: 560px) {
+    .chart-head { flex-direction: column; align-items: stretch; }
+    .chart-filters { width: 100%; flex-direction: column; align-items: stretch; gap: 8px; }
+    .chart-select { width: 100%; background-position: right 12px center; }
+    .chart-pills { display: flex; }
+    .chart-pill { flex: 1; text-align: center; padding: 6px 4px; }
+  }
   /* Interactive hover layer */
   .chart-wrap { position: relative; touch-action: pan-y; cursor: crosshair; -webkit-user-select: none; user-select: none; }
   .chart-band { position: absolute; top: 0; bottom: 0; background: rgba(255,255,255,0.06); border-left: 1px solid var(--accent); border-right: 1px solid var(--accent); pointer-events: none; opacity: 0; }
