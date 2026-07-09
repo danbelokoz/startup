@@ -20,7 +20,7 @@ import { redisGet, redisSet, redisPipeline, getUser } from './_lib.js';
 const SET_TTL   = 45 * 86400;   // month keys live ~45 days, then expire on their own
 const CAND_N    = 30;
 const CFG_KEY   = 'sm_vcfg';
-const DEFAULT_CFG = { enabled: true, min: 1, max: 10 };
+const DEFAULT_CFG = { enabled: true, min: 1, max: 10, visible: true };
 const AUTO_MAX_HOURS = 72;      // cap catch-up growth after a long idle gap
 
 // ── month helpers (UTC) ───────────────────────────────────────────────────────
@@ -60,17 +60,29 @@ export async function getConfig() {
     enabled: c.enabled !== false,
     min: Number.isFinite(+c.min) ? Math.max(0, Math.round(+c.min)) : DEFAULT_CFG.min,
     max: Number.isFinite(+c.max) ? Math.max(0, Math.round(+c.max)) : DEFAULT_CFG.max,
+    visible: c.visible !== false,   // page is public unless the owner hides it
   };
 }
 
-export async function setConfig({ enabled, min, max }) {
+export async function setConfig({ enabled, min, max, visible }) {
   const cur = await getConfig();
   let lo = Number.isFinite(+min) ? Math.max(0, Math.round(+min)) : cur.min;
   let hi = Number.isFinite(+max) ? Math.max(0, Math.round(+max)) : cur.max;
   if (hi < lo) [lo, hi] = [hi, lo];                 // tolerate swapped bounds
-  const cfg = { enabled: enabled != null ? !!enabled : cur.enabled, min: lo, max: hi };
+  const cfg = {
+    enabled: enabled != null ? !!enabled : cur.enabled,
+    min: lo, max: hi,
+    visible: visible != null ? !!visible : cur.visible,
+  };
   await redisSet(CFG_KEY, cfg);
   return cfg;
+}
+
+// Lightweight visibility check for callers that only need the public gate
+// (e.g. /api/auth surfaces this to hide the nav link site-wide).
+export async function isVoteVisible() {
+  const cfg = await getConfig();
+  return cfg.visible;
 }
 
 // ── candidate set (built once per month) ──────────────────────────────────────
@@ -159,6 +171,10 @@ async function applyAutoGrowth(ctx, cand) {
 // ── public board (GET /api/vote) ──────────────────────────────────────────────
 export async function getBoard({ baseUrl, token }) {
   const ctx = monthCtx();
+  // Owner can take the page down: return a hidden marker instead of the board.
+  const cfg = await getConfig();
+  if (!cfg.visible) return { ym: ctx.ym, endsAt: ctx.endsAt, candidates: [], hidden: true };
+
   const cand = await ensureSet(baseUrl, ctx);
   if (!cand.length) return { ym: ctx.ym, endsAt: ctx.endsAt, candidates: [], total: 0, myVote: null, building: true };
 
@@ -189,6 +205,8 @@ export async function getBoard({ baseUrl, token }) {
 // ── cast a vote (POST /api/vote, registered users only) ───────────────────────
 export async function castVote({ token, slug }) {
   const ctx = monthCtx();
+  const cfg = await getConfig();
+  if (!cfg.visible) return { status: 403, body: { error: 'Voting is closed' } };
   const user = await getUser(token);
   if (!user) return { status: 401, body: { error: 'Sign in to vote' } };
 

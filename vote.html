@@ -168,6 +168,28 @@ const VT = {
 };
 function vt(k){ const l=getLang(); return (VT[l]||VT.en)[k] || VT.en[k] || ''; }
 
+// Shown when the owner has hidden the page from the admin panel.
+const VT_CLOSED = {
+  en:{ title:'Voting is currently closed', sub:'The Startup of the Month vote is paused right now. Please check back later.' },
+  ru:{ title:'Голосование сейчас закрыто', sub:'Голосование за «Стартап месяца» приостановлено. Загляните позже.' },
+  de:{ title:'Die Abstimmung ist derzeit geschlossen', sub:'Die Wahl zum Startup des Monats ist gerade pausiert. Schau später wieder vorbei.' },
+  fr:{ title:'Le vote est actuellement fermé', sub:'Le vote pour la Startup du mois est en pause. Revenez plus tard.' },
+  it:{ title:'Le votazioni sono chiuse', sub:'Il voto per la Startup del mese è in pausa. Torna più tardi.' },
+  zh:{ title:'投票暂时关闭', sub:'“本月创业公司”投票已暂停，请稍后再来。' },
+  ar:{ title:'التصويت مغلق حاليًا', sub:'تم إيقاف التصويت لشركة الشهر مؤقتًا. عد لاحقًا.' },
+};
+function vtc(k){ const l=getLang(); return (VT_CLOSED[l]||VT_CLOSED.en)[k] || VT_CLOSED.en[k] || ''; }
+
+function renderClosed(){
+  document.querySelector('.vote-meta')?.style.setProperty('display','none');
+  const champEl = document.getElementById('champ'); if (champEl) champEl.innerHTML = '';
+  const card = document.querySelector('.vote-card');
+  if (card) card.innerHTML = '<div class="vote-msg" style="padding:48px 20px;">'
+    + '<span style="font-size:17px;font-weight:600;color:var(--text);">' + escHtml(vtc('title')) + '</span>'
+    + '<span style="margin-top:8px;">' + escHtml(vtc('sub')) + '</span></div>';
+  document.getElementById('tFoot').textContent = '';
+}
+
 let CAND_COUNT = 30;   // updated from the server board once loaded
 
 const now = new Date();
@@ -187,6 +209,12 @@ async function loadBoard() {
     const token = authToken();
     const r = await fetch('/api/vote', { headers: token ? { Authorization: 'Bearer ' + token } : {} });
     const j = await r.json();
+    if (j.hidden) {   // owner took the page down from the admin panel
+      if (window.applyVoteVisibility) applyVoteVisibility(true);
+      renderClosed();
+      return;
+    }
+    if (window.applyVoteVisibility) applyVoteVisibility(false);
     board = { candidates: j.candidates || [], myVote: j.myVote || null, endsAt: j.endsAt || null, building: !!j.building };
     if (board.candidates.length) CAND_COUNT = board.candidates.length;
     document.getElementById('tCandCount').textContent = CAND_COUNT;

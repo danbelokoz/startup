@@ -366,7 +366,7 @@ export default async function handler(req, res) {
         return res.status(r.ok ? 200 : 400).json(r);
       }
       if (body.action === 'vote_config') {
-        const cfg = await setConfig({ enabled: body.enabled, min: body.min, max: body.max });
+        const cfg = await setConfig({ enabled: body.enabled, min: body.min, max: body.max, visible: body.visible });
         return res.status(200).json({ ok: true, config: cfg });
       }
       if (body.action === 'vote_rebuild') {

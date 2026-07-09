@@ -540,6 +540,21 @@ function applyLangToDoc() {
   });
 }
 
+// The owner can hide the /vote page from the admin panel. The authoritative flag
+// comes from /api/auth (voteHidden), but we cache the last-known value so the nav
+// renders without the link immediately — no flash of a link that's about to vanish.
+function isVoteHidden() { try { return localStorage.getItem('sm_vote_hidden') === '1'; } catch { return false; } }
+window.isVoteHidden = window.isVoteHidden || isVoteHidden;   // guard for cached inline callers
+
+// Sync the cached flag with the server truth and toggle the nav link on every
+// page. Called after each /api/auth response (see updateNavAuth).
+function applyVoteVisibility(hidden) {
+  hidden = !!hidden;
+  try { localStorage.setItem('sm_vote_hidden', hidden ? '1' : '0'); } catch {}
+  document.querySelectorAll('.nav-link-vote, .mm-link-vote').forEach(a => { a.style.display = hidden ? 'none' : ''; });
+}
+window.applyVoteVisibility = window.applyVoteVisibility || applyVoteVisibility;
+
 function buildNavHTML(activePage) {
   const lang = getLang();
   const l = T[lang] || T.en;
@@ -559,7 +574,7 @@ function buildNavHTML(activePage) {
   <nav>
     <a class="nav-logo" href="/">${logoSvg}</a>
     <div class="nav-center">
-      ${links.map(n => `<a href="${n.href}" class="nav-link ${n.active?'active':''}">${label(n.key)}</a>`).join('')}
+      ${links.map(n => `<a href="${n.href}" class="nav-link nav-link-${n.key} ${n.active?'active':''}"${n.key==='vote'&&isVoteHidden()?' style="display:none"':''}>${label(n.key)}</a>`).join('')}
     </div>
     <div class="nav-right">
       <div class="lang-switcher" id="langSwitcher">
@@ -583,7 +598,7 @@ function buildNavHTML(activePage) {
         <button class="mm-close" aria-label="Close" onclick="toggleMobileMenu(false)">${icon('x',{size:20})}</button>
       </div>
       <div class="mm-links">
-        ${links.map(n => `<a href="${n.href}" class="mm-link ${n.active?'active':''}">${label(n.key)}</a>`).join('')}
+        ${links.map(n => `<a href="${n.href}" class="mm-link mm-link-${n.key} ${n.active?'active':''}"${n.key==='vote'&&isVoteHidden()?' style="display:none"':''}>${label(n.key)}</a>`).join('')}
       </div>
       <div class="mm-divider"></div>
       <div id="navAuthMobile" class="mm-auth"></div>
@@ -771,6 +786,7 @@ async function updateNavAuth(session) {
     if (r.ok) {
       window._access = await r.json();
       maybeShowAdminLink();
+      applyVoteVisibility(window._access.voteHidden);
       window.dispatchEvent(new CustomEvent('navAuthUpdated'));
     }
   } catch {}

@@ -4,8 +4,17 @@
 // Both endpoints read:  Authorization: Bearer <supabase-jwt>
 // All DB operations use the service role key (bypasses RLS).
 
+import { isVoteVisible } from './_votes.js';
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+// Best-effort read of the vote-page visibility flag (Redis). Never throws — if
+// Redis is unavailable we assume the page is shown. Surfaced on GET so shared.js
+// can hide the /vote nav link across every page.
+async function voteHidden() {
+  try { return (await isVoteVisible()) === false; } catch { return false; }
+}
 
 // ── Supabase HTTP wrapper ─────────────────────────────────────────────────────
 async function sb(path, { method = 'GET', userToken, body } = {}) {
@@ -63,7 +72,7 @@ export default async function handler(req, res) {
   // Graceful degradation when Supabase is not configured (e.g. local dev)
   if (!SUPABASE_URL || !SERVICE_KEY) {
     if (req.method === 'GET') {
-      return res.status(200).json({ authenticated: false, role: 'guest', viewsLeft: 3 });
+      return res.status(200).json({ authenticated: false, role: 'guest', viewsLeft: 3, voteHidden: await voteHidden() });
     }
     return res.status(503).json({ error: 'Auth service not configured' });
   }
@@ -74,13 +83,13 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     // No token → guest
     if (!token) {
-      return res.status(200).json({ authenticated: false, role: 'guest', viewsLeft: 3 });
+      return res.status(200).json({ authenticated: false, role: 'guest', viewsLeft: 3, voteHidden: await voteHidden() });
     }
 
     const user = await getUser(token);
     if (!user) return res.status(401).json({ error: 'Invalid or expired token' });
 
-    const access = await getAccess(user.id);
+    const [access, vHidden] = await Promise.all([getAccess(user.id), voteHidden()]);
     return res.status(200).json({
       authenticated: true,
       userId:        user.id,
@@ -88,6 +97,7 @@ export default async function handler(req, res) {
       role:          access.role,
       viewsUsed:     access.views_used,
       viewsLeft:     access.views_left,
+      voteHidden:    vHidden,
     });
   }
 
