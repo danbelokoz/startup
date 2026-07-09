@@ -43,6 +43,16 @@
   .cb-actions{max-width:820px;margin:16px auto 0;padding:0 16px;display:none;gap:10px;align-items:center;}
   .cb-note{font-size:12px;color:var(--text3);}
 
+  /* ── Выбор метрики графика (не попадает в PNG — вне карточки) ─────────── */
+  .cb-metrics{max-width:820px;margin:12px auto 0;padding:0 16px;display:none;
+    flex-wrap:wrap;gap:8px;align-items:center;}
+  .cbm-label{font-size:12px;color:var(--text3);margin-right:2px;}
+  .cbm-pill{background:var(--bg2);color:var(--text2);border:1px solid var(--border);
+    border-radius:999px;padding:6px 13px;font-size:12px;font-weight:600;cursor:pointer;
+    transition:border-color .12s,color .12s,background .12s;}
+  .cbm-pill:hover{border-color:var(--text3);color:var(--text);}
+  .cbm-pill.sel{background:var(--yellow);color:#1A1A1A;border-color:var(--yellow);}
+
   /* ── Область просмотра карточки ─────────────────── */
   .cb-stage{margin:18px auto 60px;overflow-x:auto;padding:0 16px;}
   .cb-stage-inner{width:210mm;margin:0 auto;}
@@ -151,6 +161,9 @@
   <span class="cb-note">Высокое разрешение (×3), фон прозрачный не сохраняется — берётся фон карточки.</span>
 </div>
 
+<div class="cb-metrics" id="cbMetrics">
+</div>
+
 <div class="cb-empty" id="cbEmpty">
   Введите название стартапа (поиск по каталогу), его <b>slug</b> или вставьте ссылку вида
   <b>/startup/имя-стартапа</b> — и получите готовую карточку со всеми метриками.<br/>
@@ -172,6 +185,22 @@ function money(v){
   if (v === null || v === undefined || v === '' || Number.isNaN(Number(v))) return '—';
   return '$' + Math.round(Number(v)).toLocaleString('ru-RU');
 }
+function num(v){
+  if (v === null || v === undefined || v === '' || Number.isNaN(Number(v))) return '—';
+  return Math.round(Number(v)).toLocaleString('ru-RU');
+}
+
+/* Метрики графика: колонка в daily_snapshots + подпись + форматтер + «живое»
+ * значение из /api/startup, которым прикалываем последнюю точку. Все колонки
+ * уже приходят в /api/history (одна строка на день), выбор — чисто клиентский. */
+const CHART_METRICS = [
+  { key:'mrr_cents',     label:'MRR',                  fmt:money, live:s => s.revenue && s.revenue.mrr },
+  { key:'rev30d_cents',  label:'Выручка (30 дн.)',     fmt:money, live:s => s.revenue && s.revenue.last30Days },
+  { key:'total_cents',   label:'Выручка за всё время', fmt:money, live:s => s.revenue && s.revenue.total },
+  { key:'customers',     label:'Клиенты',              fmt:num,   live:s => s.customers },
+  { key:'subscriptions', label:'Подписки',             fmt:num,   live:s => s.activeSubscriptions },
+  { key:'visitors_30d',  label:'Посетители (30 дн.)',  fmt:num,   live:s => s.visitorsLast30Days },
+];
 function pct(v){ // "12,6%"
   const n = Number(v);
   if (!Number.isFinite(n)) return '';
@@ -321,8 +350,9 @@ async function loadCard(slug){
   }
 }
 
-/* ── Плавный график MRR (Catmull-Rom → Bezier) ─────────────────────────── */
-function buildChart(series){
+/* ── Плавный график метрики (Catmull-Rom → Bezier) ─────────────────────── */
+function buildChart(series, fmt){
+  fmt = fmt || money;
   // series: [{date, val}] по возрастанию даты. Берём последние 30 точек.
   const pts = series.filter(p => p.val != null && Number.isFinite(Number(p.val)));
   if (pts.length < 2) return null;
@@ -350,9 +380,9 @@ function buildChart(series){
   // Сетка: три линии min / mid / max.
   const vMid = (vMin + vMax) / 2;
   const grid = [
-    { y: yMin, lbl: money(vMin) },
-    { y: (yMin + yMax) / 2, lbl: money(vMid) },
-    { y: yMax, lbl: money(vMax) },
+    { y: yMin, lbl: fmt(vMin) },
+    { y: (yMin + yMax) / 2, lbl: fmt(vMid) },
+    { y: yMax, lbl: fmt(vMax) },
   ].map(g => `<line x1="10" y1="${f(g.y)}" x2="688" y2="${f(g.y)}" stroke="var(--border)" stroke-width="1" stroke-dasharray="2 4"/>`
     + `<text x="688" y="${f(g.y-3)}" text-anchor="end" font-size="10" fill="var(--text3)">${esc(g.lbl)}</text>`).join('');
   const midIdx = Math.floor((n - 1) / 2);
@@ -374,6 +404,64 @@ function buildChart(series){
     svg, cur: last.val, min: vMin, max: vMax, days: n,
     lastDate: last.date, firstDate: xy[0].date,
   };
+}
+
+/* ── Выбор метрики графика ─────────────────────────────────────────────── */
+let CARD_S = null, CARD_HIST = [], CARD_METRIC = 'mrr_cents';
+
+// Ряд значений для метрики + прикол последней точки к живому значению.
+function metricSeries(s, hist, m){
+  const series = hist.map(r => ({ date: r.snap_date, val: r[m.key] }));
+  const live = m.live(s);
+  if (live != null && Number.isFinite(Number(live)) && series.length){
+    const today = new Date().toISOString().slice(0, 10);
+    const last = series[series.length - 1];
+    if (last && last.date === today) last.val = live;
+    else series.push({ date: today, val: live });
+  }
+  return series;
+}
+function metricHasData(s, hist, m){
+  return metricSeries(s, hist, m)
+    .filter(p => p.val != null && Number.isFinite(Number(p.val))).length >= 2;
+}
+
+// HTML одной секции графика (внутри карточки → попадает в PNG).
+function buildChartSection(s, hist, metricKey){
+  const m = CHART_METRICS.find(x => x.key === metricKey) || CHART_METRICS[0];
+  const chart = buildChart(metricSeries(s, hist, m), m.fmt);
+  if (!chart) return '';
+  return `
+    <div class="sec-title">Динамика · ${esc(m.label)} · по дням</div>
+    <div class="chart-card">
+      <div class="chart-head">
+        <div>
+          <div class="chart-cur">${m.fmt(chart.cur)}</div>
+          <div class="chart-meta">на ${esc(ruDayMonth(chart.lastDate))} · диапазон ${m.fmt(chart.min)} – ${m.fmt(chart.max)} за ${chart.days} дн.</div>
+        </div>
+        <div class="chart-legend"><span class="lg-dot"></span>${esc(m.label)}, снимок ежедневно в 3:00 UTC</div>
+      </div>
+      ${chart.svg}
+    </div>`;
+}
+
+// Панель-переключатель метрик (вне карточки → в PNG не попадает).
+function renderMetricBar(available){
+  const bar = document.getElementById('cbMetrics');
+  if (!available.length){ bar.style.display = 'none'; bar.innerHTML = ''; return; }
+  bar.innerHTML = `<span class="cbm-label">Метрика на графике:</span>` + available.map(m =>
+    `<button class="cbm-pill${m.key === CARD_METRIC ? ' sel' : ''}" data-metric="${m.key}">${esc(m.label)}</button>`).join('');
+  bar.style.display = 'flex';
+  bar.querySelectorAll('.cbm-pill').forEach(el =>
+    el.addEventListener('click', () => selectMetric(el.dataset.metric)));
+}
+function selectMetric(key){
+  if (!CARD_S || key === CARD_METRIC) return;
+  CARD_METRIC = key;
+  const slot = document.getElementById('cardChartSlot');
+  if (slot) slot.innerHTML = buildChartSection(CARD_S, CARD_HIST, key);
+  document.querySelectorAll('#cbMetrics .cbm-pill').forEach(el =>
+    el.classList.toggle('sel', el.dataset.metric === key));
 }
 
 /* ── Рендер карточки ───────────────────────────────────────────────────── */
@@ -467,30 +555,14 @@ function render(s, enrich, hist){
     ${multCard}
   `;
 
-  // ── График ──
-  const series = hist.map(r => ({ date: r.snap_date, val: r.mrr_cents }));
-  if (rev.mrr != null && series.length) {
-    // Приколоть последнюю точку к живому значению MRR (как на странице стартапа).
-    const today = new Date().toISOString().slice(0, 10);
-    const last = series[series.length - 1];
-    if (last && last.date === today) last.val = rev.mrr;
-    else series.push({ date: today, val: rev.mrr });
-  }
-  const chart = buildChart(series);
-  const chartSection = chart ? `
-    <div class="sec">
-      <div class="sec-title">Динамика MRR · по дням</div>
-      <div class="chart-card">
-        <div class="chart-head">
-          <div>
-            <div class="chart-cur">${money(chart.cur)}</div>
-            <div class="chart-meta">на ${esc(ruDayMonth(chart.lastDate))} · диапазон ${money(chart.min)} – ${money(chart.max)} за ${chart.days} дн.</div>
-          </div>
-          <div class="chart-legend"><span class="lg-dot"></span>MRR, снимок ежедневно в 3:00 UTC</div>
-        </div>
-        ${chart.svg}
-      </div>
-    </div>` : '';
+  // ── График (выбор метрики) ──
+  CARD_S = s; CARD_HIST = hist;
+  const available = CHART_METRICS.filter(m => metricHasData(s, hist, m));
+  // По умолчанию — MRR, если по нему есть данные; иначе первая доступная метрика.
+  CARD_METRIC = available.some(m => m.key === 'mrr_cents')
+    ? 'mrr_cents' : (available[0] ? available[0].key : 'mrr_cents');
+  const chartSection = available.length
+    ? `<div class="sec" id="cardChartSlot">${buildChartSection(s, hist, CARD_METRIC)}</div>` : '';
 
   // ── Сделка ──
   const dealRows = [];
@@ -562,6 +634,7 @@ function render(s, enrich, hist){
   document.getElementById('cbEmpty').style.display = 'none';
   document.getElementById('cbStage').style.display = 'block';
   document.getElementById('cbActions').style.display = 'flex';
+  renderMetricBar(available);
 }
 
 function mCard(label, value, sub){
@@ -609,6 +682,7 @@ document.getElementById('cbReset').addEventListener('click', () => {
   document.getElementById('cardHost').innerHTML = '';
   document.getElementById('cbStage').style.display = 'none';
   document.getElementById('cbActions').style.display = 'none';
+  document.getElementById('cbMetrics').style.display = 'none';
   document.getElementById('cbEmpty').style.display = 'block';
   input.value = ''; setStatus(indexDone ? INDEX.length + ' стартапов в поиске.' : ''); input.focus();
 });
