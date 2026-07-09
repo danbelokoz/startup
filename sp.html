@@ -142,6 +142,13 @@
   .reg-gate-text strong { font-size: 13px; color: var(--text); }
   .reg-gate-text span { font-size: 12px; color: var(--text2); }
   .reg-gate .btn { white-space: nowrap; flex-shrink: 0; }
+  /* Founder row: X avatar + name, external-link affordance when it deeplinks to X */
+  .founder-cell { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; }
+  .founder-avatar { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; flex-shrink: 0; background: var(--bg3); }
+  a.founder-link { color: inherit; text-decoration: none; transition: color 0.15s; }
+  a.founder-link svg { color: var(--text3); flex-shrink: 0; transition: color 0.15s; }
+  a.founder-link:hover { color: var(--accent); }
+  a.founder-link:hover svg { color: var(--accent); }
   /* Enrichment additions */
   .pp-section { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; margin-bottom: 16px; box-shadow: var(--shadow); }
   .pp-section h4 { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text3); margin-bottom: 8px; }
@@ -387,42 +394,55 @@ window.addEventListener('DOMContentLoaded', async () => {
   renderCmpBtns();   // reflect any existing compare queue immediately (slug from URL)
   const slug = location.pathname.replace('/startup/','').replace('.html','');
 
-  // 1. Try sessionStorage first (instant when navigating from catalog)
+  // 1. Paint instantly from the catalog cache (sessionStorage → IndexedDB) when
+  //    we have it, THEN always reconcile with the authoritative /api/startup
+  //    payload in the background. Detail-only fields (founder name/photo, X
+  //    profile, enrichment) aren't in the catalog snapshot, and an older snapshot
+  //    can predate fields upstream added later — so the early-return view used to
+  //    stay stale (e.g. missing founder). The background refresh fills them in.
+  let painted = false;
   try {
     const cached = sessionStorage.getItem('startup_detail');
     if (cached) {
       const s = JSON.parse(cached);
-      if (s.slug === slug) { renderStartup(s); checkListingStatus(slug); return; }
+      if (s.slug === slug) { renderStartup(s); painted = true; }
     }
   } catch(e) {}
 
-  // 2. Try IndexedDB (works even if API is dead)
-  const fromIdb = await idbGetOne(slug);
-  if (fromIdb) { renderStartup(fromIdb); checkListingStatus(slug); return; }
+  // 2. IndexedDB snapshot (works even if the network/API is down)
+  if (!painted) {
+    const fromIdb = await idbGetOne(slug);
+    if (fromIdb) { renderStartup(fromIdb); painted = true; }
+  }
 
-  // 3. Fall back to API
-  loadStartup(slug);
+  // 3. Authoritative load. When we already painted from cache this runs silently
+  //    in the background (won't clobber the view on a transient error) and also
+  //    covers the delisted/archived check; otherwise it's the primary fetch.
+  loadStartup(slug, { background: painted });
 });
 
-async function loadStartup(slug) {
+async function loadStartup(slug, opts) {
+  // background=true: we already painted from the catalog cache, so this is a
+  // silent reconcile — never tear the view down on a transient failure.
+  const background = !!(opts && opts.background);
   if (!slug) slug = location.pathname.replace('/startup/','').replace('.html','');
   let res;
   try {
     res = await fetch(`/api/startup?slug=${encodeURIComponent(slug)}&lang=${encodeURIComponent(getLang())}`);
   } catch(e) {
-    return showLoadError();
+    return background ? undefined : showLoadError();
   }
-  // 404 = the startup is gone from the source (delisted/removed). With no cached
-  // snapshot to fall back on, show an archived view built from whatever history
-  // we still hold, rather than a bare "not found".
-  if (res.status === 404) return renderArchived(slug);
-  if (!res.ok) return showLoadError();
+  // 404 = the startup is gone from the source (delisted/removed). On a primary
+  // load show the archived view built from stored history; in the background just
+  // flag it so the cached paint stays put with an "archived" banner.
+  if (res.status === 404) return background ? markArchived() : renderArchived(slug);
+  if (!res.ok) return background ? undefined : showLoadError();
   try {
     const body = await res.json();
     renderStartup(body.data);
     // Server flags a delisted startup served from our archive snapshot.
     if (body.archived) markArchived(body.lastSeen);
-  } catch(e) { showLoadError(); }
+  } catch(e) { if (!background) showLoadError(); }
 }
 
 function showLoadError() {
@@ -434,20 +454,11 @@ function showLoadError() {
 // page then keeps showing the last cached snapshot + stored chart history, which
 // looks like the data silently froze. We probe the source and, when it's gone,
 // surface a banner that says so and dates the last figures we have.
+// Only an explicit 404 marks a listing archived - network/other errors are
+// ignored so a transient hiccup can't mislabel a live startup. loadStartup()
+// now performs this probe as part of every load (primary or background refresh).
 let _isArchived   = false;
 let _lastDataDate = null;   // YYYY-MM-DD of the freshest data we hold (for the note)
-
-// Only an explicit 404 marks a listing archived - network/other errors are
-// ignored so a transient hiccup can't mislabel a live startup.
-async function checkListingStatus(slug) {
-  try {
-    const res = await fetch(`/api/startup?slug=${encodeURIComponent(slug)}`);
-    if (res.status === 404) { markArchived(); return; }
-    const body = await res.json().catch(() => null);
-    if (body && body.archived) markArchived(body.lastSeen);
-    else if (res.ok) { _isArchived = false; renderArchiveBanner(); }
-  } catch(e) {}
-}
 
 // dateStr (from the server's lastSeen) pins the banner date precisely; without it
 // we fall back to the freshest loaded data point.
@@ -728,11 +739,17 @@ function renderStartup(s) {
   // so key the row off the handle and show it linked to the founder's X profile.
   // Blurred (and unlinked) for guests, matching the cofounder chips above.
   const founderName = s.xFounderName || (s.xHandle ? '@' + s.xHandle : '');
+  // Founder avatar straight from the X profile picture (TrustMRR passthrough).
+  const founderPic = s.xProfilePicture
+    ? `<img class="founder-avatar" src="${escHtml(s.xProfilePicture)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()"/>`
+    : '';
   const founderRow = founderName
     ? `<tr><td>Founder</td><td>${
-        wantBlur ? `<span class="paywall-blur owner-blur">${escHtml(founderName)}</span>`
-        : s.xHandle ? `<a href="https://x.com/${escHtml(s.xHandle)}" target="_blank" style="color:inherit;text-decoration:none">${escHtml(founderName)}</a>`
-        : escHtml(founderName)
+        wantBlur ? `<span class="founder-cell paywall-blur owner-blur">${founderPic}<span>${escHtml(founderName)}</span></span>`
+        // Logged in + we have the handle: link to the X profile. The trailing
+        // external-link glyph signals it's a deeplink out to x.com.
+        : s.xHandle ? `<a class="founder-cell founder-link" href="https://x.com/${escHtml(s.xHandle)}" target="_blank" rel="noopener">${founderPic}<span>${escHtml(founderName)}</span>${icon('externalLink',{size:12})}</a>`
+        : `<span class="founder-cell">${founderPic}<span>${escHtml(founderName)}</span></span>`
       }</td></tr>`
     : '';
 

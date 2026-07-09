@@ -139,7 +139,7 @@ function pickFields(obj) {
     'cachedOfferCount', 'cachedRank', 'cachedUniquePageviews',
     'hasDatafast', 'hasGA', 'hasGSC',
     'stealthMode', 'lookingForCofounder',
-    'xFollowerCount', 'xFounderName',
+    'xFollowerCount', 'xFounderName', 'xProfilePicture',
     'listingTier', 'mcc',
     'githubActivity',
     'mrrLastSyncedAt', 'revenueLastSyncedAt',
