@@ -178,21 +178,25 @@ async function writeFirstSeen() {
     'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
   };
   const map = {};
-  // Page through startup_archive with Range headers (PostgREST caps a response at
-  // 1000 rows by default); select only the two columns we need.
-  for (let offset = 0; ; offset += 1000) {
+  const PAGE = 1000, MAX_PAGES = 60;   // MAX_PAGES caps this at 60k rows — a hard stop so
+                                       // a mispaginated response can never loop to timeout.
+  // Page through startup_archive with explicit limit/offset (NOT Range headers — if
+  // PostgREST ignores Range and returns the full table each pass, rows.length stays
+  // ≥PAGE forever and the loop never terminates; limit guarantees ≤PAGE per page so the
+  // short-page break is reliable). Ordered by slug so paging is stable.
+  for (let page = 0; page < MAX_PAGES; page++) {
     let rows;
     try {
       const r = await fetch(
-        `${SUPABASE_URL}/rest/v1/startup_archive?select=slug,first_seen&first_seen=not.is.null`,
-        { headers: { ...headers, 'Range-Unit': 'items', 'Range': `${offset}-${offset + 999}` } },
+        `${SUPABASE_URL}/rest/v1/startup_archive?select=slug,first_seen&first_seen=not.is.null&order=slug.asc&limit=${PAGE}&offset=${page * PAGE}`,
+        { headers, signal: AbortSignal.timeout(20000) },   // never let a hung socket stall the job
       );
-      if (!r.ok) { console.log(`  ⚠ first_seen read ${offset} → ${r.status}`); break; }
+      if (!r.ok) { console.log(`  ⚠ first_seen read p${page} → ${r.status}`); break; }
       rows = await r.json();
-    } catch (e) { console.log(`  ⚠ first_seen read ${offset} error: ${e.message}`); break; }
+    } catch (e) { console.log(`  ⚠ first_seen read p${page} error: ${e.message}`); break; }
     if (!Array.isArray(rows) || rows.length === 0) break;
     for (const row of rows) if (row && row.slug && row.first_seen) map[row.slug] = row.first_seen;
-    if (rows.length < 1000) break;
+    if (rows.length < PAGE) break;
   }
   const n = Object.keys(map).length;
   if (n) await redisSet('sm_first_seen_v1', { m: map, updatedAt: new Date().toISOString() }, 26 * 3600);
