@@ -116,8 +116,32 @@ async function dropDead(data) {
   return data;
 }
 
+// A "TrustMRR stub" listing has no independently verifiable presence: its only link
+// points back at trustmrr.com (a placeholder, not the company's own site) or it names
+// trustmrr in the description. These can't be checked out by a buyer, so we strip them
+// from every catalog response server-side - the nightly sweep may keep writing them
+// into Redis, but they never reach the client. (Client-side filters mirror this.)
+function isTrustmrrStub(s) {
+  if (!s) return false;
+  const w = String(s.website || '').toLowerCase();
+  if (w.includes('trustmrr')) return true;
+  const d = String(s.description || '').toLowerCase();
+  return d.includes('trustmrr');
+}
+function dropStubs(data) {
+  try {
+    if (data && Array.isArray(data.data) && data.data.length) {
+      data.data = data.data.filter(s => !isTrustmrrStub(s));
+    }
+  } catch {}
+  return data;
+}
+
 async function withOurDescriptions(data, lang) {
   try {
+    // Strip trustmrr stubs BEFORE overlaying our rewritten descriptions - the overlay
+    // replaces s.description, so we must test the original text (and the website) first.
+    dropStubs(data);
     const items = data && Array.isArray(data.data) ? data.data : [];
     if (!items.length) return data;
     const map = await getDescMap();
