@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Концепт 10 — панель рынка: виджеты</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_tokens.css">
+<style>
+main{max-width:1240px;margin:0 auto;padding:26px 24px 60px}
+.head{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+h1{font-size:26px;font-weight:700}
+.head .muted{margin-right:auto}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.tile{background:var(--bg-2);border-radius:12px;padding:16px 18px;display:flex;justify-content:space-between;gap:8px}
+.tile .lab{font-size:12px;color:var(--text-3)}
+.tile b{display:block;font-size:24px;font-weight:700;margin:4px 0 2px}
+.tile .d{font-size:12px;font-weight:600}
+.mid{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:14px;margin:14px 0}
+.widget{background:var(--bg-2);border-radius:12px;padding:18px}
+.widget h3{font-size:14px;font-weight:600;margin-bottom:14px;display:flex;justify-content:space-between}
+.widget h3 a{font-size:12px;color:var(--text-3);font-weight:400}
+.widget h3 a:hover{color:var(--yellow)}
+.donutwrap{display:flex;align-items:center;gap:22px}
+.donut{width:132px;height:132px;border-radius:50%;position:relative;flex:none}
+.donut::after{content:'';position:absolute;inset:18px;border-radius:50%;background:var(--bg-2)}
+.donut span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:1;font-weight:700;font-size:15px}
+.leg{flex:1}
+.leg div{display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;color:var(--text-2)}
+.leg i{width:9px;height:9px;border-radius:2px;flex:none}
+.leg b{margin-left:auto;color:var(--text-1);font-weight:500}
+.wrow{display:flex;align-items:center;gap:10px;padding:7px 0;font-size:13px}
+.wrow .v{margin-left:auto;font-weight:500}
+.tblc td{padding:10px 16px}
+section.tabl{background:var(--bg-2);border-radius:12px;padding:8px 4px 4px;}
+.nm b{font-size:14px}
+</style>
+</head>
+<body>
+<div id="nav"></div>
+<main>
+  <div class="head">
+    <h1>Панель рынка</h1><span class="muted">обновлено сегодня, 04:00 UTC</span>
+    <button class="btn-g sm">Экспорт</button><button class="btn-y sm">Смотреть каталог</button>
+  </div>
+  <div class="tiles" id="tiles"></div>
+  <div class="mid">
+    <div class="widget">
+      <h3>Категории по MRR <a>Подробнее ›</a></h3>
+      <div class="donutwrap">
+        <div class="donut" id="donut"><span id="donutLbl"></span></div>
+        <div class="leg" id="leg"></div>
+      </div>
+    </div>
+    <div class="widget">
+      <h3>Топ роста <a>Все ›</a></h3>
+      <div id="wGrowth"></div>
+    </div>
+    <div class="widget">
+      <h3>Новые листинги <a>Все ›</a></h3>
+      <div id="wNew"></div>
+    </div>
+  </div>
+  <section class="tabl">
+    <table class="tbl tblc">
+      <thead><tr><th>Стартап</th><th class="num">MRR</th><th class="num">Рост 30д</th><th class="num">Динамика</th><th class="num">Цена</th><th class="num"></th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </section>
+</main>
+<script src="_mock.js"></script>
+<script>
+document.getElementById('nav').outerHTML = buildNav('Каталог');
+document.getElementById('tiles').innerHTML = [
+  ['Суммарный MRR', F.usd(TOTAL_MRR), '+8,4 % за месяц', 'up', STARTUPS[0]],
+  ['Стартапов в базе', '7 412', '+96 за неделю', 'up', STARTUPS[1]],
+  ['На продаже', '312', '+12 новых', 'up', STARTUPS[5]],
+  ['Средний мультипликатор', '×3,2', '−0,2 к прошлому месяцу', 'down', STARTUPS[6]],
+].map(([l, v, d, c, s]) => `<div class="tile"><div><div class="lab">${l}</div><b>${v}</b><div class="d ${c}">${d}</div></div>${spark(s, 86, 48)}</div>`).join('');
+
+/* донат по категориям через conic-gradient */
+const byCat = {};
+STARTUPS.forEach(s => byCat[s.cat] = (byCat[s.cat] || 0) + s.mrr);
+const cats = Object.entries(byCat).sort((a, b) => b[1] - a[1]).slice(0, 5);
+const rest = TOTAL_MRR - cats.reduce((s, c) => s + c[1], 0);
+if (rest > 0) cats.push(['Другое', rest]);
+const cols = ['#F0B90B', '#0ECB81', '#627EEA', '#F6465D', '#9C6CFF', '#474D57'];
+let acc = 0;
+const segs = cats.map(([name, v], i) => {
+  const from = acc / TOTAL_MRR * 360; acc += v;
+  return `${cols[i]} ${from.toFixed(1)}deg ${(acc / TOTAL_MRR * 360).toFixed(1)}deg`;
+});
+document.getElementById('donut').style.background = `conic-gradient(${segs.join(',')})`;
+document.getElementById('donutLbl').textContent = cats.length - (rest > 0 ? 1 : 0) + '+ ниш';
+document.getElementById('leg').innerHTML = cats.map(([name, v], i) =>
+  `<div><i style="background:${cols[i]}"></i>${name}<b>${Math.round(v / TOTAL_MRR * 100)} %</b></div>`).join('');
+
+document.getElementById('wGrowth').innerHTML = [...STARTUPS].sort((a, b) => b.growth - a.growth).slice(0, 5).map(s =>
+  `<div class="wrow">${avatar(s, 26)}${s.name}<span class="v up">${F.pct(s.growth)}</span></div>`).join('');
+document.getElementById('wNew').innerHTML = STARTUPS.filter(s => s.sale).slice(0, 5).map((s, i) =>
+  `<div class="wrow">${avatar(s, 26)}${s.name}<span class="v muted" style="font-weight:400">${i + 1} дн. назад</span></div>`).join('');
+document.getElementById('rows').innerHTML = STARTUPS.slice(0, 6).map(s => `<tr>
+  <td><div style="display:flex;align-items:center;gap:10px" class="nm">${avatar(s, 30)}<div><b>${s.name}</b><div class="muted" style="font-size:12px">${s.cat}</div></div></div></td>
+  <td class="num" style="font-weight:500">${F.usd(s.mrr)}</td>
+  <td class="num ${F.cls(s.growth)}">${F.pct(s.growth)}</td>
+  <td class="num">${spark(s, 96, 28)}</td>
+  <td class="num sub">${s.sale ? F.usd(s.price) : '—'}</td>
+  <td class="num"><a class="alink">${s.sale ? 'Купить' : 'Детали'}</a></td>
+</tr>`).join('');
+document.body.insertAdjacentHTML('beforeend', badge(10, 'Панель рынка — виджеты'));
+</script>
+</body>
+</html>

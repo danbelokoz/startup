@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Концепт 2 — «Рынки»: таблица котировок</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_tokens.css">
+<style>
+main{max-width:1248px;margin:0 auto;padding:28px 24px 60px}
+.head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+h1{font-size:28px;font-weight:700}
+.chips{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px}
+.tbl th:first-child,.tbl td:first-child{width:36px;padding-right:0}
+.tbl .rank{color:var(--text-3);font-size:13px}
+.starbtn{color:var(--text-3);display:flex}
+tr:hover .starbtn{color:var(--yellow-2)}
+.nm{display:flex;align-items:center;gap:10px}
+.nm b{font-size:14px}
+.nm .tick{color:var(--text-3);font-weight:400;margin-left:6px}
+.salepill{font-size:11px;color:var(--yellow-2);background:rgba(240,185,11,.12);border-radius:4px;padding:2px 6px;margin-left:8px;font-weight:600}
+</style>
+</head>
+<body>
+<div id="nav"></div>
+<main>
+  <div class="head">
+    <h1>Рынок стартапов</h1>
+    <div class="srch" style="width:280px"><span id="searchIc" style="display:flex"></span><input placeholder="Поиск по названию"></div>
+  </div>
+  <div class="chips" id="chips"></div>
+  <table class="tbl">
+    <thead><tr>
+      <th></th><th>#</th><th>Название</th>
+      <th class="num">MRR <span class="sort">⇅</span></th>
+      <th class="num">Рост 30д <span class="sort">⇅</span></th>
+      <th class="num">Выручка 30д</th>
+      <th class="num">Мульт.</th>
+      <th class="num">Динамика 90д</th>
+      <th class="num">Действие</th>
+    </tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+</main>
+<script src="_mock.js"></script>
+<script>
+document.getElementById('nav').outerHTML = buildNav('Каталог');
+document.getElementById('searchIc').innerHTML = ic('search', 18);
+document.getElementById('chips').innerHTML = CATS.map((c, i) => `<button class="chip ${i === 0 ? 'on' : ''}">${c}</button>`).join('');
+document.getElementById('rows').innerHTML = STARTUPS.map((s, i) => `<tr>
+  <td><span class="starbtn">${ic('star', 16)}</span></td>
+  <td class="rank">${i + 1}</td>
+  <td><div class="nm">${avatar(s, 32)}<div><b>${s.name}</b><span class="tick">${s.cat}</span>${s.sale ? '<span class="salepill">На продаже</span>' : ''}<div class="muted" style="font-size:12px">${s.desc}</div></div></div></td>
+  <td class="num" style="font-weight:500">${F.usd(s.mrr)}</td>
+  <td class="num ${F.cls(s.growth)}" style="font-weight:500">${F.pct(s.growth)}</td>
+  <td class="num sub">${F.usd(s.rev)}</td>
+  <td class="num sub">${F.mult(s)}</td>
+  <td class="num">${spark(s, 110, 32)}</td>
+  <td class="num">${s.sale ? '<a class="alink">Купить</a>' : '<a class="alink" style="color:var(--text-3)">Детали</a>'}</td>
+</tr>`).join('');
+document.body.insertAdjacentHTML('beforeend', badge(2, '«Рынки» — таблица котировок'));
+</script>
+</body>
+</html>

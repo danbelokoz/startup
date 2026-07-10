@@ -1,0 +1,37 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "slides",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "3020"
+      ],
+      "port": 3020
+    },
+    {
+      "name": "dev",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "3000"
+      ],
+      "port": 3000
+    },
+    {
+      "name": "tg-analytics",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8011",
+        "--directory",
+        "/Users/danila/tg-analytics"
+      ],
+      "port": 8011
+    }
+  ]
+}

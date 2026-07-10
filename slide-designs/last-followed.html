@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="UTF-8"><title>Last Followed · Спецификация</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#000;display:flex;justify-content:center;padding:20px;
+    font-family:"SF Mono",ui-monospace,Menlo,monospace}
+  .slide{width:1080px;height:1350px;background:#141518;color:#E8EAED;position:relative;overflow:hidden;
+    padding:52px 56px;display:flex;flex-direction:column}
+  .hairline{border:1px solid #2A2D33}
+  .brand{display:flex;justify-content:space-between;align-items:center;border:1px solid #2A2D33;padding:18px 24px}
+  .bl{display:flex;align-items:center;gap:14px}
+  .sm{width:44px;height:44px;background:#FCD535;color:#141518;font-weight:800;font-size:17px;
+    display:flex;align-items:center;justify-content:center;font-family:Arial,sans-serif}
+  .bw{font-size:19px;font-weight:700;letter-spacing:2px}.bw span{color:#7C828C}
+  .bd{font-size:14px;color:#7C828C;letter-spacing:1px}
+  .idbar{display:flex;border:1px solid #2A2D33;border-top:none}
+  .idl{flex:1;padding:26px 24px;display:flex;align-items:center;gap:20px}
+  .ic{width:80px;height:80px;border-radius:18px;background:radial-gradient(circle at 35% 30%,#C88BFF,#7A2BD6 70%);
+    display:flex;align-items:center;justify-content:center;font-size:40px}
+  .nm{font-size:42px;font-weight:800;letter-spacing:-1px;font-family:Arial,sans-serif}
+  .cat{font-size:14px;color:#7C828C;margin-top:8px;letter-spacing:1px}
+  .idr{width:330px;border-left:1px solid #2A2D33;padding:24px;display:flex;flex-direction:column;justify-content:center;
+    background:repeating-linear-gradient(-45deg,rgba(252,213,53,.05) 0 10px,transparent 10px 20px)}
+  .idr .l{font-size:13px;color:#7C828C;letter-spacing:2px}
+  .idr .v{font-size:52px;font-weight:800;color:#FCD535;font-family:Arial,sans-serif;letter-spacing:-1px;margin-top:6px}
+  .idr .s{font-size:13px;color:#7C828C;margin-top:8px;line-height:1.5}
+  .grid{display:grid;grid-template-columns:repeat(12,1fr);border:1px solid #2A2D33;border-top:none}
+  .cell{border-right:1px solid #2A2D33;border-bottom:1px solid #2A2D33;padding:20px 22px;position:relative}
+  .cell:last-child,.cell.last{border-right:none}
+  .idx{position:absolute;top:14px;right:16px;font-size:12px;color:#4A4F58}
+  .cell .l{font-size:13px;color:#7C828C;letter-spacing:2px}
+  .cell .v{font-size:44px;font-weight:800;font-family:Arial,sans-serif;letter-spacing:-1px;margin-top:10px}
+  .cell .v em{font-style:normal;color:#0ECB81}
+  .cell .v em.dn{color:#F6465D}
+  .cell .s{font-size:13px;color:#7C828C;margin-top:8px;line-height:1.5}
+  .w6{grid-column:span 6}.w4{grid-column:span 4}.w3{grid-column:span 3}.w12{grid-column:span 12}
+  .mrr .v{font-size:58px}
+  .chart{border:1px solid #2A2D33;border-top:none;padding:24px 26px 12px;flex:1;display:flex;flex-direction:column}
+  .ch{display:flex;justify-content:space-between;align-items:baseline}
+  .cv{font-size:32px;font-weight:800;font-family:Arial,sans-serif}
+  .cm{font-size:13px;color:#7C828C;margin-top:6px;letter-spacing:1px}
+  .lg{font-size:13px;color:#7C828C}.lg i{display:inline-block;width:20px;height:3px;background:#FCD535;margin-right:8px;vertical-align:3px}
+  svg{width:100%;flex:1;margin-top:10px}
+  .foot{border:1px solid #2A2D33;border-top:none;padding:16px 24px;display:flex;justify-content:space-between;
+    font-size:13px;color:#7C828C;letter-spacing:1px}
+  .foot b{color:#FCD535}
+</style></head><body>
+<div class="slide">
+  <div class="brand">
+    <div class="bl"><div class="sm">SM</div><div class="bw">STARTUP<span>MARKET</span></div></div>
+    <div class="bd">SPEC-SHEET · RANK #336 · 05.07.2026</div>
+  </div>
+  <div class="idbar">
+    <div class="idl">
+      <div class="ic">👀</div>
+      <div><div class="nm">Last Followed</div><div class="cat">СОЦИАЛЬНЫЕ СЕТИ · INSTAGRAM-ТРЕКЕР · STRIPE · ОСНОВАН ФЕВ 2025 · СТАТУС: НА ПРОДАЖЕ</div></div>
+    </div>
+    <div class="idr">
+      <div class="l">ЦЕНА СТАРТАПА</div>
+      <div class="v">$130 000</div>
+      <div class="s">ВЫСТАВЛЕН НА ПРОДАЖУ 09.04.2026</div>
+    </div>
+  </div>
+  <div class="grid">
+    <div class="cell w6 mrr"><span class="idx">01</span><div class="l">MRR · STRIPE ✓</div><div class="v">$6 591 <em class="dn" style="font-size:26px">▼6,8%</em></div><div class="s">К ПРЕД. 30 ДН. · ПОДТВЕРЖДЁН ПЛАТЁЖКОЙ</div></div>
+    <div class="cell w6 last"><span class="idx">02</span><div class="l">ВЫРУЧКА 30 ДНЕЙ</div><div class="v">$6 797 <em class="dn">▼4,7%</em></div><div class="s">ПОДПИСОЧНАЯ МОДЕЛЬ, ТРЕКИНГ ПОДПИСОК В INSTAGRAM</div></div>
+    <div class="cell w3"><span class="idx">03</span><div class="l">ПОДПИСКИ</div><div class="v">304</div></div>
+    <div class="cell w3"><span class="idx">04</span><div class="l">МАРЖА</div><div class="v">22%</div></div>
+    <div class="cell w3"><span class="idx">05</span><div class="l">ALL-TIME</div><div class="v">$143,8K</div></div>
+    <div class="cell w3 last"><span class="idx">06</span><div class="l">МУЛЬТИПЛ</div><div class="v">1,59×</div></div>
+  </div>
+  <div class="chart">
+    <div class="ch">
+      <div><span class="cv">$7 092</span><div class="cm">07 · MRR ПО ДНЯМ · 14.06–05.07 · ДИАПАЗОН $6 443–$7 161</div></div>
+      <div class="lg"><i></i>DAILY SNAPSHOT 03:00 UTC</div>
+    </div>
+    <svg viewBox="0 0 940 140" preserveAspectRatio="none">
+      <g stroke="#22252B" stroke-width="1">
+        <line x1="0" y1="35" x2="940" y2="35"/><line x1="0" y1="70" x2="940" y2="70"/><line x1="0" y1="105" x2="940" y2="105"/>
+      </g>
+      <polyline fill="rgba(252,213,53,.08)" stroke="none" points="0,112.3 47,87.1 94,120 141,113.4 188,69.7 235,80.1 282,76.4 329,87 376,99.5 423,87.3 470,88.7 517,102.2 564,69.6 611,73.4 658,55.8 705,77.2 752,62.5 799,70 846,47.5 893,15 940,25.1 940,140 0,140"/>
+      <polyline fill="none" stroke="#FCD535" stroke-width="3" points="0,112.3 47,87.1 94,120 141,113.4 188,69.7 235,80.1 282,76.4 329,87 376,99.5 423,87.3 470,88.7 517,102.2 564,69.6 611,73.4 658,55.8 705,77.2 752,62.5 799,70 846,47.5 893,15 940,25.1"/>
+      <circle cx="940" cy="25.1" r="5.5" fill="#FCD535"/>
+    </svg>
+  </div>
+  <div class="foot"><span>ПОЛНЫЙ РАЗБОР → <b>STARTUPMARKET.TECH</b></span><span>ДАННЫЕ ЗА 30 ДНЕЙ · ВЫРУЧКА ПРОВЕРЕНА</span></div>
+</div>
+</body></html>

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Концепт 7 — лидерборд: топ движения</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_tokens.css">
+<style>
+main{max-width:1200px;margin:0 auto;padding:28px 24px 60px}
+h1{font-size:28px;font-weight:700}
+.movers{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:20px 0 26px}
+.mcard{background:var(--bg-2);border-radius:12px;padding:16px 18px}
+.mcard .mt{display:flex;align-items:center;gap:8px;font-weight:600;margin-bottom:10px}
+.mcard .mt svg{color:var(--yellow-2)}
+.mrow{display:flex;align-items:center;gap:10px;padding:7px 0;font-size:13px}
+.mrow .r{width:14px;color:var(--text-3)}
+.mrow .val{margin-left:auto;font-weight:500}
+.tbl .pos{font-weight:700;width:44px}
+.pos.r1{color:var(--yellow)} .pos.r2{color:#B7BDC6} .pos.r3{color:#CD7F32}
+.bar{height:4px;background:var(--bg-3);border-radius:2px;width:120px;margin-top:6px}
+.bar i{display:block;height:100%;background:var(--yellow);border-radius:2px}
+.nm{display:flex;align-items:center;gap:10px}
+.nm b{font-size:14px}
+</style>
+</head>
+<body>
+<div id="nav"></div>
+<main>
+  <h1>Топ стартапов</h1>
+  <div class="muted" style="margin-top:4px">Самые быстрорастущие верифицированные стартапы прямо сейчас</div>
+  <div class="movers">
+    <div class="mcard"><div class="mt" id="m1t"></div><div id="m1"></div></div>
+    <div class="mcard"><div class="mt" id="m2t"></div><div id="m2"></div></div>
+    <div class="mcard"><div class="mt" id="m3t"></div><div id="m3"></div></div>
+  </div>
+  <div class="tabs" style="margin-bottom:6px">
+    <a class="on">По MRR</a><a>По росту</a><a>По выручке</a><a>По цене продажи</a>
+  </div>
+  <table class="tbl">
+    <thead><tr>
+      <th>#</th><th>Стартап</th>
+      <th>MRR <span class="sort">⇅</span></th>
+      <th class="num">Рост 30д</th><th class="num">Выручка 30д</th><th class="num">Цена</th><th class="num">Действие</th>
+    </tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+</main>
+<script src="_mock.js"></script>
+<script>
+document.getElementById('nav').outerHTML = buildNav('Топ растущих');
+const byGrowth = [...STARTUPS].sort((a, b) => b.growth - a.growth);
+const newOnes = STARTUPS.filter(s => s.sale).slice(2, 5);
+document.getElementById('m1t').innerHTML = ic('trend', 18) + 'Топ роста';
+document.getElementById('m1').innerHTML = byGrowth.slice(0, 3).map((s, i) =>
+  `<div class="mrow"><span class="r">${i + 1}</span>${avatar(s, 24)}<span>${s.name}</span><span class="val up">${F.pct(s.growth)}</span></div>`).join('');
+document.getElementById('m2t').innerHTML = ic('wallet', 18) + 'Топ MRR';
+document.getElementById('m2').innerHTML = STARTUPS.slice(0, 3).map((s, i) =>
+  `<div class="mrow"><span class="r">${i + 1}</span>${avatar(s, 24)}<span>${s.name}</span><span class="val">${F.usd(s.mrr)}</span></div>`).join('');
+document.getElementById('m3t').innerHTML = ic('clock', 18) + 'Новые листинги';
+document.getElementById('m3').innerHTML = newOnes.map((s, i) =>
+  `<div class="mrow"><span class="r">${i + 1}</span>${avatar(s, 24)}<span>${s.name}</span><span class="val muted">${i + 2} дн. назад</span></div>`).join('');
+const maxMrr = STARTUPS[0].mrr;
+document.getElementById('rows').innerHTML = STARTUPS.map((s, i) => `<tr>
+  <td class="pos r${i + 1}">${i + 1}</td>
+  <td><div class="nm">${avatar(s, 32)}<div><b>${s.name}</b><div class="muted" style="font-size:12px">${s.cat} · ${s.desc}</div></div></div></td>
+  <td><div style="font-weight:500">${F.usd(s.mrr)}</div><div class="bar"><i style="width:${Math.round(s.mrr / maxMrr * 100)}%"></i></div></td>
+  <td class="num ${F.cls(s.growth)}" style="font-weight:500">${F.pct(s.growth)}</td>
+  <td class="num sub">${F.usd(s.rev)}</td>
+  <td class="num sub">${s.sale ? F.usd(s.price) : '—'}</td>
+  <td class="num">${s.sale ? '<a class="alink">Купить</a>' : '<a class="alink" style="color:var(--text-3)">Детали</a>'}</td>
+</tr>`).join('');
+document.body.insertAdjacentHTML('beforeend', badge(7, 'Лидерборд — топ движения'));
+</script>
+</body>
+</html>

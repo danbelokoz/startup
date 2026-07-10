@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Концепт 9 — Earn: рост как APR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_tokens.css">
+<style>
+main{max-width:1200px;margin:0 auto;padding:24px 24px 60px}
+.promo{position:relative;overflow:hidden;border:1px solid var(--bg-3);border-radius:16px;background:linear-gradient(100deg,#1E2329 30%,#181A20);padding:36px 40px;display:flex;justify-content:space-between;align-items:center;gap:24px}
+.promo h1{font-size:32px;font-weight:700;max-width:560px}
+.promo p{color:var(--text-2);margin:10px 0 20px;max-width:520px}
+.coins{position:absolute;right:-30px;top:-40px;width:280px;height:280px;background:radial-gradient(circle at 60% 40%,rgba(252,213,53,.25),transparent 60%);pointer-events:none}
+.coin{position:absolute;border-radius:50%;background:var(--yellow);color:#181A20;display:flex;align-items:center;justify-content:center;font-weight:700}
+.filters{display:flex;align-items:center;gap:6px;margin:22px 0 14px;flex-wrap:wrap}
+.filters label{margin-left:auto;display:flex;align-items:center;gap:7px;color:var(--text-2);font-size:13px;cursor:pointer}
+.erow{display:grid;grid-template-columns:2.1fr 1fr 1fr 1fr auto;align-items:center;gap:14px;background:var(--bg-2);border-radius:12px;padding:16px 20px;margin-bottom:10px;border:1px solid transparent;cursor:pointer}
+.erow:hover{border-color:var(--bg-4)}
+.eid{display:flex;align-items:center;gap:13px}
+.eid b{font-size:15px}
+.eid .d{color:var(--text-3);font-size:12px}
+.lab{font-size:11px;color:var(--text-3)}
+.apr{font-size:21px;font-weight:700}
+.val{font-size:15px;font-weight:500}
+.eact{display:flex;align-items:center;gap:12px}
+.eact .chev{color:var(--text-3);display:flex}
+.cat{font-size:11px;color:var(--text-2);background:var(--bg-3);border-radius:4px;padding:2px 7px;margin-left:8px}
+</style>
+</head>
+<body>
+<div id="nav"></div>
+<main>
+  <section class="promo">
+    <div>
+      <h1>Стартапы, которые уже зарабатывают</h1>
+      <p>Подтверждённый рост MRR — как ставка APR, только это реальный бизнес, который становится вашим целиком.</p>
+      <button class="btn-y">Смотреть все 312 на продаже</button>
+    </div>
+    <div class="coins">
+      <span class="coin" style="width:84px;height:84px;right:90px;top:70px;font-size:30px">$</span>
+      <span class="coin" style="width:46px;height:46px;right:50px;top:160px;font-size:18px;opacity:.7">$</span>
+      <span class="coin" style="width:30px;height:30px;right:160px;top:170px;font-size:13px;opacity:.45">$</span>
+    </div>
+  </section>
+  <div class="filters" id="chips"></div>
+  <div id="list"></div>
+</main>
+<script src="_mock.js"></script>
+<script>
+document.getElementById('nav').outerHTML = buildNav('Купить');
+document.getElementById('chips').innerHTML =
+  CATS.slice(0, 7).map((c, i) => `<button class="chip ${i === 0 ? 'on' : ''}">${c}</button>`).join('') +
+  `<label><input type="checkbox" checked> Только на продаже</label>`;
+document.getElementById('list').innerHTML = [...STARTUPS].sort((a, b) => b.growth - a.growth).map(s => `<div class="erow">
+  <div class="eid">${avatar(s, 40)}<div><b>${s.name}</b><span class="cat">${s.cat}</span><div class="d">${s.desc}</div></div></div>
+  <div><div class="lab">Рост MRR · 30д</div><div class="apr ${F.cls(s.growth)}">${F.pct(s.growth)}</div></div>
+  <div><div class="lab">MRR</div><div class="val">${F.usd(s.mrr)}</div></div>
+  <div><div class="lab">Цена</div><div class="val">${s.sale ? F.usd(s.price) : '—'}</div><div class="lab">${s.sale ? F.mult(s) + ' годового MRR' : 'не продаётся'}</div></div>
+  <div class="eact">${s.sale ? '<button class="btn-y sm">Смотреть</button>' : '<button class="btn-g sm">Детали</button>'}<span class="chev" id="ch"></span></div>
+</div>`).join('');
+document.querySelectorAll('.chev').forEach(el => el.innerHTML = ic('chevD', 16));
+document.body.insertAdjacentHTML('beforeend', badge(9, 'Earn — рост как APR'));
+</script>
+</body>
+</html>

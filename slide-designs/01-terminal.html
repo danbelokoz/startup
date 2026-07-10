@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="UTF-8"><title>01 · Терминал трейдера</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#000;display:flex;justify-content:center;padding:20px;font-family:"SF Mono",ui-monospace,Menlo,monospace}
+  .slide{width:1080px;height:1350px;background:#050805;color:#C8FACC;position:relative;overflow:hidden;
+    padding:56px 64px;display:flex;flex-direction:column;
+    background-image:repeating-linear-gradient(0deg,rgba(0,255,120,.03) 0 1px,transparent 1px 4px);}
+  .scan{position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(90% 60% at 50% 0%,rgba(0,255,120,.07),transparent 70%);}
+  .top{display:flex;justify-content:space-between;font-size:20px;color:#4E9B5E;letter-spacing:1px}
+  .top b{color:#9CFFB0}
+  .ticker{margin-top:10px;border-top:1px solid #123B1C;border-bottom:1px solid #123B1C;
+    padding:12px 0;font-size:19px;color:#3E7F4C;white-space:nowrap;overflow:hidden}
+  .ticker span{color:#9CFFB0}
+  h1{font-size:104px;color:#EAFFEE;letter-spacing:-2px;margin-top:64px;line-height:.95;font-weight:800}
+  .sub{font-size:24px;color:#4E9B5E;margin-top:18px;letter-spacing:1px}
+  .quote{margin-top:56px;display:flex;align-items:baseline;gap:28px}
+  .quote .px{font-size:150px;font-weight:800;color:#39FF7A;letter-spacing:-4px;text-shadow:0 0 40px rgba(57,255,122,.35)}
+  .quote .chg{font-size:32px;color:#39FF7A}
+  .quote .lbl{font-size:22px;color:#4E9B5E;margin-top:8px;letter-spacing:2px}
+  table{width:100%;margin-top:56px;border-collapse:collapse;font-size:26px}
+  td{padding:20px 0;border-bottom:1px dashed #123B1C}
+  td:first-child{color:#4E9B5E;letter-spacing:1px}
+  td:last-child{text-align:right;color:#EAFFEE;font-weight:700}
+  td .ok{color:#39FF7A}
+  .chart{margin-top:auto;border:1px solid #123B1C;padding:24px;position:relative}
+  .chart .cl{font-size:18px;color:#4E9B5E;letter-spacing:2px;margin-bottom:10px}
+  .signal{position:absolute;right:24px;top:20px;border:2px solid #39FF7A;color:#39FF7A;
+    font-size:26px;font-weight:800;padding:8px 22px;letter-spacing:3px;transform:rotate(-3deg);
+    box-shadow:0 0 30px rgba(57,255,122,.25)}
+  .foot{display:flex;justify-content:space-between;margin-top:28px;font-size:19px;color:#2E6B3C;letter-spacing:1px}
+  .cursor{display:inline-block;width:14px;height:26px;background:#39FF7A;vertical-align:-3px;animation:bl 1s steps(1) infinite}
+  @keyframes bl{50%{opacity:0}}
+</style></head><body>
+<div class="slide"><div class="scan"></div>
+  <div class="top"><span>STARTUPMARKET <b>TERMINAL</b></span><span>05/07/2026 · SESSION #147</span></div>
+  <div class="ticker">MRR <span>$3,506</span> ▲ REV30 <span>$7,823 +12.6%</span> ▲ SUBS <span>408</span> ▲ MARGIN <span>96%</span> ▲ MULT <span>2.29x</span> ▲ STATUS <span>ON SALE</span></div>
+  <h1>DUNKMAX<span class="cursor"></span></h1>
+  <div class="sub">&gt; mobile app · B2C · US · sport/basketball</div>
+  <div class="quote">
+    <div>
+      <div class="px">$3 506</div>
+      <div class="lbl">MRR · VERIFIED VIA REVENUECAT</div>
+    </div>
+    <div class="chg">±0.0%<br><span style="color:#4E9B5E;font-size:20px">к пред. 30 дн.</span></div>
+  </div>
+  <table>
+    <tr><td>ВЫРУЧКА 30 ДНЕЙ</td><td>$7 823 <span class="ok">▲ +12.6%</span></td></tr>
+    <tr><td>АКТИВНЫЕ ПОДПИСКИ</td><td>408</td></tr>
+    <tr><td>МАРЖА ПРИБЫЛИ</td><td><span class="ok">96%</span> · почти нулевые расходы</td></tr>
+    <tr><td>ВЫРУЧКА ЗА ВСЁ ВРЕМЯ</td><td>$24 422</td></tr>
+    <tr><td>МУЛЬТИПЛ (ЦЕНА / ГОД. ВЫРУЧКА)</td><td>2.29x</td></tr>
+  </table>
+  <div class="chart">
+    <div class="cl">MRR / DAILY · 20D · RANGE $3,411 – $3,698</div>
+    <div class="signal">WATCH</div>
+    <svg width="100%" height="150" viewBox="0 0 900 150" preserveAspectRatio="none">
+      <polyline fill="rgba(57,255,122,.08)" stroke="none"
+        points="0,60 70,85 140,95 210,90 280,130 350,110 420,100 490,80 560,45 630,25 700,10 770,22 840,15 900,28 900,150 0,150"/>
+      <polyline fill="none" stroke="#39FF7A" stroke-width="3"
+        points="0,60 70,85 140,95 210,90 280,130 350,110 420,100 490,80 560,45 630,25 700,10 770,22 840,15 900,28"/>
+    </svg>
+  </div>
+  <div class="foot"><span>startupmarket.tech — проверенные стартапы с реальной выручкой</span><span>[ДАННЫЕ: 30 ДНЕЙ]</span></div>
+</div>
+</body></html>

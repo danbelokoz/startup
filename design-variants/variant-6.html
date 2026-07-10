@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Концепт 6 — промо-лендинг с жёлтым акцентом</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_tokens.css">
+<style>
+.ticker{display:flex;gap:28px;overflow:hidden;background:var(--bg-0);border-top:1px solid var(--bg-2);padding:8px 24px;font-size:12px;white-space:nowrap}
+.ticker span b{font-weight:500;margin-right:6px}
+.hero{position:relative;text-align:center;padding:88px 24px 56px;overflow:hidden}
+.glow{position:absolute;inset:0;background:radial-gradient(640px 320px at 50% 0%,rgba(240,185,11,.16),transparent 70%);pointer-events:none}
+h1{font-size:52px;line-height:1.12;font-weight:700;letter-spacing:-1px}
+h1 .hl{color:var(--yellow)}
+.sub{font-size:18px;color:var(--text-2);max-width:620px;margin:18px auto 30px}
+.ctas{display:flex;gap:14px;justify-content:center}
+.ctas .btn-y,.ctas .btn-g{padding:13px 30px;font-size:15px;border-radius:10px}
+.trust{margin-top:22px;font-size:12px;color:var(--text-3)}
+.stats4{display:flex;justify-content:center;gap:72px;padding:30px 24px 50px;flex-wrap:wrap}
+.stats4 b{display:block;font-size:36px;font-weight:700;color:var(--yellow)}
+.stats4 span{color:var(--text-2)}
+.feats{max-width:1100px;margin:0 auto;padding:0 24px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.feat{background:var(--bg-2);border-radius:14px;padding:26px}
+.feat i{display:flex;width:44px;height:44px;border-radius:10px;background:rgba(240,185,11,.14);color:var(--yellow);align-items:center;justify-content:center;margin-bottom:16px}
+.feat b{display:block;font-size:16px;margin-bottom:6px}
+.feat span{color:var(--text-2);font-size:13px}
+.band{background:var(--yellow);color:#181A20;border-radius:18px;max-width:1100px;margin:44px auto 70px;padding:42px 48px;display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap}
+.band h2{font-size:30px;font-weight:700}
+.band p{margin-top:6px;font-weight:500;opacity:.75}
+.btn-d{background:#181A20;color:#fff;border:0;border-radius:10px;padding:14px 30px;font-weight:600;font-size:15px}
+.btn-d:hover{background:#2B3139}
+</style>
+</head>
+<body>
+<div id="nav"></div>
+<div class="ticker" id="ticker"></div>
+<section class="hero">
+  <div class="glow"></div>
+  <h1>Покупай стартапы<br>с <span class="hl">реальным MRR</span></h1>
+  <div class="sub">Маркетплейс проверенных бизнесов: каждый показатель выручки верифицирован напрямую через платёжные провайдеры.</div>
+  <div class="ctas">
+    <button class="btn-y">Смотреть каталог</button>
+    <button class="btn-g">Продать стартап</button>
+  </div>
+  <div class="trust">Данные через Stripe · LemonSqueezy · Polar · Эскроу-сделки · 7 языков</div>
+</section>
+<section class="stats4" id="stats"></section>
+<section class="feats">
+  <div class="feat"><i id="f1"></i><b>Верифицированный MRR</b><span>Выручка читается напрямую из платёжного провайдера по read-only ключу — продавец не может нарисовать цифры.</span></div>
+  <div class="feat"><i id="f2"></i><b>Сделка за дни, не месяцы</b><span>Контакты продавца открываются в один клик. Эскроу и передача активов — по понятному чек-листу.</span></div>
+  <div class="feat"><i id="f3"></i><b>Честные мультипликаторы</b><span>Сравнивайте цену к годовому MRR по всему каталогу и находите недооценённые сделки.</span></div>
+</section>
+<section class="band">
+  <div><h2>Готовы к первой сделке?</h2><p>Регистрация бесплатна — 3 просмотра контактов сразу.</p></div>
+  <button class="btn-d">Создать аккаунт</button>
+</section>
+<script src="_mock.js"></script>
+<script>
+document.getElementById('nav').outerHTML = buildNav('Каталог');
+document.getElementById('ticker').innerHTML = STARTUPS.map(s =>
+  `<span><b>${s.name}</b><span class="${F.cls(s.growth)}">${F.pct(s.growth)}</span></span>`).join('');
+document.getElementById('stats').innerHTML = [
+  ['7 412', 'стартапов в базе'],
+  ['$1,2 млн', 'суммарный MRR'],
+  ['312', 'на продаже сейчас'],
+  ['×3,2', 'средний мультипликатор'],
+].map(([n, l]) => `<div><b>${n}</b><span>${l}</span></div>`).join('');
+document.getElementById('f1').innerHTML = ic('shield', 22);
+document.getElementById('f2').innerHTML = ic('bolt', 22);
+document.getElementById('f3').innerHTML = ic('trend', 22);
+document.body.insertAdjacentHTML('beforeend', badge(6, 'Промо-лендинг, жёлтый акцент'));
+</script>
+</body>
+</html>

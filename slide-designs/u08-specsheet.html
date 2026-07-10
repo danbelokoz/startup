@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="UTF-8"><title>U08 · Спецификация</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#000;display:flex;justify-content:center;padding:20px;
+    font-family:"SF Mono",ui-monospace,Menlo,monospace}
+  .slide{width:1080px;height:1350px;background:#141518;color:#E8EAED;position:relative;overflow:hidden;
+    padding:52px 56px;display:flex;flex-direction:column}
+  .hairline{border:1px solid #2A2D33}
+  .brand{display:flex;justify-content:space-between;align-items:center;border:1px solid #2A2D33;padding:18px 24px}
+  .bl{display:flex;align-items:center;gap:14px}
+  .sm{width:44px;height:44px;background:#FCD535;color:#141518;font-weight:800;font-size:17px;
+    display:flex;align-items:center;justify-content:center;font-family:Arial,sans-serif}
+  .bw{font-size:19px;font-weight:700;letter-spacing:2px}.bw span{color:#7C828C}
+  .bd{font-size:14px;color:#7C828C;letter-spacing:1px}
+  .idbar{display:flex;border:1px solid #2A2D33;border-top:none}
+  .idl{flex:1;padding:26px 24px;display:flex;align-items:center;gap:20px}
+  .ic{width:80px;height:80px;border-radius:18px;background:radial-gradient(circle at 35% 30%,#FF9D5C,#B33B10 70%);
+    display:flex;align-items:center;justify-content:center;font-size:40px}
+  .nm{font-size:42px;font-weight:800;letter-spacing:-1px;font-family:Arial,sans-serif}
+  .cat{font-size:14px;color:#7C828C;margin-top:8px;letter-spacing:1px}
+  .idr{width:330px;border-left:1px solid #2A2D33;padding:24px;display:flex;flex-direction:column;justify-content:center;
+    background:repeating-linear-gradient(-45deg,rgba(252,213,53,.05) 0 10px,transparent 10px 20px)}
+  .idr .l{font-size:13px;color:#7C828C;letter-spacing:2px}
+  .idr .v{font-size:52px;font-weight:800;color:#FCD535;font-family:Arial,sans-serif;letter-spacing:-1px;margin-top:6px}
+  .idr .s{font-size:13px;color:#7C828C;margin-top:8px;line-height:1.5}
+  .grid{display:grid;grid-template-columns:repeat(12,1fr);border:1px solid #2A2D33;border-top:none}
+  .cell{border-right:1px solid #2A2D33;border-bottom:1px solid #2A2D33;padding:20px 22px;position:relative}
+  .cell:last-child,.cell.last{border-right:none}
+  .idx{position:absolute;top:14px;right:16px;font-size:12px;color:#4A4F58}
+  .cell .l{font-size:13px;color:#7C828C;letter-spacing:2px}
+  .cell .v{font-size:44px;font-weight:800;font-family:Arial,sans-serif;letter-spacing:-1px;margin-top:10px}
+  .cell .v em{font-style:normal;color:#0ECB81}
+  .cell .s{font-size:13px;color:#7C828C;margin-top:8px;line-height:1.5}
+  .w6{grid-column:span 6}.w4{grid-column:span 4}.w3{grid-column:span 3}.w12{grid-column:span 12}
+  .mrr .v{font-size:58px}
+  .chart{border:1px solid #2A2D33;border-top:none;padding:24px 26px 12px;flex:1;display:flex;flex-direction:column}
+  .ch{display:flex;justify-content:space-between;align-items:baseline}
+  .cv{font-size:32px;font-weight:800;font-family:Arial,sans-serif}
+  .cm{font-size:13px;color:#7C828C;margin-top:6px;letter-spacing:1px}
+  .lg{font-size:13px;color:#7C828C}.lg i{display:inline-block;width:20px;height:3px;background:#FCD535;margin-right:8px;vertical-align:3px}
+  svg{width:100%;flex:1;margin-top:10px}
+  .foot{border:1px solid #2A2D33;border-top:none;padding:16px 24px;display:flex;justify-content:space-between;
+    font-size:13px;color:#7C828C;letter-spacing:1px}
+  .foot b{color:#FCD535}
+</style></head><body>
+<div class="slide">
+  <div class="brand">
+    <div class="bl"><div class="sm">SM</div><div class="bw">STARTUP<span>MARKET</span></div></div>
+    <div class="bd">SPEC-SHEET № 147 · 05.07.2026</div>
+  </div>
+  <div class="idbar">
+    <div class="idl">
+      <div class="ic">🏀</div>
+      <div><div class="nm">DunkMax</div><div class="cat">МОБИЛЬНЫЕ ПРИЛОЖЕНИЯ · B2C · США · СТАТУС: НА ПРОДАЖЕ</div></div>
+    </div>
+    <div class="idr">
+      <div class="l">ЦЕНА СТАРТАПА</div>
+      <div class="v">$49 000</div>
+      <div class="s">МУЛЬТИПЛ 2,29× К ГОДОВОЙ ВЫРУЧКЕ</div>
+    </div>
+  </div>
+  <div class="grid">
+    <div class="cell w6 mrr"><span class="idx">01</span><div class="l">MRR · REVENUECAT ✓</div><div class="v">$3 506</div><div class="s">БЕЗ ИЗМЕНЕНИЙ К ПРЕД. 30 ДН. · ПОДТВЕРЖДЁН ПЛАТЁЖКОЙ</div></div>
+    <div class="cell w6 last"><span class="idx">02</span><div class="l">ВЫРУЧКА 30 ДНЕЙ</div><div class="v">$7 823 <em>▲12,6%</em></div><div class="s">ОРГАНИЧЕСКИЙ РОСТ, БЕЗ РЕКЛАМЫ</div></div>
+    <div class="cell w3"><span class="idx">03</span><div class="l">ПОДПИСЧИКИ</div><div class="v">408</div></div>
+    <div class="cell w3"><span class="idx">04</span><div class="l">МАРЖА</div><div class="v">96%</div></div>
+    <div class="cell w3"><span class="idx">05</span><div class="l">ALL-TIME</div><div class="v">$24,4K</div></div>
+    <div class="cell w3 last"><span class="idx">06</span><div class="l">РАСХОДЫ</div><div class="v">≈$0</div></div>
+  </div>
+  <div class="chart">
+    <div class="ch">
+      <div><span class="cv">$3 645</span><div class="cm">07 · MRR ПО ДНЯМ · 14.06–04.07 · ДИАПАЗОН $3 411–$3 698</div></div>
+      <div class="lg"><i></i>DAILY SNAPSHOT 03:00 UTC</div>
+    </div>
+    <svg viewBox="0 0 940 140" preserveAspectRatio="none">
+      <g stroke="#22252B" stroke-width="1">
+        <line x1="0" y1="35" x2="940" y2="35"/><line x1="0" y1="70" x2="940" y2="70"/><line x1="0" y1="105" x2="940" y2="105"/>
+      </g>
+      <polyline fill="rgba(252,213,53,.08)" stroke="none" points="0,58 63,76 126,87 189,82 252,116 315,100 378,90 441,72 504,45 567,26 630,11 693,23 756,15 819,26 882,19 940,24 940,140 0,140"/>
+      <polyline fill="none" stroke="#FCD535" stroke-width="3" points="0,58 63,76 126,87 189,82 252,116 315,100 378,90 441,72 504,45 567,26 630,11 693,23 756,15 819,26 882,19 940,24"/>
+      <circle cx="940" cy="24" r="5.5" fill="#FCD535"/>
+    </svg>
+  </div>
+  <div class="foot"><span>ПОЛНЫЙ РАЗБОР → <b>STARTUPMARKET.TECH</b></span><span>ДАННЫЕ ЗА 30 ДНЕЙ · ВЫРУЧКА ПРОВЕРЕНА</span></div>
+</div>
+</body></html>

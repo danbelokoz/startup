@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="UTF-8"><title>02 · Секретное досье</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#2A2620;display:flex;justify-content:center;padding:20px;
+    font-family:"Courier New",Courier,monospace}
+  .slide{width:1080px;height:1350px;background:#D8CBAF;position:relative;overflow:hidden;padding:70px 80px;color:#2B2419;
+    background-image:radial-gradient(140% 90% at 50% 0%,rgba(255,250,235,.5),transparent 60%),
+      repeating-linear-gradient(45deg,rgba(120,100,60,.03) 0 2px,transparent 2px 6px);}
+  .clip{position:absolute;top:-30px;left:110px;width:60px;height:150px;border:10px solid #8A8A8A;
+    border-radius:30px;border-bottom:none;opacity:.7}
+  .head{border-bottom:4px double #2B2419;padding-bottom:20px}
+  .agency{font-size:20px;letter-spacing:6px;font-weight:700}
+  .case{font-size:17px;margin-top:8px;color:#6B5D42}
+  .stamp{position:absolute;top:64px;right:60px;transform:rotate(9deg);
+    border:6px solid #B03A2E;color:#B03A2E;font-weight:800;font-size:34px;letter-spacing:4px;
+    padding:12px 26px;border-radius:6px;opacity:.85;
+    font-family:Arial,Helvetica,sans-serif;
+    mask-image:radial-gradient(circle at 30% 40%,black 92%,transparent 95%)}
+  .stamp small{display:block;font-size:14px;letter-spacing:2px;text-align:center}
+  h1{font-size:88px;margin-top:52px;letter-spacing:2px;font-weight:800}
+  .alias{font-size:22px;margin-top:8px;color:#6B5D42}
+  .photo{position:absolute;right:80px;top:250px;width:210px;background:#FFFDF6;padding:14px 14px 44px;
+    box-shadow:0 8px 24px rgba(0,0,0,.28);transform:rotate(4deg)}
+  .photo .ic{width:182px;height:182px;background:#17181C;border-radius:14px;display:flex;
+    align-items:center;justify-content:center;font-size:70px}
+  .photo .cap{font-size:15px;text-align:center;margin-top:12px;color:#555}
+  .sec{margin-top:44px;font-size:19px;letter-spacing:3px;font-weight:700;color:#6B5D42}
+  .row{display:flex;font-size:25px;line-height:1.55;border-bottom:1px dotted #A99A78;padding:14px 0}
+  .row .k{width:420px;color:#6B5D42;flex-shrink:0}
+  .row .v{font-weight:700}
+  .redact{background:#2B2419;color:#2B2419;border-radius:2px;padding:0 6px;user-select:none}
+  .verdict{margin-top:48px;background:#FFFDF6;border:2px solid #2B2419;padding:28px 32px;
+    box-shadow:6px 6px 0 rgba(43,36,25,.25);font-size:24px;line-height:1.5}
+  .verdict b{background:#F4D03F;padding:0 6px}
+  .foot{position:absolute;bottom:52px;left:80px;right:80px;display:flex;justify-content:space-between;
+    font-size:17px;color:#6B5D42;letter-spacing:2px;border-top:2px solid #2B2419;padding-top:18px}
+</style></head><body>
+<div class="slide">
+  <div class="clip"></div>
+  <div class="head">
+    <div class="agency">STARTUPMARKET · ОТДЕЛ ПРОВЕРКИ ВЫРУЧКИ</div>
+    <div class="case">ДЕЛО № 147-SM · ОТКРЫТО: 05.07.2026 · КАТЕГОРИЯ: МОБИЛЬНЫЕ ПРИЛОЖЕНИЯ</div>
+  </div>
+  <div class="stamp">ПРОВЕРЕНО<small>REVENUECAT · MRR ПОДТВЕРЖДЁН</small></div>
+  <h1>DUNKMAX</h1>
+  <div class="alias">объект: приложение для баскетбольных тренировок · B2C · США · выставлен на продажу</div>
+  <div class="photo"><div class="ic">🏀</div><div class="cap">вещдок №1 — иконка</div></div>
+
+  <div class="sec">— УСТАНОВЛЕННЫЕ ФАКТЫ —</div>
+  <div class="row"><div class="k">MRR:</div><div class="v">$3 506 / мес — стабилен</div></div>
+  <div class="row"><div class="k">Выручка за 30 дней:</div><div class="v">$7 823 (рост +12,6%)</div></div>
+  <div class="row"><div class="k">Платящих подписчиков:</div><div class="v">408 человек</div></div>
+  <div class="row"><div class="k">Маржа:</div><div class="v">96% — расходы почти нулевые</div></div>
+  <div class="row"><div class="k">Всего заработано:</div><div class="v">$24 422</div></div>
+  <div class="row"><div class="k">Запрошенная цена:</div><div class="v">2,29× годовой выручки</div></div>
+  <div class="row"><div class="k">Основатель:</div><div class="v"><span class="redact">скрыто до регистрации</span></div></div>
+
+  <div class="verdict">
+    <b>ЗАКЛЮЧЕНИЕ СЛЕДОВАТЕЛЯ:</b> выручка настоящая, подтверждена через RevenueCat.
+    Бизнес живёт на подписках, растёт без рекламы. Мотив продажи — выясняется.
+    Полное досье — по ссылке в профиле.
+  </div>
+  <div class="foot"><span>startupmarket.tech</span><span>ЛИСТ 1 ИЗ 1 · РАЗБОР ДНЯ</span></div>
+</div>
+</body></html>

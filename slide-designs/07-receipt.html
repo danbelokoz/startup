@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="UTF-8"><title>07 · Чек</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#1C1E24;display:flex;justify-content:center;padding:20px;
+    font-family:"SF Mono",ui-monospace,Menlo,monospace}
+  .slide{width:1080px;height:1350px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(100% 80% at 50% 0%,#262A35,#15171D 75%)}
+  .deco{position:absolute;font-size:340px;opacity:.05;transform:rotate(-12deg);left:-60px;top:60px}
+  .deco2{position:absolute;font-size:280px;opacity:.05;transform:rotate(14deg);right:-50px;bottom:40px}
+  .receipt{position:relative;width:640px;background:#FBFAF4;color:#1B1B1B;padding:52px 52px 40px;
+    box-shadow:0 40px 100px rgba(0,0,0,.6);transform:rotate(-1.2deg);
+    --n:radial-gradient(circle,transparent 14px,#FBFAF4 15px)}
+  .receipt::before,.receipt::after{content:"";position:absolute;left:0;right:0;height:16px;
+    background-image:radial-gradient(circle at 16px 0,transparent 12px,#FBFAF4 13px);background-size:32px 16px}
+  .receipt::before{top:-15px;transform:scaleY(-1)}
+  .receipt::after{bottom:-15px}
+  .rc{text-align:center}
+  .rc .logo{font-size:30px;font-weight:800;letter-spacing:3px}
+  .rc .sub{font-size:16px;color:#666;margin-top:6px}
+  .dash{border-top:2px dashed #999;margin:26px 0}
+  .title{text-align:center;font-size:22px;letter-spacing:2px}
+  .title b{font-size:34px;display:block;margin-top:8px;letter-spacing:1px}
+  .item{display:flex;justify-content:space-between;font-size:22px;padding:11px 0}
+  .item .n{color:#333}
+  .item .p{font-weight:700;white-space:nowrap}
+  .item .p.g{color:#0B8A4B}
+  .subtle{font-size:16px;color:#888;margin-top:-8px;padding-bottom:8px}
+  .total{display:flex;justify-content:space-between;font-size:34px;font-weight:800;padding:16px 0 4px}
+  .note{text-align:center;font-size:17px;color:#666;line-height:1.6;margin-top:10px}
+  .note b{color:#1B1B1B}
+  .barcode{margin:26px auto 0;width:420px;height:64px;
+    background:repeating-linear-gradient(90deg,#1B1B1B 0 3px,transparent 3px 6px,#1B1B1B 6px 8px,transparent 8px 13px,#1B1B1B 13px 15px,transparent 15px 17px)}
+  .bnum{text-align:center;font-size:15px;letter-spacing:6px;color:#333;margin-top:8px}
+  .paid{position:absolute;top:330px;right:30px;transform:rotate(14deg);border:5px solid #0B8A4B;color:#0B8A4B;
+    font-size:30px;font-weight:800;letter-spacing:3px;padding:10px 22px;border-radius:8px;opacity:.8;
+    font-family:Arial,sans-serif}
+</style></head><body>
+<div class="slide">
+  <div class="deco">🧾</div><div class="deco2">🏀</div>
+  <div class="receipt">
+    <div class="paid">ПРОВЕРЕНО</div>
+    <div class="rc">
+      <div class="logo">STARTUPMARKET</div>
+      <div class="sub">разбор дня № 147 · 05.07.2026 · касса №1</div>
+    </div>
+    <div class="dash"></div>
+    <div class="title">ВЫ СМОТРИТЕ<b>DUNKMAX 🏀</b><div style="font-size:15px;color:#666;margin-top:8px">мобильное приложение · B2C · США · на продаже</div></div>
+    <div class="dash"></div>
+    <div class="item"><span class="n">MRR / мес</span><span class="p">$3 506</span></div>
+    <div class="subtle">подтверждён через RevenueCat ✓</div>
+    <div class="item"><span class="n">Выручка за 30 дней</span><span class="p">$7 823</span></div>
+    <div class="item"><span class="n">Рост за месяц</span><span class="p g">+12,6%</span></div>
+    <div class="item"><span class="n">Подписчики × 408</span><span class="p">активны</span></div>
+    <div class="item"><span class="n">Расходы</span><span class="p">почти $0</span></div>
+    <div class="dash"></div>
+    <div class="item"><span class="n">ИТОГО заработано (all-time)</span><span class="p">$24 422</span></div>
+    <div class="total"><span>МАРЖА</span><span>96%</span></div>
+    <div class="dash"></div>
+    <div class="note">Цена: <b>2,29× годовой выручки</b><br>Сдача: полный разбор на <b>startupmarket.tech</b><br>Спасибо за покупку стартапов, а не курсов!</div>
+    <div class="barcode"></div>
+    <div class="bnum">3506-7823-0408-2296</div>
+  </div>
+</div>
+</body></html>

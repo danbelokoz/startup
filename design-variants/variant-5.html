@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Концепт 5 — Square: лента карточек</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_tokens.css">
+<style>
+main{max-width:1200px;margin:0 auto;padding:26px 24px 60px}
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:20px}
+h1{font-size:26px;font-weight:700}
+.head .tabs{border:0}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.scard{background:var(--bg-2);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:12px;position:relative;cursor:pointer;border:1px solid transparent}
+.scard:hover{border-color:var(--bg-4)}
+.shead{display:flex;align-items:center;gap:10px}
+.shead b{font-size:15px}
+.shead .cat{font-size:11px;color:var(--text-2);background:var(--bg-3);border-radius:4px;padding:2px 7px}
+.shead .star{margin-left:auto;color:var(--text-3);display:flex}
+.scard:hover .star{color:var(--yellow-2)}
+.sdesc{color:var(--text-2);font-size:13px;min-height:38px}
+.smrr{display:flex;align-items:baseline;gap:10px}
+.smrr b{font-size:24px;font-weight:700}
+.smrr small{color:var(--text-3)}
+.pill{font-size:12px;font-weight:600;border-radius:6px;padding:3px 8px}
+.pill.up{background:rgba(14,203,129,.12)}
+.pill.down{background:rgba(246,70,93,.12)}
+.tag{position:absolute;top:14px;right:14px;font-size:11px;font-weight:600;color:var(--yellow-2);background:rgba(240,185,11,.12);border-radius:4px;padding:3px 8px}
+.sfoot{display:flex;align-items:center;gap:14px;color:var(--text-3);font-size:12px;border-top:1px solid var(--bg-3);padding-top:12px}
+.sfoot span{display:flex;align-items:center;gap:5px}
+.sfoot .alink{margin-left:auto}
+</style>
+</head>
+<body>
+<div id="nav"></div>
+<main>
+  <div class="head">
+    <div>
+      <h1>Лента стартапов</h1>
+      <div class="muted" style="margin-top:4px">Карточки с живыми метриками — как посты в Binance Square</div>
+    </div>
+    <div class="tabs"><a class="on">Рекомендации</a><a>Подписки</a><a>Только на продаже</a></div>
+  </div>
+  <div class="grid" id="grid"></div>
+</main>
+<script src="_mock.js"></script>
+<script>
+document.getElementById('nav').outerHTML = buildNav('Каталог');
+const views = ['1,2 тыс', '847', '2,1 тыс', '634', '918', '1,5 тыс', '402', '725', '388', '1,1 тыс'];
+document.getElementById('grid').innerHTML = STARTUPS.map((s, i) => `<div class="scard">
+  ${s.sale ? '<span class="tag">На продаже</span>' : ''}
+  <div class="shead">${avatar(s, 38)}<div><b>${s.name}</b><div style="margin-top:3px"><span class="cat">${s.cat}</span></div></div><span class="star">${ic('star', 17)}</span></div>
+  <div class="sdesc">${s.desc}. MRR подтверждён через платёжного провайдера.</div>
+  <div class="smrr"><b>${F.usd(s.mrr)}</b><small>/ мес</small><span class="pill ${F.cls(s.growth)} ${F.cls(s.growth)}">${F.pct(s.growth)}</span></div>
+  <div>${spark(s, 250, 44, 1.8)}</div>
+  <div class="sfoot">
+    <span>${ic('eye', 14)}${views[i]}</span>
+    <span>${ic('chat', 14)}${12 + i * 7}</span>
+    <span>${ic('users', 14)}${90 + i * 41}</span>
+    <a class="alink">Подробнее</a>
+  </div>
+</div>`).join('');
+document.body.insertAdjacentHTML('beforeend', badge(5, 'Square — лента карточек'));
+</script>
+</body>
+</html>

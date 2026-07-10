@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="UTF-8"><title>U04 · Сплит</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#000;display:flex;justify-content:center;padding:20px;
+    font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+  .slide{width:1080px;height:1350px;display:flex;position:relative;overflow:hidden;background:#101114;color:#EAECEF}
+  .rail{width:380px;flex-shrink:0;background:linear-gradient(175deg,#FCD535,#EFB90A);color:#17181C;
+    padding:52px 40px;display:flex;flex-direction:column}
+  .sm{width:54px;height:54px;border-radius:14px;background:#17181C;color:#FCD535;font-weight:900;font-size:21px;
+    display:flex;align-items:center;justify-content:center}
+  .bw{font-size:22px;font-weight:800;margin-top:14px;line-height:1.25}
+  .bw span{opacity:.55}
+  .num{font-size:16px;font-weight:700;opacity:.65;margin-top:6px}
+  .ic{width:120px;height:120px;border-radius:30px;background:radial-gradient(circle at 35% 30%,#FF9D5C,#B33B10 70%);
+    display:flex;align-items:center;justify-content:center;font-size:60px;margin-top:64px;
+    box-shadow:0 18px 44px rgba(23,24,28,.35)}
+  .nm{font-size:52px;font-weight:900;letter-spacing:-1px;margin-top:24px;line-height:1.05}
+  .cat{font-size:18px;font-weight:600;opacity:.7;margin-top:12px;line-height:1.5}
+  .sale{display:inline-block;background:#17181C;color:#FCD535;font-size:16px;font-weight:800;border-radius:999px;
+    padding:10px 18px;margin-top:20px;align-self:flex-start}
+  .pr{margin-top:auto}
+  .pr .l{font-size:19px;font-weight:700;opacity:.65}
+  .pr .v{font-size:78px;font-weight:900;letter-spacing:-4px;line-height:1;margin-top:8px}
+  .pr .s{font-size:17px;font-weight:600;opacity:.7;margin-top:12px;line-height:1.5}
+  .main{flex:1;padding:52px 48px;display:flex;flex-direction:column}
+  .mh{display:flex;justify-content:space-between;font-size:16px;color:#848E9C}
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:28px}
+  .c{background:#1A1C22;border:1px solid #262B36;border-radius:20px;padding:22px 24px}
+  .c.wide{grid-column:span 2;background:linear-gradient(160deg,rgba(252,213,53,.10),rgba(252,213,53,0) 60%),#1A1C22;
+    border-color:rgba(252,213,53,.3)}
+  .c .l{font-size:17px;color:#848E9C;font-weight:600}
+  .c .v{font-size:48px;font-weight:800;letter-spacing:-2px;margin-top:8px;line-height:1}
+  .c.wide .v{font-size:64px}
+  .c .s{font-size:15px;color:#848E9C;margin-top:8px}
+  .c .s b{color:#0ECB81}
+  .vtag{float:right;font-size:13px;font-weight:700;color:#0ECB81;background:rgba(14,203,129,.12);
+    border:1px solid rgba(14,203,129,.25);border-radius:999px;padding:4px 10px}
+  .chart{margin-top:16px;background:#1A1C22;border:1px solid #262B36;border-radius:20px;padding:24px 26px 12px;flex:1;
+    display:flex;flex-direction:column}
+  .cv{font-size:30px;font-weight:800}
+  .cm{font-size:15px;color:#848E9C;margin-top:5px}
+  svg{width:100%;flex:1;margin-top:10px}
+  .foot{margin-top:20px;font-size:15px;color:#5E6673;display:flex;justify-content:space-between}
+  .foot b{color:#FCD535}
+</style></head><body>
+<div class="slide">
+  <div class="rail">
+    <div class="sm">SM</div>
+    <div class="bw">STARTUP<span>MARKET</span></div>
+    <div class="num">разбор дня № 147 · 05.07.2026</div>
+    <div class="ic">🏀</div>
+    <div class="nm">DunkMax</div>
+    <div class="cat">Мобильные приложения<br>B2C · США</div>
+    <div class="sale">● НА ПРОДАЖЕ</div>
+    <div class="pr">
+      <div class="l">Цена стартапа</div>
+      <div class="v">$49K</div>
+      <div class="s">точнее $49 000 · мультипл 2,29× к годовой выручке</div>
+    </div>
+  </div>
+  <div class="main">
+    <div class="mh"><span>КЛЮЧЕВЫЕ МЕТРИКИ · 30 ДНЕЙ</span><span>startupmarket.tech</span></div>
+    <div class="cards">
+      <div class="c wide"><div class="vtag">● RevenueCat ✓</div><div class="l">MRR</div><div class="v">$3 506</div><div class="s">без изменений к пред. 30 дн. · подтверждён платёжкой</div></div>
+      <div class="c"><div class="l">Выручка 30 дн.</div><div class="v">$7 823</div><div class="s"><b>↑ +12,6%</b> за месяц</div></div>
+      <div class="c"><div class="l">Подписчики</div><div class="v">408</div><div class="s">платят ежемесячно</div></div>
+      <div class="c"><div class="l">Маржа</div><div class="v">96%</div><div class="s">расходы почти $0</div></div>
+      <div class="c"><div class="l">За всё время</div><div class="v">$24,4K</div><div class="s">суммарная выручка</div></div>
+    </div>
+    <div class="chart">
+      <div class="cv">$3 645</div>
+      <div class="cm">MRR по дням · 14 июня – 4 июля · диапазон $3 411 – $3 698</div>
+      <svg viewBox="0 0 900 140" preserveAspectRatio="none">
+        <polyline fill="rgba(252,213,53,.10)" stroke="none" points="0,58 60,76 120,87 180,82 240,116 300,100 360,90 420,72 480,45 540,26 600,11 660,23 720,15 780,26 840,19 900,24 900,140 0,140"/>
+        <polyline fill="none" stroke="#FCD535" stroke-width="3.5" points="0,58 60,76 120,87 180,82 240,116 300,100 360,90 420,72 480,45 540,26 600,11 660,23 720,15 780,26 840,19 900,24"/>
+        <circle cx="900" cy="24" r="6" fill="#FCD535"/>
+      </svg>
+    </div>
+    <div class="foot"><span>проверенные стартапы с реальной выручкой</span><span><b>startupmarket.tech</b></span></div>
+  </div>
+</div>
+</body></html>

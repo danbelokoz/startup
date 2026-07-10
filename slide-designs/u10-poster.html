@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="UTF-8"><title>U10 · Плакат-стек</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#333;display:flex;justify-content:center;padding:20px;
+    font-family:"Helvetica Neue",Helvetica,Arial,sans-serif}
+  .slide{width:1080px;height:1350px;background:#F1EEE6;color:#121212;display:flex;flex-direction:column;
+    position:relative;overflow:hidden}
+  .band{padding:0 64px}
+  .b-brand{background:#FCD535;display:flex;align-items:center;justify-content:space-between;height:92px}
+  .bl{display:flex;align-items:center;gap:14px}
+  .sm{width:48px;height:48px;border-radius:10px;background:#121212;color:#FCD535;font-weight:900;font-size:18px;
+    display:flex;align-items:center;justify-content:center}
+  .bw{font-size:23px;font-weight:800}.bw span{opacity:.5}
+  .bd{font-size:16px;font-weight:700;opacity:.7}
+  .b-id{display:flex;align-items:center;gap:22px;padding-top:36px;padding-bottom:32px}
+  .ic{width:96px;height:96px;border-radius:24px;background:radial-gradient(circle at 35% 30%,#FF9D5C,#B33B10 70%);
+    display:flex;align-items:center;justify-content:center;font-size:48px;flex-shrink:0}
+  .nm{font-size:58px;font-weight:900;letter-spacing:-1.5px}
+  .cat{font-size:19px;color:#6F6A5E;margin-top:8px}
+  .cat b{color:#0B7A43}
+  .b-price{background:#121212;color:#F1EEE6;display:flex;align-items:center;justify-content:space-between;
+    padding-top:34px;padding-bottom:36px}
+  .b-price .l{font-size:20px;color:#9B968A;font-weight:700;letter-spacing:1px}
+  .b-price .v{font-size:110px;font-weight:900;letter-spacing:-5px;line-height:1;color:#FCD535;margin-top:6px}
+  .b-price .r{text-align:right;font-size:19px;color:#9B968A;line-height:1.6}
+  .b-price .r b{color:#F1EEE6}
+  .b-metrics{padding-top:28px;padding-bottom:28px}
+  .mgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px}
+  .m{background:#fff;border:2px solid #121212;border-radius:16px;padding:20px 22px;box-shadow:5px 5px 0 #121212}
+  .m .v{font-size:44px;font-weight:900;letter-spacing:-1.5px;line-height:1}
+  .m .v.gr{color:#0B7A43}
+  .m .l{font-size:15px;color:#6F6A5E;font-weight:700;margin-top:8px;line-height:1.3}
+  .m1{grid-column:span 2}.m2{grid-column:span 2}.m3,.m4{grid-column:span 1}
+  .m5{grid-column:span 2}.m6{grid-column:span 4}
+  .m6{display:flex;align-items:center;justify-content:space-between}
+  .m6 .txt .v{font-size:36px}
+  .badge{font-size:15px;font-weight:800;background:#DCF5E7;color:#0B7A43;border:2px solid #0B7A43;
+    border-radius:999px;padding:8px 16px}
+  .b-chart{flex:1;display:flex;flex-direction:column;padding-top:6px;padding-bottom:0}
+  .chh{display:flex;justify-content:space-between;align-items:baseline}
+  .cv{font-size:36px;font-weight:900}
+  .cm{font-size:15px;color:#6F6A5E;margin-top:5px}
+  .lg{font-size:14px;color:#6F6A5E;font-weight:700}.lg i{display:inline-block;width:22px;height:4px;background:#121212;margin-right:8px;vertical-align:3px}
+  svg{width:100%;flex:1;margin-top:8px}
+  .b-foot{background:#121212;color:#9B968A;height:72px;display:flex;align-items:center;justify-content:space-between;font-size:16px}
+  .b-foot b{color:#FCD535}
+</style></head><body>
+<div class="slide">
+  <div class="band b-brand">
+    <div class="bl"><div class="sm">SM</div><div class="bw">STARTUP<span>MARKET</span></div></div>
+    <div class="bd">разбор дня № 147 · 5 июля 2026</div>
+  </div>
+  <div class="band b-id">
+    <div class="ic">🏀</div>
+    <div><div class="nm">DunkMax</div><div class="cat">Мобильные приложения · B2C · США · <b>● на продаже</b></div></div>
+  </div>
+  <div class="band b-price">
+    <div><div class="l">ЦЕНА СТАРТАПА</div><div class="v">$49 000</div></div>
+    <div class="r">мультипл <b>2,29×</b> к годовой выручке<br>MRR подтверждён через <b>RevenueCat ✓</b></div>
+  </div>
+  <div class="band b-metrics">
+    <div class="mgrid">
+      <div class="m m1"><div class="v">$3 506</div><div class="l">MRR · стабилен</div></div>
+      <div class="m m2"><div class="v gr">+12,6%</div><div class="l">рост выручки 30 дн. ($7 823)</div></div>
+      <div class="m m3"><div class="v">408</div><div class="l">подписчиков</div></div>
+      <div class="m m4"><div class="v">96%</div><div class="l">маржа</div></div>
+      <div class="m m5"><div class="v">$24 422</div><div class="l">выручка за всё время</div></div>
+      <div class="m m6"><div class="txt"><div class="v">почти $0</div><div class="l">расходы — соло-проект без команды</div></div><div class="badge">выручка проверена ✓</div></div>
+    </div>
+  </div>
+  <div class="band b-chart">
+    <div class="chh">
+      <div><span class="cv">$3 645</span><div class="cm">MRR по дням · 14 июня – 4 июля · диапазон $3 411 – $3 698</div></div>
+      <div class="lg"><i></i>ежедневный снимок</div>
+    </div>
+    <svg viewBox="0 0 950 130" preserveAspectRatio="none">
+      <polyline fill="rgba(18,18,18,.08)" stroke="none" points="0,54 63,70 126,80 189,75 252,106 315,93 378,84 441,66 504,41 567,24 630,10 693,20 756,14 819,23 882,17 950,22 950,130 0,130"/>
+      <polyline fill="none" stroke="#121212" stroke-width="3.5" points="0,54 63,70 126,80 189,75 252,106 315,93 378,84 441,66 504,41 567,24 630,10 693,20 756,14 819,23 882,17 950,22"/>
+      <circle cx="950" cy="22" r="6" fill="#121212"/>
+    </svg>
+  </div>
+  <div class="band b-foot"><span>полный разбор → <b>startupmarket.tech</b></span><span>проверенные стартапы с реальной выручкой</span></div>
+</div>
+</body></html>

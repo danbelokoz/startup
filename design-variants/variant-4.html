@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Концепт 4 — терминал трейдера</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_tokens.css">
+<style>
+.term{display:grid;grid-template-columns:300px 1fr 300px;min-height:calc(100vh - 64px)}
+.col{border-right:1px solid var(--bg-2);padding:14px;overflow:auto}
+.col:last-child{border-right:0}
+.wl .srch{height:34px;font-size:13px;margin-bottom:10px}
+.minitabs{display:flex;gap:14px;font-size:13px;color:var(--text-3);margin-bottom:6px}
+.minitabs a.on{color:var(--yellow)}
+.wrow{display:flex;align-items:center;gap:9px;padding:8px;border-radius:6px;font-size:13px;cursor:pointer}
+.wrow:hover{background:var(--bg-2)}
+.wrow.on{background:var(--bg-2);box-shadow:inset 3px 0 0 var(--yellow)}
+.wrow .v{margin-left:auto;text-align:right}
+.wrow .v b{display:block;font-weight:500}
+.wrow .v span{font-size:11px}
+.thead{display:flex;align-items:center;gap:14px;padding:6px 8px 16px;flex-wrap:wrap}
+.thead h1{font-size:20px;font-weight:600;display:flex;align-items:center;gap:10px}
+.vbadge{display:inline-flex;align-items:center;gap:4px;color:var(--green);font-size:12px;font-weight:500}
+.kpis{display:flex;gap:28px;margin-left:auto;flex-wrap:wrap}
+.kpi span{display:block;font-size:11px;color:var(--text-3)}
+.kpi b{font-weight:500;font-size:14px}
+.chartbox{border:1px solid var(--bg-3);border-radius:8px;padding:14px}
+.chartbox .bar{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.chartbox .bar b{font-size:13px;font-weight:500;margin-right:auto}
+.rng{font-size:12px;color:var(--text-3);padding:4px 9px;border-radius:5px;cursor:pointer}
+.rng.on{background:var(--bg-3);color:var(--text-1)}
+.about{margin-top:14px;border:1px solid var(--bg-3);border-radius:8px;padding:0 14px 14px}
+.about p{color:var(--text-2);font-size:13px;max-width:640px;margin-top:12px}
+.kv{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+.kv div{background:var(--bg-2);border-radius:6px;padding:10px}
+.kv span{display:block;font-size:11px;color:var(--text-3)}
+.kv b{font-size:13px;font-weight:500}
+.buy h3{font-size:16px;margin-bottom:4px}
+.price{font-size:28px;font-weight:700;margin:8px 0 2px}
+.buy .btn-y,.buy .btn-g{width:100%;margin-top:10px}
+.litem{display:flex;align-items:center;gap:8px;padding:7px 0;font-size:13px;color:var(--text-2)}
+.litem svg{color:var(--green)}
+.divider{border-top:1px solid var(--bg-3);margin:16px 0 10px}
+.sim{display:flex;align-items:center;gap:8px;padding:7px 0;font-size:13px}
+.sim .p{margin-left:auto;color:var(--text-2)}
+h4{font-size:12px;color:var(--text-3);font-weight:500;text-transform:uppercase;letter-spacing:.05em;margin:6px 0}
+</style>
+</head>
+<body>
+<div id="nav"></div>
+<div class="term">
+  <div class="col wl">
+    <div class="srch"><span id="sIc" style="display:flex"></span><input placeholder="Поиск"></div>
+    <div class="minitabs"><a class="on">Все</a><a>На продаже</a><a>★ Избранное</a></div>
+    <div id="watch"></div>
+  </div>
+  <div class="col">
+    <div class="thead">
+      <h1 id="selName"></h1>
+      <span class="vbadge" id="vb"></span>
+      <div class="kpis" id="kpis"></div>
+    </div>
+    <div class="chartbox">
+      <div class="bar"><b>MRR · 12 месяцев</b>
+        <span class="rng">1М</span><span class="rng">3М</span><span class="rng on">1Г</span><span class="rng">Всё</span>
+      </div>
+      <div id="chart"></div>
+    </div>
+    <div class="about">
+      <div class="tabs" style="font-size:13px"><a class="on">О стартапе</a><a>Метрики</a><a>История цены</a></div>
+      <p>PixelForge — сервис AI-генерации иллюстраций для маркетинговых команд. 1 840 платящих подписчиков, 78 % маржа, полная автоматизация. Основатель продаёт в связи с переездом фокуса на новый проект.</p>
+      <div class="kv">
+        <div><span>Основан</span><b>2022</b></div>
+        <div><span>Подписчики</span><b>1 840</b></div>
+        <div><span>Маржа</span><b>78 %</b></div>
+        <div><span>Провайдер</span><b>Stripe ✓</b></div>
+      </div>
+    </div>
+  </div>
+  <div class="col buy">
+    <h3>Купить PixelForge</h3>
+    <span class="muted" style="font-size:12px">Запрос цены · 100 % капитала</span>
+    <div class="price" id="buyPrice"></div>
+    <span class="muted" style="font-size:12px" id="buyMult"></span>
+    <button class="btn-y">Запросить сделку</button>
+    <button class="btn-g">В избранное</button>
+    <div class="divider"></div>
+    <h4>Условия</h4>
+    <div id="terms"></div>
+    <div class="divider"></div>
+    <h4>Похожие</h4>
+    <div id="similar"></div>
+  </div>
+</div>
+<script src="_mock.js"></script>
+<script>
+document.getElementById('nav').outerHTML = buildNav('Каталог');
+document.getElementById('sIc').innerHTML = ic('search', 16);
+const sel = STARTUPS[0];
+document.getElementById('watch').innerHTML = STARTUPS.map((s, i) => `<div class="wrow ${i === 0 ? 'on' : ''}">
+  ${avatar(s, 26)}<div><b style="font-weight:500">${s.name}</b><div class="muted" style="font-size:11px">${s.cat}</div></div>
+  <div class="v"><b>${F.usd(s.mrr)}</b><span class="${F.cls(s.growth)}">${F.pct(s.growth)}</span></div>
+</div>`).join('');
+document.getElementById('selName').innerHTML = `${avatar(sel, 28)} ${sel.name} <span class="muted" style="font-size:13px;font-weight:400">${sel.cat}</span>`;
+document.getElementById('vb').innerHTML = `${ic('shield', 14)} верифицирован`;
+document.getElementById('kpis').innerHTML = [
+  ['MRR', F.usd(sel.mrr), ''],
+  ['Рост 30д', F.pct(sel.growth), F.cls(sel.growth)],
+  ['Выручка 30д', F.usd(sel.rev), ''],
+  ['Цена', F.usd(sel.price), ''],
+  ['Просмотры', '1 248', ''],
+].map(([l, v, c]) => `<div class="kpi"><span>${l}</span><b class="${c}">${v}</b></div>`).join('');
+document.getElementById('chart').innerHTML = areaChart(sel.name, 820, 290, sel.growth >= 0);
+document.getElementById('buyPrice').textContent = F.usd(sel.price);
+document.getElementById('buyMult').textContent = F.mult(sel) + ' годового MRR';
+document.getElementById('terms').innerHTML = ['Эскроу-сделка', 'Передача всех активов', 'Поддержка 30 дней после сделки', 'NDA по запросу']
+  .map(t => `<div class="litem">${ic('shield', 15)}${t}</div>`).join('');
+document.getElementById('similar').innerHTML = STARTUPS.filter(s => s.cat === sel.cat && s !== sel).concat(STARTUPS[1], STARTUPS[2]).slice(0, 3)
+  .map(s => `<div class="sim">${avatar(s, 24)}<span>${s.name}</span><span class="p">${F.usd(s.mrr)}</span></div>`).join('');
+document.body.insertAdjacentHTML('beforeend', badge(4, 'Терминал трейдера'));
+</script>
+</body>
+</html>

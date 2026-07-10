@@ -1,0 +1,34 @@
+<!doctype html><meta charset="utf-8">
+<style>
+  body{margin:0;background:#0b0d11;font-family:Arial;color:#ccc;padding:30px}
+  h3{color:#fff;font-weight:600;font-size:14px;margin:24px 0 10px}
+  .row{display:flex;gap:34px;align-items:flex-end;flex-wrap:wrap}
+  .item{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11px;color:#888}
+  .box{position:relative;background:#fff1}
+  .box img{display:block;image-rendering:auto}
+  .box.px::after,.box.px::before{content:"";position:absolute;background:rgba(255,60,60,.85);z-index:5}
+  .box.px::before{left:50%;top:0;bottom:0;width:1px;transform:translateX(-.5px)}
+  .box.px::after{top:50%;left:0;right:0;height:1px;transform:translateY(-.5px)}
+  .tab{display:inline-flex;align-items:center;gap:7px;background:#23262d;border-radius:8px 8px 0 0;padding:8px 14px;color:#ddd;font-size:13px;margin-top:6px}
+  .tab img{width:16px;height:16px}
+</style>
+
+<h3>favicon.svg — large with center crosshair</h3>
+<div class="row">
+  <div class="item"><div class="box px"><img src="/favicon.svg?x=1" width="260" height="260"></div>SVG @260</div>
+  <div class="item"><div class="box px"><img src="/favicon-32x32.png?x=1" width="260" height="260"></div>PNG 32 @260</div>
+  <div class="item"><div class="box px"><img src="/favicon-16x16.png?x=1" width="260" height="260"></div>PNG 16 @260</div>
+  <div class="item"><div class="box px"><img src="/apple-touch-icon.png?x=1" width="260" height="260"></div>apple @260</div>
+</div>
+
+<h3>Actual tab / native sizes</h3>
+<div class="row">
+  <div class="item"><div class="box"><img src="/favicon.svg?x=2" width="32" height="32"></div>svg 32</div>
+  <div class="item"><div class="box"><img src="/favicon-32x32.png?x=2" width="32" height="32"></div>png 32</div>
+  <div class="item"><div class="box"><img src="/favicon-16x16.png?x=2" width="16" height="16"></div>png 16</div>
+  <div class="item"><div class="box"><img src="/apple-touch-icon.png?x=2" width="60" height="60"></div>apple 60</div>
+</div>
+
+<h3>Browser-tab mock</h3>
+<div class="tab"><img src="/favicon.svg?x=3"> startupmarket.tech</div>
+<div class="tab"><img src="/favicon-16x16.png?x=3"> startupmarket.tech</div>

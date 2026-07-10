@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>MRRket × Binance — 10 концептов главной</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_tokens.css">
+<style>
+header.top{max-width:1280px;margin:0 auto;padding:36px 24px 8px}
+h1{font-size:30px;font-weight:700}
+h1 span{color:var(--yellow)}
+.sub{color:var(--text-2);margin-top:8px;max-width:760px}
+.g{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;max-width:1280px;margin:0 auto;padding:24px}
+.vcard{display:block;background:var(--bg-2);border:1px solid var(--bg-3);border-radius:14px;overflow:hidden;transition:border-color .15s}
+.vcard:hover{border-color:var(--yellow-2)}
+.thumb{height:330px;overflow:hidden;position:relative;pointer-events:none;background:var(--bg-1)}
+.thumb iframe{width:1280px;height:840px;transform:scale(0.466);transform-origin:0 0;border:0}
+.thumb::after{content:'';position:absolute;inset:0;background:linear-gradient(transparent 75%,rgba(11,14,17,.55))}
+.meta{padding:14px 18px;display:flex;align-items:baseline;gap:10px}
+.meta .n{color:var(--yellow);font-weight:700}
+.meta b{font-size:15px}
+.meta span{color:var(--text-3);font-size:13px;margin-left:auto;text-align:right}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>MRRket <span>×</span> Binance — 10 концептов главной</h1>
+  <div class="sub">Палитра #181A20 / #FCD535, шрифт IBM Plex Sans (тот же, что Binance Plex), иконки и компоновка — как на binance.com. Кликни карточку, чтобы открыть концепт во весь экран; внутри листай стрелками в правом нижнем углу.</div>
+</header>
+<div class="g" id="g"></div>
+<script>
+const VARIANTS = [
+  ['«Кошелёк»', 'сайдбар + обзор активов, как на твоём скриншоте'],
+  ['«Рынки»', 'таблица котировок со спарклайнами и категориями'],
+  ['Главная Binance', 'крупный hero + панель популярных стартапов'],
+  ['Терминал', 'watchlist, график MRR и панель сделки'],
+  ['Square', 'лента карточек с метриками и реакциями'],
+  ['Промо-лендинг', 'жёлтый акцент, статистика, CTA-блок'],
+  ['Лидерборд', 'топ движения: рост / MRR / новые листинги'],
+  ['Светлая тема', 'светлая палитра Binance — ближе к текущему сайту'],
+  ['Earn', 'рост MRR как ставка APR, строки-предложения'],
+  ['Панель рынка', 'виджеты: тайлы, донат категорий, мини-топы'],
+];
+document.getElementById('g').innerHTML = VARIANTS.map(([name, desc], i) => `
+  <a class="vcard" href="variant-${i + 1}.html">
+    <div class="thumb"><iframe src="variant-${i + 1}.html" loading="lazy" tabindex="-1"></iframe></div>
+    <div class="meta"><span class="n">${String(i + 1).padStart(2, '0')}</span><b>${name}</b><span>${desc}</span></div>
+  </a>`).join('');
+</script>
+</body>
+</html>

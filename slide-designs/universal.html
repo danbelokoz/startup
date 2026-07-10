@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="UTF-8"><title>Универсальный шаблон — 10 вариантов</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0C0D10;color:#EAECEF;font-family:-apple-system,"Segoe UI",Roboto,sans-serif;padding:36px 40px}
+  h1{font-size:26px;font-weight:800}
+  p.sub{color:#848E9C;margin-top:8px;font-size:15px;max-width:1100px}
+  .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:22px;margin-top:28px}
+  a.card{display:block;text-decoration:none;color:inherit;background:#17181C;border:1px solid #2B2F38;
+    border-radius:12px;overflow:hidden;transition:border-color .15s}
+  a.card:hover{border-color:#FCD535}
+  .thumb{width:100%;aspect-ratio:1080/1350;position:relative;overflow:hidden;background:#000}
+  .thumb iframe{width:1080px;height:1350px;border:0;transform-origin:0 0;position:absolute;left:0;top:0;pointer-events:none}
+  .cap{padding:12px 14px}
+  .cap b{font-size:14px;display:block}
+  .cap span{font-size:12px;color:#848E9C;display:block;margin-top:4px;line-height:1.45}
+</style></head><body>
+  <h1>Универсальный шаблон «Разбор дня» · 10 вариантов</h1>
+  <p class="sub">В каждом: лого StartupMarket, лого+название продукта, цена стартапа, бенто-блоки метрик разного размера, подневный график MRR. Формат 1080×1350. Цена $49 000 — заглушка. Клик — полный размер.</p>
+  <div class="grid" id="g"></div>
+<script>
+  const items=[
+    ["u01-bento-dark.html","U01 · Бенто тёмный","Фирменный стиль сайта: жёлтый блок цены 2×2 + MRR 2×2, график во всю ширину"],
+    ["u02-bento-light.html","U02 · Бенто светлый","Белые карточки с мягкими тенями, чёрный блок цены на 2 ряда, график 2×2"],
+    ["u03-price-hero.html","U03 · Цена-герой","Гигантская цена по центру, метрики чипсами, график снизу"],
+    ["u04-split.html","U04 · Сплит","Жёлтая боковая колонка: бренд+продукт+цена; справа метрики и график"],
+    ["u05-chart-hero.html","U05 · График-герой","График занимает верхнюю половину, ценник-стикер поверх, бенто снизу"],
+    ["u06-editorial.html","U06 · Журнальный","Газетная вёрстка: серифы, линейки, чёрный блок цены, красный график"],
+    ["u07-glass.html","U07 · Глас-градиент","Сочный градиент, стеклянные плитки, жёлтая плитка цены"],
+    ["u08-specsheet.html","U08 · Спецификация","Техпаспорт: видимая сетка, mono-подписи, нумерация ячеек 01–07"],
+    ["u09-appstore.html","U09 · Апп-стор","Карточка приложения: крупная иконка, кнопка «КУПИТЬ · $49 000», рейтинг-строка"],
+    ["u10-poster.html","U10 · Плакат-стек","Горизонтальные полосы: жёлтый бренд-бар → продукт → чёрная полоса цены → бенто → график"]
+  ];
+  const g=document.getElementById('g');
+  items.forEach(([f,t,d])=>{
+    const a=document.createElement('a');a.className='card';a.href=f;
+    a.innerHTML=`<div class="thumb"><iframe src="${f}" scrolling="no"></iframe></div>
+      <div class="cap"><b>${t}</b><span>${d}</span></div>`;
+    g.appendChild(a);
+  });
+  function fit(){
+    document.querySelectorAll('.thumb').forEach(th=>{
+      const s=th.clientWidth/1120;
+      th.querySelector('iframe').style.transform=`scale(${s})`;
+    });
+  }
+  window.addEventListener('resize',fit);
+  setTimeout(fit,50);setTimeout(fit,600);
+</script>
+</body></html>

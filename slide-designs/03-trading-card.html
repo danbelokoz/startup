@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="UTF-8"><title>03 · Коллекционная карта</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0B0C10;display:flex;justify-content:center;padding:20px;
+    font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+  .slide{width:1080px;height:1350px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(80% 60% at 50% 20%,#1E2340,#0B0C10 70%)}
+  .halo{position:absolute;width:900px;height:900px;top:80px;border-radius:50%;
+    background:conic-gradient(from 0deg,#FF6EC7,#FFD34E,#6EFFB8,#6EA8FF,#C86EFF,#FF6EC7);
+    filter:blur(120px);opacity:.35;animation:spin 12s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .card{position:relative;width:760px;height:1120px;border-radius:36px;padding:10px;
+    background:conic-gradient(from 120deg,#FF6EC7,#FFD34E,#6EFFB8,#6EA8FF,#C86EFF,#FF6EC7);
+    box-shadow:0 40px 120px rgba(0,0,0,.7)}
+  .inner{width:100%;height:100%;border-radius:28px;background:linear-gradient(170deg,#171A2B,#0D0F1A 70%);
+    padding:44px 48px;color:#EDF0FF;position:relative;overflow:hidden}
+  .shine{position:absolute;inset:0;background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.14) 45%,transparent 60%);pointer-events:none}
+  .rar{display:flex;justify-content:space-between;align-items:center}
+  .tier{font-size:64px;font-weight:900;background:linear-gradient(135deg,#FFD34E,#FF8A5C);
+    -webkit-background-clip:text;background-clip:text;color:transparent;line-height:1}
+  .tier small{font-size:18px;display:block;-webkit-text-fill-color:#8A91B4;letter-spacing:3px;font-weight:700}
+  .num{font-size:20px;color:#8A91B4;font-weight:700;text-align:right;line-height:1.5}
+  .art{margin:30px auto 0;width:300px;height:300px;border-radius:40px;
+    background:radial-gradient(circle at 35% 30%,#FF9D5C,#B33B10 70%);display:flex;align-items:center;justify-content:center;
+    font-size:130px;box-shadow:0 20px 60px rgba(255,120,40,.35),inset 0 0 0 4px rgba(255,255,255,.15)}
+  h1{text-align:center;font-size:74px;font-weight:900;letter-spacing:-1px;margin-top:26px}
+  .cls{text-align:center;font-size:21px;color:#8A91B4;margin-top:6px;letter-spacing:2px}
+  .stats{margin-top:38px;display:flex;flex-direction:column;gap:16px}
+  .st{display:flex;align-items:center;gap:18px;font-size:23px}
+  .st .l{width:250px;color:#8A91B4;font-weight:700}
+  .st .bar{flex:1;height:18px;border-radius:9px;background:#232741;overflow:hidden}
+  .st .fill{height:100%;border-radius:9px;background:linear-gradient(90deg,#6EA8FF,#6EFFB8)}
+  .st .v{width:130px;text-align:right;font-weight:800}
+  .abil{margin-top:36px;background:rgba(110,168,255,.08);border:1px solid rgba(110,168,255,.25);
+    border-radius:18px;padding:22px 26px;font-size:22px;line-height:1.5}
+  .abil b{color:#FFD34E}
+  .cfoot{position:absolute;bottom:26px;left:48px;right:48px;display:flex;justify-content:space-between;
+    font-size:17px;color:#8A91B4;letter-spacing:1px}
+  .badge{position:absolute;top:150px;right:-64px;transform:rotate(35deg);background:#0ECB81;color:#04180F;
+    font-weight:900;font-size:20px;letter-spacing:2px;padding:10px 80px}
+</style></head><body>
+<div class="slide">
+  <div class="halo"></div>
+  <div class="card"><div class="inner">
+    <div class="shine"></div>
+    <div class="badge">НА ПРОДАЖЕ</div>
+    <div class="rar">
+      <div class="tier">A-<small>ТИР АКТИВА</small></div>
+      <div class="num">КАРТА № 147<br>СЕЗОН 2026</div>
+    </div>
+    <div class="art">🏀</div>
+    <h1>DUNKMAX</h1>
+    <div class="cls">МОБИЛЬНОЕ ПРИЛОЖЕНИЕ · B2C · США</div>
+    <div class="stats">
+      <div class="st"><div class="l">MRR</div><div class="bar"><div class="fill" style="width:58%"></div></div><div class="v">$3 506</div></div>
+      <div class="st"><div class="l">РОСТ 30Д</div><div class="bar"><div class="fill" style="width:63%"></div></div><div class="v">+12,6%</div></div>
+      <div class="st"><div class="l">МАРЖА</div><div class="bar"><div class="fill" style="width:96%"></div></div><div class="v">96%</div></div>
+      <div class="st"><div class="l">ПОДПИСКИ</div><div class="bar"><div class="fill" style="width:41%"></div></div><div class="v">408</div></div>
+      <div class="st"><div class="l">ЦЕНА / ВЫРУЧКА</div><div class="bar"><div class="fill" style="width:46%"></div></div><div class="v">2,29×</div></div>
+    </div>
+    <div class="abil">⚡ <b>Особая способность:</b> MRR подтверждён RevenueCat — не скриншот из Notion, а живые данные платёжки. Выручка за всё время: $24 422.</div>
+    <div class="cfoot"><span>startupmarket.tech</span><span>РАЗБОР ДНЯ · 5 ИЮЛЯ 2026</span></div>
+  </div></div>
+</div>
+</body></html>

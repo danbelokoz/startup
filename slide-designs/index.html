@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="UTF-8"><title>Разбор дня — 10 дизайнов</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0C0D10;color:#EAECEF;font-family:-apple-system,"Segoe UI",Roboto,sans-serif;padding:36px 40px}
+  h1{font-size:26px;font-weight:800}
+  p.sub{color:#848E9C;margin-top:8px;font-size:15px}
+  .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:22px;margin-top:28px}
+  a.card{display:block;text-decoration:none;color:inherit;background:#17181C;border:1px solid #2B2F38;
+    border-radius:12px;overflow:hidden;transition:border-color .15s}
+  a.card:hover{border-color:#FCD535}
+  .thumb{width:100%;aspect-ratio:1080/1350;position:relative;overflow:hidden;background:#000}
+  .thumb iframe{width:1080px;height:1350px;border:0;transform-origin:0 0;position:absolute;left:0;top:0;pointer-events:none}
+  .cap{padding:12px 14px}
+  .cap b{font-size:14px;display:block}
+  .cap span{font-size:12px;color:#848E9C;display:block;margin-top:4px;line-height:1.45}
+</style></head><body>
+  <h1>Разбор дня · 10 концептов дизайна</h1>
+  <p class="sub">Формат 1080×1350 (4:5 — Threads / IG / X). Клик по карточке — полноразмерный макет. Данные DunkMax, цифры «счёт судей» и оценка 7,4 — заглушки под твой вердикт.</p>
+  <div class="grid" id="g"></div>
+<script>
+  const items=[
+    ["01-terminal.html","01 · Терминал трейдера","Bloomberg-вайб: зелёный моноширинный тикер, сигнал WATCH/BUY, курсор мигает"],
+    ["02-dossier.html","02 · Секретное досье","Папка следователя: штамп «ПРОВЕРЕНО», зачёркнутые данные, полароид"],
+    ["03-trading-card.html","03 · Коллекционная карта","Холо-рамка, тир актива A-, статы-полоски как в игре"],
+    ["04-big-number.html","04 · Одна цифра","Швейцарский плакат: $3 506 на полэкрана, сетка фактов"],
+    ["05-verdict.html","05 · Вердикт редакции","Хот-тейк заголовок, спидометр 7,4/10, за/против"],
+    ["06-brutalism.html","06 · Нео-брутализм","Жирные рамки, жёсткие тени, стикеры, маркер"],
+    ["07-receipt.html","07 · Чек из магазина","Квитанция с перфорацией, позиции, ИТОГО, штрихкод"],
+    ["08-blueprint.html","08 · Чертёж / теардаун","Синька с размерными линиями: разбираем бизнес как механизм"],
+    ["09-fightcard.html","09 · Файт-кард","Бокс-афиша: DunkMax vs Ценник, счёт судей, победа"],
+    ["10-hook.html","10 · Сторис-хук","Градиент, провокационный заголовок, glass-карточка, «свайп»"]
+  ];
+  const g=document.getElementById('g');
+  items.forEach(([f,t,d])=>{
+    const a=document.createElement('a');a.className='card';a.href=f;
+    a.innerHTML=`<div class="thumb"><iframe src="${f}" scrolling="no"></iframe></div>
+      <div class="cap"><b>${t}</b><span>${d}</span></div>`;
+    g.appendChild(a);
+  });
+  function fit(){
+    document.querySelectorAll('.thumb').forEach(th=>{
+      const s=th.clientWidth/1120; // slide 1080 + body padding 40
+      th.querySelector('iframe').style.transform=`scale(${s})`;
+    });
+  }
+  window.addEventListener('resize',fit);
+  // iframes render body padding 20 → compensate roughly
+  setTimeout(fit,50);setTimeout(fit,600);
+</script>
+</body></html>

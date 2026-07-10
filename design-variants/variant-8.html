@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Концепт 8 — светлая тема Binance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_tokens.css">
+<style>
+/* светлая палитра Binance: белый фон, те же жёлтый/зелёный/красный */
+:root{--bg-0:#FFFFFF;--bg-1:#FAFAFA;--bg-2:#FFFFFF;--bg-3:#EAECEF;--bg-4:#D8DCE1;
+      --text-1:#1E2329;--text-2:#474D57;--text-3:#707A8A}
+.bnav{border-bottom:1px solid var(--bg-3)}
+.tbl tbody tr:hover{background:#F8F8F9}
+.panel{background:#fff;box-shadow:0 2px 10px rgba(24,26,32,.04)}
+.cbadge{box-shadow:0 6px 24px rgba(24,26,32,.14)}
+main{max-width:1000px;margin:0 auto;padding:28px 24px 60px}
+.total h1{font-size:38px;font-weight:600;margin:10px 0 2px}
+.total h1 small{font-size:16px;color:var(--text-2);font-weight:400}
+.lbl{display:flex;align-items:center;gap:8px;color:var(--text-2)}
+.acts{display:flex;gap:10px}
+.assets{margin-top:18px}
+.assets-head{display:flex;align-items:center;justify-content:space-between}
+.assets-head h2{font-size:20px;font-weight:600}
+.controls{display:flex;align-items:center;gap:22px;margin:16px 0 6px;color:var(--text-2);font-size:13px}
+.controls label{display:flex;align-items:center;gap:7px;cursor:pointer;margin-left:auto}
+.nm b{display:block;font-size:15px}
+.nm span{font-size:13px;color:var(--text-3)}
+</style>
+</head>
+<body>
+<div id="nav"></div>
+<main>
+  <section class="panel total">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap">
+      <div>
+        <div class="lbl">Суммарный MRR каталога <span id="eyeIc"></span></div>
+        <h1 id="totalMrr"></h1>
+        <div class="muted" id="totalSub">7 412 стартапов · 312 на продаже</div>
+      </div>
+      <div class="acts">
+        <button class="btn-y sm">Купить</button>
+        <button class="btn-g sm">Продать</button>
+        <button class="btn-g sm">История</button>
+      </div>
+    </div>
+  </section>
+  <section class="panel assets">
+    <div class="assets-head"><h2>Стартапы</h2><a class="alink" style="text-decoration:none;color:var(--text-3)">Все 7 412 ›</a></div>
+    <div class="tabs" style="margin-top:12px"><a class="on">Все</a><a>На продаже</a><a>Категории</a></div>
+    <div class="controls">
+      <span id="searchIc" style="display:flex"></span>
+      <label><input type="checkbox" checked> Скрыть MRR &lt; $1 000</label>
+    </div>
+    <table class="tbl">
+      <thead><tr>
+        <th>Стартап <span class="sort">⇅</span></th>
+        <th class="num">MRR <span class="sort">⇅</span></th>
+        <th class="num">Рост 30д</th>
+        <th class="num">Оценка <span class="sort">⇅</span></th>
+        <th class="num">Действие</th>
+      </tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </section>
+</main>
+<script src="_mock.js"></script>
+<script>
+document.getElementById('nav').outerHTML = buildNav('Каталог');
+document.getElementById('eyeIc').innerHTML = ic('eye', 16);
+document.getElementById('searchIc').innerHTML = ic('search', 18);
+document.getElementById('totalMrr').innerHTML = F.usd(TOTAL_MRR) + ' <small>/ мес ▾</small>';
+document.getElementById('rows').innerHTML = STARTUPS.map(s => `<tr>
+  <td><div style="display:flex;align-items:center;gap:12px">${avatar(s)}<div class="nm"><b>${s.name}</b><span>${s.desc}</span></div></div></td>
+  <td class="num" style="font-weight:500">${F.usd(s.mrr)}</td>
+  <td class="num ${F.cls(s.growth)}" style="font-weight:500">${F.pct(s.growth)}</td>
+  <td class="num"><div style="font-weight:500">${F.usd(s.price)}</div><div class="muted" style="font-size:12px">${F.mult(s)}</div></td>
+  <td class="num">${s.sale ? '<a class="alink">Открыть сделку</a>' : '<span class="muted" style="font-size:13px">Не продаётся</span>'}</td>
+</tr>`).join('');
+document.body.insertAdjacentHTML('beforeend', badge(8, 'Светлая тема Binance'));
+</script>
+</body>
+</html>

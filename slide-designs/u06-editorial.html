@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="UTF-8"><title>U06 · Журнальный</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#2A2620;display:flex;justify-content:center;padding:20px;
+    font-family:Georgia,"Times New Roman",serif}
+  .slide{width:1080px;height:1350px;background:#F7F3EA;color:#191510;padding:60px 68px;
+    display:flex;flex-direction:column;position:relative;overflow:hidden}
+  .mast{display:flex;justify-content:space-between;align-items:baseline;border-bottom:4px double #191510;padding-bottom:18px}
+  .mast .t{font-size:30px;font-weight:700;letter-spacing:1px}
+  .mast .t span{color:#8A7E68}
+  .mast .d{font-family:Arial,sans-serif;font-size:15px;color:#8A7E68;letter-spacing:1px}
+  .rub{font-family:Arial,sans-serif;font-size:14px;letter-spacing:3px;color:#B03A2E;font-weight:700;margin-top:26px}
+  .hero{display:flex;align-items:center;gap:24px;margin-top:16px}
+  .ic{width:96px;height:96px;border-radius:22px;background:radial-gradient(circle at 35% 30%,#FF9D5C,#B33B10 70%);
+    display:flex;align-items:center;justify-content:center;font-size:48px;flex-shrink:0}
+  h1{font-size:72px;font-weight:700;letter-spacing:-1px;line-height:1}
+  .cat{font-family:Arial,sans-serif;font-size:17px;color:#6E6350;margin-top:10px}
+  .lede{font-size:26px;line-height:1.5;font-style:italic;color:#3E362A;margin-top:26px;max-width:900px}
+  .cols{display:grid;grid-template-columns:2fr 1.2fr 1.2fr;gap:0;margin-top:36px;border-top:2px solid #191510}
+  .cell{border-bottom:1px solid #C9BFA9;border-right:1px solid #C9BFA9;padding:22px 22px 20px}
+  .cell:nth-child(3n){border-right:none}
+  .cell .l{font-family:Arial,sans-serif;font-size:14px;letter-spacing:2px;color:#8A7E68;text-transform:uppercase}
+  .cell .v{font-size:54px;font-weight:700;letter-spacing:-1px;margin-top:8px;font-variant-numeric:tabular-nums}
+  .cell .v small{font-size:24px;color:#6E6350}
+  .cell .s{font-family:Arial,sans-serif;font-size:14px;color:#6E6350;margin-top:8px;line-height:1.45}
+  .cell .s b{color:#0B7A43}
+  .big{grid-row:span 2;display:flex;flex-direction:column;justify-content:center;background:#191510;color:#F7F3EA;
+    border-right:1px solid #191510!important}
+  .big .l{color:#B8AB8F}
+  .big .v{font-size:88px;color:#F2C230;letter-spacing:-3px}
+  .big .s{color:#B8AB8F}
+  .chart{margin-top:34px;flex:1;display:flex;flex-direction:column}
+  .chh{display:flex;justify-content:space-between;align-items:baseline}
+  .chh .cv{font-size:40px;font-weight:700}
+  .chh .cm{font-family:Arial,sans-serif;font-size:15px;color:#6E6350;margin-top:6px}
+  .chh .lg{font-family:Arial,sans-serif;font-size:14px;color:#6E6350}
+  .chh .lg i{display:inline-block;width:22px;height:3px;background:#B03A2E;margin-right:8px;vertical-align:4px}
+  svg{width:100%;flex:1;margin-top:12px}
+  .foot{border-top:2px solid #191510;margin-top:24px;padding-top:16px;display:flex;justify-content:space-between;
+    font-family:Arial,sans-serif;font-size:15px;color:#8A7E68}
+  .foot b{color:#191510}
+</style></head><body>
+<div class="slide">
+  <div class="mast">
+    <div class="t">Startup<span>Market</span> · Разбор дня</div>
+    <div class="d">№ 147 · 5 ИЮЛЯ 2026 · ДАННЫЕ ЗА 30 ДНЕЙ</div>
+  </div>
+  <div class="rub">СЕГОДНЯ НА ВИТРИНЕ</div>
+  <div class="hero">
+    <div class="ic">🏀</div>
+    <div><h1>DunkMax</h1><div class="cat">Мобильные приложения · B2C · США · выставлен на продажу</div></div>
+  </div>
+  <div class="lede">Приложение для баскетбольных тренировок с подтверждённой выручкой: 408 подписчиков, маржа 96% и цена в 2,29 годовой выручки.</div>
+  <div class="cols">
+    <div class="cell big"><div class="l">Цена стартапа</div><div class="v">$49 000</div><div class="s">мультипл 2,29× к годовой выручке · продавец открыт к офферам</div></div>
+    <div class="cell"><div class="l">MRR</div><div class="v">$3 506</div><div class="s">RevenueCat ✓ · стабилен</div></div>
+    <div class="cell"><div class="l">Выручка 30 дн.</div><div class="v">$7 823</div><div class="s"><b>+12,6%</b> за месяц</div></div>
+    <div class="cell"><div class="l">Подписчики</div><div class="v">408</div><div class="s">платят ежемесячно</div></div>
+    <div class="cell"><div class="l">Маржа</div><div class="v">96<small>%</small></div><div class="s">расходы почти нулевые</div></div>
+  </div>
+  <div class="chart">
+    <div class="chh">
+      <div><span class="cv">$3 645</span><div class="cm">MRR по дням · 14 июня – 4 июля · диапазон $3 411 – $3 698</div></div>
+      <div class="lg"><i></i>ежедневный снимок</div>
+    </div>
+    <svg viewBox="0 0 940 130" preserveAspectRatio="none">
+      <polyline fill="rgba(176,58,46,.07)" stroke="none" points="0,54 63,70 126,80 189,75 252,106 315,93 378,84 441,66 504,41 567,24 630,10 693,20 756,14 819,23 882,17 940,22 940,130 0,130"/>
+      <polyline fill="none" stroke="#B03A2E" stroke-width="3" points="0,54 63,70 126,80 189,75 252,106 315,93 378,84 441,66 504,41 567,24 630,10 693,20 756,14 819,23 882,17 940,22"/>
+      <circle cx="940" cy="22" r="5.5" fill="#B03A2E"/>
+    </svg>
+  </div>
+  <div class="foot"><span>Полный разбор — <b>startupmarket.tech</b></span><span>Проверенные стартапы с реальной выручкой</span></div>
+</div>
+</body></html>

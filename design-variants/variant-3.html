@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Концепт 3 — главная Binance: hero + тикеры</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_tokens.css">
+<style>
+.hero{display:grid;grid-template-columns:1.15fr 1fr;gap:56px;max-width:1200px;margin:0 auto;padding:72px 24px 56px;align-items:center}
+h1{font-size:54px;line-height:1.12;font-weight:700;letter-spacing:-1px}
+h1 .y{color:var(--yellow)}
+.sub{font-size:18px;color:var(--text-2);margin:18px 0 28px;max-width:480px}
+.join{display:flex;gap:12px}
+.join .srch{flex:1;height:48px;font-size:15px}
+.join .btn-y{padding:0 28px;font-size:15px}
+.fine{margin-top:14px;font-size:12px;color:var(--text-3)}
+.pop{background:var(--bg-2);border-radius:16px;padding:8px 20px 14px}
+.pop .tabs a{font-size:13px;padding:12px 2px}
+.pop .all{margin-left:auto;align-self:center;font-size:12px;color:var(--text-3);border:0}
+.pop .all:hover{color:var(--yellow)}
+.prow{display:flex;align-items:center;gap:12px;padding:11px 6px;border-radius:8px}
+.prow:hover{background:var(--bg-3)}
+.prow b{font-size:14px}
+.prow .cat{color:var(--text-3);font-size:12px;margin-left:6px}
+.prow .mrr{margin-left:auto;font-weight:500}
+.prow .pct{width:84px;text-align:right;font-weight:500}
+.stats{display:flex;gap:64px;max-width:1200px;margin:0 auto;padding:36px 24px;border-top:1px solid var(--bg-2);flex-wrap:wrap}
+.stats b{display:block;font-size:34px;font-weight:700}
+.stats span{color:var(--text-3)}
+.steps{max-width:1200px;margin:0 auto;padding:8px 24px 70px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.step{background:var(--bg-2);border-radius:12px;padding:22px;display:flex;gap:14px;align-items:flex-start}
+.step i{display:flex;width:34px;height:34px;border-radius:50%;background:var(--yellow);color:#181A20;font-style:normal;font-weight:700;align-items:center;justify-content:center;flex:none}
+.step b{display:block;margin-bottom:4px}
+.step span{color:var(--text-2);font-size:13px}
+</style>
+</head>
+<body>
+<div id="nav"></div>
+<section class="hero">
+  <div>
+    <h1>Найди <span class="y">верифицированный</span><br>стартап с выручкой</h1>
+    <div class="sub">Каждый показатель MRR проверен напрямую через Stripe, LemonSqueezy и Polar. Никаких придуманных цифр.</div>
+    <div class="join">
+      <div class="srch"><input placeholder="Email"></div>
+      <button class="btn-y">Начать бесплатно</button>
+    </div>
+    <div class="fine">3 бесплатных просмотра контактов сразу после регистрации — без карты.</div>
+  </div>
+  <div class="pop">
+    <div class="tabs" style="display:flex">
+      <a class="on">Популярные</a><a>Новые листинги</a>
+      <a class="all">Все 7 412 ›</a>
+    </div>
+    <div id="popRows" style="margin-top:6px"></div>
+  </div>
+</section>
+<section class="stats" id="stats"></section>
+<section class="steps">
+  <div class="step"><i>1</i><div><b>Создайте аккаунт</b><span>Только email — карта не нужна. Сразу 3 бесплатных просмотра контактов.</span></div></div>
+  <div class="step"><i>2</i><div><b>Выберите стартап</b><span>Фильтры по MRR, росту, цене и мультипликатору. Все данные верифицированы.</span></div></div>
+  <div class="step"><i>3</i><div><b>Закройте сделку</b><span>Откройте контакты продавца и договоритесь напрямую — без посредников.</span></div></div>
+</section>
+<script src="_mock.js"></script>
+<script>
+document.getElementById('nav').outerHTML = buildNav('Каталог');
+document.getElementById('popRows').innerHTML = STARTUPS.slice(0, 5).map(s => `<div class="prow">
+  ${avatar(s, 30)}<div><b>${s.name}</b><span class="cat">${s.cat}</span></div>
+  <span class="mrr">${F.usd(s.mrr)}</span>
+  <span class="pct ${F.cls(s.growth)}">${F.pct(s.growth)}</span>
+</div>`).join('');
+const saleCnt = STARTUPS.filter(s => s.sale).length;
+document.getElementById('stats').innerHTML = [
+  ['7 412', 'стартапов с метриками'],
+  [F.usd(TOTAL_MRR), 'суммарный MRR топ-10'],
+  ['312', 'сейчас на продаже'],
+  ['+8,4 %', 'средний рост за 30 дней'],
+].map(([n, l]) => `<div><b>${n}</b><span>${l}</span></div>`).join('');
+document.body.insertAdjacentHTML('beforeend', badge(3, 'Главная Binance — hero и тикеры'));
+</script>
+</body>
+</html>

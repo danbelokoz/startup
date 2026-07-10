@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Концепт 1 — «Кошелёк»: сайдбар + обзор активов</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_tokens.css">
+<style>
+.layout{display:flex;min-height:calc(100vh - 64px)}
+aside{width:264px;flex:none;background:var(--bg-0);padding:18px 12px;display:flex;flex-direction:column;gap:2px}
+aside a{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:8px;color:var(--text-2);font-weight:500}
+aside a:hover{color:var(--text-1);background:var(--bg-2)}
+aside a .chev{margin-left:auto;color:var(--text-3)}
+aside a.sub{padding-left:46px;font-weight:400}
+aside a.on{color:var(--text-1);background:var(--bg-2)}
+main{flex:1;padding:24px;max-width:1180px}
+.total h1{font-size:40px;font-weight:600;margin:10px 0 2px}
+.total h1 small{font-size:16px;color:var(--text-2);font-weight:400}
+.lbl{display:flex;align-items:center;gap:8px;color:var(--text-2)}
+.acts{display:flex;gap:10px}
+.assets{margin-top:20px}
+.assets-head{display:flex;align-items:center;justify-content:space-between}
+.assets-head h2{font-size:20px;font-weight:600}
+.assets-head a{color:var(--text-2);font-size:13px;display:flex;align-items:center;gap:2px}
+.assets-head a:hover{color:var(--yellow)}
+.controls{display:flex;align-items:center;gap:22px;margin:16px 0 6px;color:var(--text-2);font-size:13px}
+.controls label{display:flex;align-items:center;gap:7px;cursor:pointer}
+.controls .lnk{display:flex;align-items:center;gap:6px;color:var(--text-1)}
+.controls .lnk:hover{color:var(--yellow)}
+.nm b{display:block;font-size:15px}
+.nm span{font-size:13px;color:var(--text-3)}
+.cell-main{font-weight:500}
+.cell-sub{font-size:12px}
+td .muted.cell-sub{color:var(--text-3)}
+</style>
+</head>
+<body>
+<div id="nav"></div>
+<div class="layout">
+  <aside id="side"></aside>
+  <main>
+    <section class="panel total">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap">
+        <div>
+          <div class="lbl">Суммарный MRR каталога <span id="eyeIc"></span></div>
+          <h1 id="totalMrr"></h1>
+          <div class="muted" id="totalRub"></div>
+        </div>
+        <div class="acts">
+          <button class="btn-g sm">Купить</button>
+          <button class="btn-g sm">Продать</button>
+          <button class="btn-g sm">Сравнить</button>
+          <button class="btn-g sm">История</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel assets">
+      <div class="assets-head">
+        <h2>Стартапы</h2>
+        <a>Все 7 412 стартапов <span id="chevIc"></span></a>
+      </div>
+      <div class="tabs" style="margin-top:14px">
+        <a class="on">Просмотр стартапов</a>
+        <a>Просмотр категорий</a>
+      </div>
+      <div class="controls">
+        <span id="searchIc" style="display:flex"></span>
+        <a class="lnk"><span id="swapIc" style="display:flex"></span>Сравнить выбранные</a>
+        <label style="margin-left:auto"><input type="checkbox" checked> Скрыть MRR &lt; $1 000</label>
+      </div>
+      <table class="tbl">
+        <thead><tr>
+          <th>Стартап <span class="sort">⇅</span></th>
+          <th class="num">MRR <span class="sort">⇅</span></th>
+          <th class="num">Оценка <span class="sort">⇅</span></th>
+          <th class="num">Действие</th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </section>
+  </main>
+</div>
+<script src="_mock.js"></script>
+<script>
+document.getElementById('nav').outerHTML = buildNav('Каталог');
+document.getElementById('eyeIc').innerHTML = ic('eye', 16);
+document.getElementById('chevIc').innerHTML = ic('chevR', 14);
+document.getElementById('searchIc').innerHTML = ic('search', 18);
+document.getElementById('swapIc').innerHTML = ic('swap', 16);
+document.getElementById('totalMrr').innerHTML = F.usd(TOTAL_MRR) + ' <small>/ мес ▾</small>';
+document.getElementById('totalRub').textContent = '≈ ' + (TOTAL_MRR * 92).toLocaleString('ru-RU') + ' ₽';
+
+const side = [
+  ['grid', 'Панель инструментов'],
+  ['wallet', 'Каталог', 'open'],
+  ['', 'Обзор', 'sub on'],
+  ['', 'На продаже', 'sub'],
+  ['', 'Категории', 'sub'],
+  ['clock', 'Сделки', 'chev'],
+  ['star', 'Избранное'],
+  ['users', 'Рефералы'],
+  ['user', 'Аккаунт', 'chev'],
+  ['set', 'Настройки'],
+];
+document.getElementById('side').innerHTML = side.map(([icn, label, cls = '']) =>
+  `<a class="${cls.replace('chev', '').replace('open', '').trim()}">${icn ? ic(icn, 19) : ''}${label}` +
+  (cls.includes('chev') ? `<span class="chev">${ic('chevD', 14)}</span>` : '') +
+  (cls.includes('open') ? `<span class="chev" style="transform:rotate(180deg)">${ic('chevD', 14)}</span>` : '') + `</a>`).join('');
+
+document.getElementById('rows').innerHTML = STARTUPS.map(s => `<tr>
+  <td><div style="display:flex;align-items:center;gap:12px">${avatar(s)}<div class="nm"><b>${s.name}</b><span>${s.desc}</span></div></div></td>
+  <td class="num"><div class="cell-main">${F.usd(s.mrr)}</div><div class="cell-sub ${F.cls(s.growth)}">${F.pct(s.growth)}</div></td>
+  <td class="num"><div class="cell-main">${F.usd(s.price)}</div><div class="muted cell-sub">${F.mult(s)} годового MRR</div></td>
+  <td class="num">${s.sale ? '<a class="alink">Открыть сделку</a>' : '<span class="muted" style="font-size:13px">Не продаётся</span>'}</td>
+</tr>`).join('');
+
+document.body.insertAdjacentHTML('beforeend', badge(1, '«Кошелёк» — сайдбар и обзор'));
+</script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="UTF-8"><title>10 · Сторис-хук</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#111;display:flex;justify-content:center;padding:20px;
+    font-family:-apple-system,"SF Pro Display","Segoe UI",Roboto,sans-serif}
+  .slide{width:1080px;height:1350px;position:relative;overflow:hidden;color:#fff;padding:70px 72px;
+    background:linear-gradient(160deg,#4A1FB8 0%,#7B2FD4 35%,#C13584 70%,#F56040 100%);
+    display:flex;flex-direction:column}
+  .noise{position:absolute;inset:0;opacity:.35;pointer-events:none;
+    background:radial-gradient(120% 70% at 80% -10%,rgba(255,255,255,.22),transparent 55%)}
+  .top{display:flex;align-items:center;gap:14px;font-size:21px;font-weight:600;opacity:.95}
+  .ava{width:52px;height:52px;border-radius:50%;background:#17181C;color:#FCD535;display:flex;
+    align-items:center;justify-content:center;font-weight:900;font-size:20px;border:2px solid rgba(255,255,255,.6)}
+  .top .h{opacity:.75;font-weight:500}
+  h1{font-size:96px;font-weight:900;line-height:1.04;letter-spacing:-3px;margin-top:64px}
+  h1 .u{text-decoration:underline;text-decoration-color:#FFE04D;text-decoration-thickness:10px;text-underline-offset:12px}
+  .lead{font-size:32px;line-height:1.45;margin-top:36px;font-weight:500;opacity:.95;max-width:880px}
+  .lead b{color:#FFE04D}
+  .glass{margin-top:56px;background:rgba(255,255,255,.13);border:1.5px solid rgba(255,255,255,.35);
+    border-radius:28px;padding:36px 40px;backdrop-filter:blur(8px);box-shadow:0 24px 60px rgba(0,0,0,.25)}
+  .gtop{display:flex;align-items:center;gap:18px}
+  .ic{width:76px;height:76px;border-radius:20px;background:radial-gradient(circle at 35% 30%,#FF9D5C,#B33B10 70%);
+    display:flex;align-items:center;justify-content:center;font-size:38px;flex-shrink:0}
+  .gname{font-size:34px;font-weight:800}
+  .gsub{font-size:18px;opacity:.85;margin-top:4px}
+  .chips{display:flex;gap:14px;margin-top:28px;flex-wrap:wrap}
+  .chip{background:rgba(0,0,0,.28);border-radius:999px;padding:14px 24px;font-size:23px;font-weight:700}
+  .chip span{opacity:.7;font-weight:500;font-size:19px;margin-right:8px}
+  .chip.g{background:rgba(30,180,90,.45)}
+  .swipe{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:12px;padding-bottom:6px}
+  .arrow{font-size:44px;animation:up 1.4s ease-in-out infinite}
+  @keyframes up{0%,100%{transform:translateY(6px);opacity:.7}50%{transform:translateY(-6px);opacity:1}}
+  .swipe .t{font-size:25px;font-weight:700;letter-spacing:.5px}
+  .swipe .s{font-size:19px;opacity:.8}
+</style></head><body>
+<div class="slide">
+  <div class="noise"></div>
+  <div class="top"><div class="ava">SM</div><div>startupmarket.tech <span class="h">· разбор дня № 147</span></div></div>
+  <h1>Он не умеет прыгать.<br>Его приложение о прыжках приносит <span class="u">$3 506/мес</span></h1>
+  <div class="lead">DunkMax учит баскетболистов данкать. <b>408 человек платят</b> за это каждый месяц — и выручка проверена через RevenueCat, а не «поверьте на слово».</div>
+  <div class="glass">
+    <div class="gtop">
+      <div class="ic">🏀</div>
+      <div><div class="gname">DunkMax</div><div class="gsub">мобильное приложение · B2C · США · на продаже</div></div>
+    </div>
+    <div class="chips">
+      <div class="chip g"><span>рост 30д</span>+12,6%</div>
+      <div class="chip"><span>маржа</span>96%</div>
+      <div class="chip"><span>всего</span>$24 422</div>
+      <div class="chip"><span>цена</span>2,29×</div>
+    </div>
+  </div>
+  <div class="swipe">
+    <div class="arrow">↑</div>
+    <div class="t">Стоит ли своих денег? Разбор по ссылке</div>
+    <div class="s">startupmarket.tech · проверенные стартапы с реальной выручкой</div>
+  </div>
+</div>
+</body></html>

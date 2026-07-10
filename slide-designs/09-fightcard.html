@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="UTF-8"><title>09 · Файт-кард</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#000;display:flex;justify-content:center;padding:20px;
+    font-family:"Arial Narrow",Impact,Arial,sans-serif}
+  .slide{width:1080px;height:1350px;color:#F5F0E6;position:relative;overflow:hidden;padding:60px 64px;
+    background:radial-gradient(90% 55% at 50% 8%,#3A1010,#170606 60%,#0C0303);
+    display:flex;flex-direction:column}
+  .lights{position:absolute;inset:0;pointer-events:none;
+    background:conic-gradient(from 200deg at 20% -10%,transparent 40%,rgba(255,220,150,.07) 45%,transparent 50%),
+               conic-gradient(from 160deg at 80% -10%,transparent 40%,rgba(255,220,150,.07) 45%,transparent 50%)}
+  .promo{text-align:center;font-size:22px;letter-spacing:8px;color:#D9B36C}
+  .main-event{text-align:center;font-size:19px;letter-spacing:4px;color:#8A7358;margin-top:8px}
+  h1{text-align:center;font-size:66px;letter-spacing:2px;margin-top:36px;line-height:1.1;text-transform:uppercase;font-weight:900}
+  h1 .vs{display:block;font-size:44px;color:#E03E3E;margin:14px 0;letter-spacing:6px}
+  h1 .fighter{color:#FFD34E}
+  .tale{margin-top:44px;border:2px solid #4A3520;background:rgba(0,0,0,.35)}
+  .tale .hd{display:grid;grid-template-columns:1fr 220px 1fr;background:#241408;
+    font-size:20px;letter-spacing:2px;color:#D9B36C;text-align:center;padding:14px 0;border-bottom:2px solid #4A3520}
+  .r{display:grid;grid-template-columns:1fr 220px 1fr;align-items:center;text-align:center;
+    padding:17px 10px;border-bottom:1px solid #33220F;font-size:30px;font-weight:700}
+  .r:last-child{border-bottom:none}
+  .r .m{font-size:17px;letter-spacing:2px;color:#8A7358;font-family:Arial,sans-serif}
+  .r .win{color:#7CFF6B}
+  .r .lose{color:#B08D6A;opacity:.75}
+  .r .draw{color:#F5F0E6;opacity:.85}
+  .belt{margin-top:40px;display:flex;align-items:center;justify-content:center;gap:22px}
+  .belt .b{width:150px;height:6px;background:linear-gradient(90deg,transparent,#D9B36C)}
+  .belt .b2{width:150px;height:6px;background:linear-gradient(90deg,#D9B36C,transparent)}
+  .belt .t{font-size:26px;letter-spacing:3px;color:#FFD34E;text-align:center;line-height:1.4}
+  .verdict{margin-top:36px;text-align:center}
+  .verdict .big{display:inline-block;font-size:56px;font-weight:900;letter-spacing:2px;color:#0C0303;
+    background:#FFD34E;padding:16px 42px;transform:rotate(-1.5deg);box-shadow:0 14px 40px rgba(255,211,78,.25)}
+  .verdict .sub{font-size:20px;color:#B08D6A;margin-top:18px;font-family:Arial,sans-serif;letter-spacing:1px}
+  .foot{margin-top:auto;display:flex;justify-content:space-between;font-size:18px;color:#8A7358;
+    letter-spacing:2px;font-family:Arial,sans-serif}
+  .rope{position:absolute;left:0;right:0;height:2px;background:rgba(217,179,108,.25)}
+</style></head><body>
+<div class="slide">
+  <div class="lights"></div>
+  <div class="rope" style="top:190px"></div>
+  <div class="promo">STARTUPMARKET PRESENTS</div>
+  <div class="main-event">ГЛАВНЫЙ БОЙ ВЕЧЕРА · РАЗБОР № 147 · 05.07.2026</div>
+  <h1><span class="fighter">🏀 DunkMax</span><span class="vs">— VS —</span>ЦЕННИК 2,29×</h1>
+  <div class="tale">
+    <div class="hd"><span>DUNKMAX</span><span>РАУНД</span><span>ЦЕННИК</span></div>
+    <div class="r"><span class="win">$3 506 ✓</span><span class="m">MRR (REVENUECAT)</span><span class="lose">хочет больше</span></div>
+    <div class="r"><span class="win">+12,6% ✓</span><span class="m">РОСТ 30 ДНЕЙ</span><span class="lose">оправдывает</span></div>
+    <div class="r"><span class="win">96% ✓</span><span class="m">МАРЖА</span><span class="lose">молчит</span></div>
+    <div class="r"><span class="draw">408</span><span class="m">ПОДПИСЧИКИ</span><span class="draw">маловато ✗</span></div>
+    <div class="r"><span class="lose">стоит на месте ✗</span><span class="m">ДИНАМИКА MRR</span><span class="win">аргумент ✓</span></div>
+  </div>
+  <div class="belt"><div class="b"></div><div class="t">СЧЁТ СУДЕЙ<br>4 : 2</div><div class="b2"></div></div>
+  <div class="verdict">
+    <div class="big">ПОБЕДА DUNKMAX</div>
+    <div class="sub">решением большинства · цена спорная, но актив настоящий</div>
+  </div>
+  <div class="foot"><span>ПОЛНЫЙ РАЗБОР: STARTUPMARKET.TECH</span><span>ВЫРУЧКА ПРОВЕРЕНА ✓</span></div>
+</div>
+</body></html>
