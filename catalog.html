@@ -405,6 +405,7 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
           <option value="price-asc" data-i18n="idx.sortPriceAsc">Цена ↑</option>
           <option value="price-desc" data-i18n="idx.sortPriceDesc">Цена ↓</option>
           <option value="added-desc" data-i18n="idx.sortAdded">Сначала новые</option>
+          <option value="added-asc" data-i18n="idx.sortAddedOld">Сначала старые</option>
         </select>
       </div>
       </div>
@@ -483,7 +484,7 @@ const LIMIT = 50;
 const API_SORT = 'revenue-desc';  // catalog always pulls the full set in one stable
                                   // order; revenue/growth/price sorting is done
                                   // client-side so it's instant and never reloads.
-const LS_KEY  = 'sm_v6_p1_' + getLang();   // per-language (descriptions overlaid by lang); bump version to clear old caches
+const LS_KEY  = 'sm_v7_p1_' + getLang();   // per-language (descriptions overlaid by lang); bump version to clear old caches (v7: flush snapshots that still held trustmrr-stub listings)
 const LS_FAVS = 'sm_favs';
 const CACHE_TTL  = 7 * 24 * 3600 * 1000; // serve stale cache up to 7 days
 const FRESH_TTL  = 24 *      3600 * 1000; // background refresh only if >24h old
@@ -863,15 +864,19 @@ function buildCategoryOptions() {
 function sortItems(arr) {
   const saleFirst = !!filters.saleFirst;
   const sort = filters.sort;
-  const asc = sort === 'price-asc';
+  const asc = sort === 'price-asc' || sort === 'added-asc';
   const metricVal = s => {
     if (sort === 'growth-desc') return s.growth30d != null ? s.growth30d : -Infinity;
     if (sort === 'price-asc')   return (s.onSale && s.askingPrice) ? s.askingPrice : Infinity;  // no price → last
     if (sort === 'price-desc')  return (s.onSale && s.askingPrice) || 0;
-    // "Newest first": rank by the earliest day we saw the startup (first_seen map). Ties
-    // resolve on dataScore below. Unknown dates (map still loading, or startup predates
-    // our tracking) sink to the bottom of the desc order.
-    if (sort === 'added-desc')  { const fs = firstSeenMap[s.slug]; return fs ? Date.parse(fs+'T00:00:00Z') : -Infinity; }
+    // "Newest / oldest first": rank by the earliest day we saw the startup (first_seen
+    // map). Ties resolve on dataScore below. Unknown dates (map still loading, or startup
+    // predates our tracking) sink to the bottom for BOTH directions — hence the sentinel
+    // flips with the sort order (+Infinity sinks in asc, -Infinity sinks in desc).
+    if (sort === 'added-desc' || sort === 'added-asc') {
+      const fs = firstSeenMap[s.slug];
+      return fs ? Date.parse(fs+'T00:00:00Z') : (sort === 'added-asc' ? Infinity : -Infinity);
+    }
     if (sort === 'revenue-desc' && isGmvLike(s)) return 0;  // MoR/marketplace gross volume isn't company revenue - keep it out of the revenue ranking
     return (s.revenue && s.revenue.last30Days) || 0;  // revenue-desc (default)
   };
@@ -1207,7 +1212,7 @@ async function fetchFirstSeen() {
   const applyMap = (map) => {
     if (!map || !Object.keys(map).length) return;
     firstSeenMap = map; firstSeenReady = true;
-    if (filters.sort === 'added-desc') { displayItems = applyClientFilters(loadedItems); renderCards(); updateCount(); }
+    if (filters.sort === 'added-desc' || filters.sort === 'added-asc') { displayItems = applyClientFilters(loadedItems); renderCards(); updateCount(); }
   };
   let cached = null;
   try { cached = JSON.parse(localStorage.getItem(FS_LS_KEY)||'null'); } catch {}
@@ -1541,7 +1546,7 @@ function applyUrlParams() {
     filters.category = category;
     const lbl = document.getElementById('catDDLabel'); if (lbl) lbl.textContent = category;
   }
-  if (['revenue-desc','growth-desc','price-asc','price-desc','added-desc'].includes(sort)) {
+  if (['revenue-desc','growth-desc','price-asc','price-desc','added-desc','added-asc'].includes(sort)) {
     filters.sort = sort;
     const ss = document.getElementById('sortSelect'); if (ss) ss.value = sort;
   }
