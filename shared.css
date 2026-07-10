@@ -65,6 +65,18 @@ nav {
 .nav-right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 .nav-acct { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/* Quick actions pinned in the mobile header (catalog + register) - hidden on
+   desktop, shown alongside the burger on mobile (see media query at the bottom) */
+.nav-mobile-quick { display: none; align-items: center; gap: 8px; margin-left: auto; }
+.nav-mq-link {
+  padding: 7px 12px; border-radius: 8px; font-size: 13px; font-weight: 600;
+  color: var(--text); text-decoration: none; white-space: nowrap;
+  background: var(--bg3); border: 1px solid var(--border2);
+}
+.nav-mq-link:active { background: var(--border2); }
+.nav-mobile-quick .btn { padding: 7px 12px; font-size: 13px; white-space: nowrap; }
+.nav-mobile-quick .nav-acct { max-width: 96px; }
+
 /* Hamburger - hidden on desktop, shown on mobile (see media query at the bottom) */
 .nav-burger {
   display: none; margin-left: auto; align-items: center; justify-content: center;
@@ -373,5 +385,13 @@ select option { background: var(--bg3); color: var(--text); }
 @media (max-width: 760px) {
   nav { padding: 0 16px; gap: 12px; }
   .nav-center, .nav-right { display: none; }
-  .nav-burger { display: inline-flex; }
+  .nav-mobile-quick { display: flex; }
+  .nav-burger { display: inline-flex; margin-left: 0; }
+}
+
+/* Tight phones: shrink the quick buttons so catalog + register + burger fit one row */
+@media (max-width: 380px) {
+  nav { padding: 0 12px; gap: 8px; }
+  .nav-mobile-quick { gap: 6px; }
+  .nav-mq-link, .nav-mobile-quick .btn { padding: 6px 9px; font-size: 12px; }
 }
