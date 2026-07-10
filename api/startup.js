@@ -57,6 +57,26 @@ function isValidStartup(d) {
   return !!(d && d.data && d.data.slug);
 }
 
+// A "TrustMRR stub" listing has no independently verifiable presence: its only link
+// points back at trustmrr.com (a placeholder, not the company's own site) or it names
+// trustmrr in the description. api/startups.js already strips these from the catalog;
+// here we hide the detail page too (direct links + bot SSR) so nothing surfaces them.
+function isTrustmrrStub(payload) {
+  const s = payload && payload.data ? payload.data : payload;
+  if (!s) return false;
+  const w = String(s.website || '').toLowerCase();
+  if (w.includes('trustmrr')) return true;
+  return String(s.description || '').toLowerCase().includes('trustmrr');
+}
+// Respond as "not found" for a stub. sp.html turns a 404 into its clean archived /
+// not-found view (with a back-to-catalog button), and bot SSR gets a 404 so it isn't
+// indexed. Not cacheable, so a later fix (e.g. the seller adds a real site) shows up.
+function notFoundStub(res) {
+  res.setHeader('X-Cache', 'FILTERED');
+  res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+  return res.status(404).json({ error: 'Not found' });
+}
+
 async function fetchStartup(slug, apiKey) {
   const r = await fetch(`https://trustmrr.com/api/v1/startups/${encodeURIComponent(slug)}`, {
     headers: { Authorization: `Bearer ${apiKey}` },
@@ -155,6 +175,10 @@ export default async function handler(req, res) {
 
   const [cached, isFresh] = await Promise.all([redisGet(cacheKey), redisGet(freshKey)]);
 
+  // TrustMRR stub (trustmrr.com link / trustmrr in description) — hide the page
+  // entirely, whatever the cache state. Covers the HIT and STALE branches below.
+  if (cached && isTrustmrrStub(cached)) return notFoundStub(res);
+
   // Fresh cache — instant return.
   if (cached && isFresh) {
     res.setHeader('X-Cache', 'HIT');
@@ -175,6 +199,7 @@ export default async function handler(req, res) {
           redisSet(freshKey, 1, FRESH_TTL),
         ]);
         await clearDead(slug); // alive again — drop any stale deny-list entry
+        if (isTrustmrrStub(fresh.data)) return notFoundStub(res);
         res.setHeader('X-Cache', 'REVALIDATED');
         return res.status(200).json(await withOurDescription(fresh.data, slug, lang));
       }
@@ -200,6 +225,7 @@ export default async function handler(req, res) {
         redisSet(freshKey, 1, FRESH_TTL),
       ]);
       await clearDead(slug); // alive — drop any stale deny-list entry
+      if (isTrustmrrStub(fresh.data)) return notFoundStub(res);
       res.setHeader('X-Cache', 'MISS');
       res.setHeader('Cache-Control', swr);
       return res.status(200).json(await withOurDescription(fresh.data, slug, lang));
