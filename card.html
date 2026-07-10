@@ -28,6 +28,9 @@
     font-size:14px;font-weight:700;padding:12px 18px;cursor:pointer;white-space:nowrap;}
   .cb-btn:disabled{opacity:.5;cursor:default;}
   .cb-btn.ghost{background:var(--bg3);color:var(--text);border:1px solid var(--border);}
+  .cb-lang{background:var(--bg2);border:1px solid var(--border);border-radius:10px;color:var(--text);
+    font-size:14px;font-weight:600;padding:12px 12px;cursor:pointer;outline:none;}
+  .cb-lang:focus{border-color:var(--yellow2);}
   .cb-status{font-size:12px;color:var(--text3);margin-top:8px;min-height:16px;}
   .cb-drop{position:absolute;left:16px;right:16px;top:52px;z-index:20;background:var(--bg2);
     border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.5);
@@ -121,6 +124,8 @@
     border:1px solid rgba(14,203,129,.22);border-radius:999px;padding:3px 8px;
     display:inline-flex;align-items:center;gap:4px;}
   .dot{width:5px;height:5px;border-radius:50%;background:var(--green);display:inline-block;}
+  /* RTL (арабский): метки выравниваются вправо → уводим «проверено»-бейдж влево, чтобы не наезжал на подпись метрики */
+  .page[dir="rtl"] .verified{right:auto;left:13px;}
 
   .chart-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 16px 6px;}
   .chart-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px;}
@@ -149,6 +154,15 @@
   <div class="cb-row">
     <input id="cbInput" class="cb-input" autocomplete="off" spellcheck="false"
            placeholder="Название стартапа, slug или ссылка /startup/…"/>
+    <select id="cbLang" class="cb-lang" title="Язык карточки">
+      <option value="ru">🇷🇺 Русский</option>
+      <option value="en">🇬🇧 English</option>
+      <option value="de">🇩🇪 Deutsch</option>
+      <option value="fr">🇫🇷 Français</option>
+      <option value="it">🇮🇹 Italiano</option>
+      <option value="zh">🇨🇳 中文</option>
+      <option value="ar">🇸🇦 العربية</option>
+    </select>
     <button id="cbGo" class="cb-btn">Построить</button>
   </div>
   <div id="cbStatus" class="cb-status"></div>
@@ -176,53 +190,75 @@
 
 <script>
 /* ══ Формат-хелперы ══════════════════════════════════════════════════════ */
-const RU_MONTHS_GEN = ['января','февраля','марта','апреля','мая','июня','июля',
-  'августа','сентября','октября','ноября','декабря'];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
   ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
+/* ══ Локализация карточки (7 языков, как на сайте) ═══════════════════════════
+ * Переводится только содержимое карточки (то, что уходит в PNG). Контролы
+ * админки остаются на русском. Числа/даты форматируются под выбранный язык,
+ * но цифры всегда латиница (numberingSystem:'latn'), чтобы $-суммы читались. */
+const LOCALE = { ru:'ru-RU', en:'en-US', de:'de-DE', fr:'fr-FR', it:'it-IT', zh:'zh-CN', ar:'ar' };
+let CARD_LANG = 'ru', CARD_ENRICH = {};
+function loc(){ return LOCALE[CARD_LANG] || 'en-US'; }
+const L = {
+  ru: { brandSub:'Проверенные стартапы с реальной выручкой · startupmarket.tech', sheetTag:'Карточка стартапа', dataOn:'Данные на', per30:'за 30 дней', onSale:'на продаже', keyMetrics:'Ключевые метрики · за 30 дней', rev30:'Выручка (30 дней)', activeSubs:'Активные подписки', payingSubs:'платящих подписчиков', customers:'Клиенты', totalBuyers:'всего покупателей', noData:'нет данных', margin:'Маржа прибыли (30 дн.)', nearZeroCost:'почти нулевые расходы', last30full:'за последние 30 дней', totalRev:'Выручка за всё время', sumTotal:'суммарно', revMultiple:'Мультипл выручки', priceOverAnnual:'цена ÷ годовая выручка', monthRev:'Выручка за месяц', last30short:'последние 30 дней', verifiedBy:'Проверено ·', price:'Цена', vsPrev:'к пред. 30 дн.', noChange:'без изменений', growthUp30:'рост за 30 дней', for30:'за 30 дней', dynamics:'Динамика', perDay:'по дням', chartOn:'на', rangeWord:'диапазон', snapshotDaily:'снимок ежедневно в 3:00 UTC', forDays:'за {n} дн.', deal:'Сделка', annualSuffix:'годовых', paymentProvider:'Платёжный провайдер', confirmed:'(подтверждён)', revenueRank:'Место в рейтинге выручки', about:'О компании', category:'Категория', country:'Страна', founded:'Основан', tags:'Теги', website:'Сайт', cmMrr:'MRR', cmRev30:'Выручка (30 дн.)', cmTotal:'Выручка за всё время', cmCustomers:'Клиенты', cmSubs:'Подписки', cmVisitors:'Посетители (30 дн.)' },
+  en: { brandSub:'Verified startups with real revenue · startupmarket.tech', sheetTag:'Startup card', dataOn:'Data as of', per30:'last 30 days', onSale:'for sale', keyMetrics:'Key metrics · last 30 days', rev30:'Revenue (30 days)', activeSubs:'Active subscriptions', payingSubs:'paying subscribers', customers:'Customers', totalBuyers:'total buyers', noData:'no data', margin:'Profit margin (30d)', nearZeroCost:'near-zero costs', last30full:'over the last 30 days', totalRev:'All-time revenue', sumTotal:'total', revMultiple:'Revenue multiple', priceOverAnnual:'price ÷ annual revenue', monthRev:'Monthly revenue', last30short:'last 30 days', verifiedBy:'Verified ·', price:'Price', vsPrev:'vs prev. 30d', noChange:'no change', growthUp30:'growth over 30 days', for30:'over 30 days', dynamics:'Trend', perDay:'by day', chartOn:'as of', rangeWord:'range', snapshotDaily:'snapshot daily at 3:00 UTC', forDays:'over {n} d.', deal:'Deal', annualSuffix:'annualized', paymentProvider:'Payment provider', confirmed:'(confirmed)', revenueRank:'Revenue ranking', about:'About', category:'Category', country:'Country', founded:'Founded', tags:'Tags', website:'Website', cmMrr:'MRR', cmRev30:'Revenue (30d)', cmTotal:'All-time revenue', cmCustomers:'Customers', cmSubs:'Subscriptions', cmVisitors:'Visitors (30d)' },
+  de: { brandSub:'Verifizierte Startups mit echtem Umsatz · startupmarket.tech', sheetTag:'Startup-Karte', dataOn:'Daten vom', per30:'letzte 30 Tage', onSale:'zum Verkauf', keyMetrics:'Kennzahlen · letzte 30 Tage', rev30:'Umsatz (30 Tage)', activeSubs:'Aktive Abos', payingSubs:'zahlende Abonnenten', customers:'Kunden', totalBuyers:'Käufer insgesamt', noData:'keine Daten', margin:'Gewinnmarge (30T)', nearZeroCost:'fast keine Kosten', last30full:'in den letzten 30 Tagen', totalRev:'Gesamtumsatz', sumTotal:'insgesamt', revMultiple:'Umsatzmultiplikator', priceOverAnnual:'Preis ÷ Jahresumsatz', monthRev:'Monatsumsatz', last30short:'letzte 30 Tage', verifiedBy:'Verifiziert ·', price:'Preis', vsPrev:'ggü. vor. 30T', noChange:'unverändert', growthUp30:'Wachstum in 30 Tagen', for30:'in 30 Tagen', dynamics:'Verlauf', perDay:'pro Tag', chartOn:'am', rangeWord:'Bereich', snapshotDaily:'täglicher Snapshot um 3:00 UTC', forDays:'über {n} T.', deal:'Deal', annualSuffix:'annualisiert', paymentProvider:'Zahlungsanbieter', confirmed:'(bestätigt)', revenueRank:'Umsatz-Ranking', about:'Über das Unternehmen', category:'Kategorie', country:'Land', founded:'Gegründet', tags:'Tags', website:'Website', cmMrr:'MRR', cmRev30:'Umsatz (30T)', cmTotal:'Gesamtumsatz', cmCustomers:'Kunden', cmSubs:'Abos', cmVisitors:'Besucher (30T)' },
+  fr: { brandSub:'Startups vérifiées à revenus réels · startupmarket.tech', sheetTag:'Fiche startup', dataOn:'Données au', per30:'30 derniers jours', onSale:'à vendre', keyMetrics:'Indicateurs clés · 30 derniers jours', rev30:'Revenu (30 jours)', activeSubs:'Abonnements actifs', payingSubs:'abonnés payants', customers:'Clients', totalBuyers:'acheteurs au total', noData:'aucune donnée', margin:'Marge (30 j)', nearZeroCost:'coûts quasi nuls', last30full:'sur les 30 derniers jours', totalRev:'Revenu total', sumTotal:'au total', revMultiple:'Multiple de revenus', priceOverAnnual:'prix ÷ revenu annuel', monthRev:'Revenu mensuel', last30short:'30 derniers jours', verifiedBy:'Vérifié ·', price:'Prix', vsPrev:'vs 30 j préc.', noChange:'stable', growthUp30:'croissance sur 30 jours', for30:'sur 30 jours', dynamics:'Évolution', perDay:'par jour', chartOn:'au', rangeWord:'plage', snapshotDaily:'capture quotidienne à 3:00 UTC', forDays:'sur {n} j.', deal:'Transaction', annualSuffix:'annualisé', paymentProvider:'Fournisseur de paiement', confirmed:'(confirmé)', revenueRank:'Classement par revenu', about:'À propos', category:'Catégorie', country:'Pays', founded:'Fondée', tags:'Tags', website:'Site', cmMrr:'MRR', cmRev30:'Revenu (30 j)', cmTotal:'Revenu total', cmCustomers:'Clients', cmSubs:'Abonnements', cmVisitors:'Visiteurs (30 j)' },
+  it: { brandSub:'Startup verificate con ricavi reali · startupmarket.tech', sheetTag:'Scheda startup', dataOn:'Dati al', per30:'ultimi 30 giorni', onSale:'in vendita', keyMetrics:'Metriche chiave · ultimi 30 giorni', rev30:'Fatturato (30 giorni)', activeSubs:'Abbonamenti attivi', payingSubs:'abbonati paganti', customers:'Clienti', totalBuyers:'acquirenti totali', noData:'nessun dato', margin:'Margine (30 g)', nearZeroCost:'costi quasi nulli', last30full:'negli ultimi 30 giorni', totalRev:'Fatturato totale', sumTotal:'in totale', revMultiple:'Multiplo di ricavi', priceOverAnnual:'prezzo ÷ fatturato annuo', monthRev:'Fatturato mensile', last30short:'ultimi 30 giorni', verifiedBy:'Verificato ·', price:'Prezzo', vsPrev:'vs 30 g prec.', noChange:'invariato', growthUp30:'crescita in 30 giorni', for30:'in 30 giorni', dynamics:'Andamento', perDay:'per giorno', chartOn:'al', rangeWord:'intervallo', snapshotDaily:'snapshot giornaliero alle 3:00 UTC', forDays:'in {n} g.', deal:'Trattativa', annualSuffix:'annualizzato', paymentProvider:'Fornitore di pagamenti', confirmed:'(confermato)', revenueRank:'Classifica per fatturato', about:'Informazioni', category:'Categoria', country:'Paese', founded:'Fondata', tags:'Tag', website:'Sito', cmMrr:'MRR', cmRev30:'Fatturato (30 g)', cmTotal:'Fatturato totale', cmCustomers:'Clienti', cmSubs:'Abbonamenti', cmVisitors:'Visitatori (30 g)' },
+  zh: { brandSub:'经过验证的真实营收初创公司 · startupmarket.tech', sheetTag:'初创公司卡片', dataOn:'数据截至', per30:'近30天', onSale:'在售', keyMetrics:'关键指标 · 近30天', rev30:'收入（30天）', activeSubs:'活跃订阅', payingSubs:'付费订阅者', customers:'客户', totalBuyers:'买家总数', noData:'无数据', margin:'利润率（30天）', nearZeroCost:'成本几乎为零', last30full:'近30天', totalRev:'总收入', sumTotal:'合计', revMultiple:'收入倍数', priceOverAnnual:'价格 ÷ 年收入', monthRev:'月收入', last30short:'近30天', verifiedBy:'已验证 ·', price:'价格', vsPrev:'较前30天', noChange:'无变化', growthUp30:'30天增长', for30:'30天内', dynamics:'走势', perDay:'按天', chartOn:'截至', rangeWord:'区间', snapshotDaily:'每天 3:00 UTC 快照', forDays:'{n} 天内', deal:'交易', annualSuffix:'年化', paymentProvider:'支付提供商', confirmed:'（已确认）', revenueRank:'收入排名', about:'公司简介', category:'类别', country:'国家', founded:'成立于', tags:'标签', website:'网站', cmMrr:'MRR', cmRev30:'收入（30天）', cmTotal:'总收入', cmCustomers:'客户', cmSubs:'订阅', cmVisitors:'访客（30天）' },
+  ar: { brandSub:'شركات ناشئة موثّقة بإيرادات حقيقية · startupmarket.tech', sheetTag:'بطاقة الشركة الناشئة', dataOn:'البيانات حتى', per30:'آخر 30 يوم', onSale:'للبيع', keyMetrics:'المقاييس الرئيسية · آخر 30 يوم', rev30:'الإيرادات (30 يوم)', activeSubs:'الاشتراكات النشطة', payingSubs:'مشتركون مدفوعون', customers:'العملاء', totalBuyers:'إجمالي المشترين', noData:'لا توجد بيانات', margin:'هامش الربح (30 يوم)', nearZeroCost:'تكاليف شبه معدومة', last30full:'خلال آخر 30 يوم', totalRev:'إجمالي الإيرادات', sumTotal:'الإجمالي', revMultiple:'مضاعف الإيرادات', priceOverAnnual:'السعر ÷ الإيراد السنوي', monthRev:'الإيراد الشهري', last30short:'آخر 30 يوم', verifiedBy:'موثّق ·', price:'السعر', vsPrev:'مقارنة بـ 30 يوم سابقة', noChange:'دون تغيير', growthUp30:'نمو خلال 30 يوم', for30:'خلال 30 يوم', dynamics:'التغيّر', perDay:'يوميًا', chartOn:'حتى', rangeWord:'المدى', snapshotDaily:'لقطة يومية في 3:00 UTC', forDays:'خلال {n} يوم', deal:'الصفقة', annualSuffix:'سنويًا', paymentProvider:'مزود الدفع', confirmed:'(مؤكَّد)', revenueRank:'الترتيب حسب الإيرادات', about:'عن الشركة', category:'الفئة', country:'الدولة', founded:'تأسست', tags:'الوسوم', website:'الموقع', cmMrr:'MRR', cmRev30:'الإيرادات (30 يوم)', cmTotal:'إجمالي الإيرادات', cmCustomers:'العملاء', cmSubs:'الاشتراكات', cmVisitors:'الزوار (30 يوم)' },
+};
+function t(k, vars){
+  let str = (L[CARD_LANG] && L[CARD_LANG][k]) || L.ru[k] || k;
+  if (vars) for (const key in vars) str = str.replace('{' + key + '}', vars[key]);
+  return str;
+}
+
 function money(v){
   if (v === null || v === undefined || v === '' || Number.isNaN(Number(v))) return '—';
-  return '$' + Math.round(Number(v)).toLocaleString('ru-RU');
+  return '$' + Math.round(Number(v)).toLocaleString(loc(), { numberingSystem:'latn', maximumFractionDigits:0 });
 }
 function num(v){
   if (v === null || v === undefined || v === '' || Number.isNaN(Number(v))) return '—';
-  return Math.round(Number(v)).toLocaleString('ru-RU');
+  return Math.round(Number(v)).toLocaleString(loc(), { numberingSystem:'latn', maximumFractionDigits:0 });
 }
 
 /* Метрики графика: колонка в daily_snapshots + подпись + форматтер + «живое»
  * значение из /api/startup, которым прикалываем последнюю точку. Все колонки
  * уже приходят в /api/history (одна строка на день), выбор — чисто клиентский. */
 const CHART_METRICS = [
-  { key:'mrr_cents',     label:'MRR',                  fmt:money, live:s => s.revenue && s.revenue.mrr },
-  { key:'rev30d_cents',  label:'Выручка (30 дн.)',     fmt:money, live:s => s.revenue && s.revenue.last30Days },
-  { key:'total_cents',   label:'Выручка за всё время', fmt:money, live:s => s.revenue && s.revenue.total },
-  { key:'customers',     label:'Клиенты',              fmt:num,   live:s => s.customers },
-  { key:'subscriptions', label:'Подписки',             fmt:num,   live:s => s.activeSubscriptions },
-  { key:'visitors_30d',  label:'Посетители (30 дн.)',  fmt:num,   live:s => s.visitorsLast30Days },
+  { key:'mrr_cents',     labelKey:'cmMrr',       fmt:money, live:s => s.revenue && s.revenue.mrr },
+  { key:'rev30d_cents',  labelKey:'cmRev30',     fmt:money, live:s => s.revenue && s.revenue.last30Days },
+  { key:'total_cents',   labelKey:'cmTotal',     fmt:money, live:s => s.revenue && s.revenue.total },
+  { key:'customers',     labelKey:'cmCustomers', fmt:num,   live:s => s.customers },
+  { key:'subscriptions', labelKey:'cmSubs',      fmt:num,   live:s => s.activeSubscriptions },
+  { key:'visitors_30d',  labelKey:'cmVisitors',  fmt:num,   live:s => s.visitorsLast30Days },
 ];
-function pct(v){ // "12,6%"
+function pct(v){
   const n = Number(v);
   if (!Number.isFinite(n)) return '';
-  return (Math.round(Math.abs(n) * 10) / 10).toLocaleString('ru-RU') + '%';
+  return (Math.round(Math.abs(n) * 10) / 10).toLocaleString(loc(), { numberingSystem:'latn', maximumFractionDigits:1 }) + '%';
 }
 function mult(v){
   const n = Number(v);
   if (!Number.isFinite(n) || n <= 0) return '';
-  return n.toFixed(2).replace('.', ',') + '×';
+  return n.toLocaleString(loc(), { numberingSystem:'latn', minimumFractionDigits:2, maximumFractionDigits:2 }) + '×';
 }
-// «6 июля 2026»
+// Полная дата под язык карточки, напр. «6 июля 2026» / «July 6, 2026».
 function ruDate(d){
   const dt = (d instanceof Date) ? d : new Date(d);
   if (Number.isNaN(dt.getTime())) return '';
-  return dt.getDate() + ' ' + RU_MONTHS_GEN[dt.getMonth()] + ' ' + dt.getFullYear();
+  return new Intl.DateTimeFormat(loc(), { day:'numeric', month:'long', year:'numeric', numberingSystem:'latn' }).format(dt);
 }
-// «14 июня»
+// День+месяц под язык карточки, напр. «14 июня» / «Jun 14».
 function ruDayMonth(iso){
   if (!iso) return '';
   const p = String(iso).slice(0,10).split('-');
   if (p.length < 3) return '';
-  return parseInt(p[2],10) + ' ' + RU_MONTHS_GEN[parseInt(p[1],10)-1];
+  const dt = new Date(+p[0], +p[1]-1, +p[2]);
+  if (Number.isNaN(dt.getTime())) return '';
+  return new Intl.DateTimeFormat(loc(), { day:'numeric', month:'long', numberingSystem:'latn' }).format(dt);
 }
 function hostname(url){ try { return new URL(url).hostname.replace(/^www\./,''); } catch { return url; } }
 function cap(s){ return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
@@ -431,15 +467,16 @@ function buildChartSection(s, hist, metricKey){
   const m = CHART_METRICS.find(x => x.key === metricKey) || CHART_METRICS[0];
   const chart = buildChart(metricSeries(s, hist, m), m.fmt);
   if (!chart) return '';
+  const mLbl = esc(t(m.labelKey));
   return `
-    <div class="sec-title">Динамика · ${esc(m.label)} · по дням</div>
+    <div class="sec-title">${esc(t('dynamics'))} · ${mLbl} · ${esc(t('perDay'))}</div>
     <div class="chart-card">
       <div class="chart-head">
         <div>
           <div class="chart-cur">${m.fmt(chart.cur)}</div>
-          <div class="chart-meta">на ${esc(ruDayMonth(chart.lastDate))} · диапазон ${m.fmt(chart.min)} – ${m.fmt(chart.max)} за ${chart.days} дн.</div>
+          <div class="chart-meta">${esc(t('chartOn'))} ${esc(ruDayMonth(chart.lastDate))} · ${esc(t('rangeWord'))} ${m.fmt(chart.min)} – ${m.fmt(chart.max)} ${esc(t('forDays', { n: chart.days }))}</div>
         </div>
-        <div class="chart-legend"><span class="lg-dot"></span>${esc(m.label)}, снимок ежедневно в 3:00 UTC</div>
+        <div class="chart-legend"><span class="lg-dot"></span>${mLbl}, ${esc(t('snapshotDaily'))}</div>
       </div>
       ${chart.svg}
     </div>`;
@@ -450,7 +487,7 @@ function renderMetricBar(available){
   const bar = document.getElementById('cbMetrics');
   if (!available.length){ bar.style.display = 'none'; bar.innerHTML = ''; return; }
   bar.innerHTML = `<span class="cbm-label">Метрика на графике:</span>` + available.map(m =>
-    `<button class="cbm-pill${m.key === CARD_METRIC ? ' sel' : ''}" data-metric="${m.key}">${esc(m.label)}</button>`).join('');
+    `<button class="cbm-pill${m.key === CARD_METRIC ? ' sel' : ''}" data-metric="${m.key}">${esc(t(m.labelKey))}</button>`).join('');
   bar.style.display = 'flex';
   bar.querySelectorAll('.cbm-pill').forEach(el =>
     el.addEventListener('click', () => selectMetric(el.dataset.metric)));
@@ -479,7 +516,7 @@ function render(s, enrich, hist){
   if (s.category) metaParts.push(esc(s.category));
   if (businessType) metaParts.push(esc(businessType));
   if (s.country) metaParts.push(esc(s.country));
-  if (onSale) metaParts.push('на продаже');
+  if (onSale) metaParts.push(esc(t('onSale')));
   const heroMeta = metaParts.join(' · ');
 
   // ── Иконка ──
@@ -496,7 +533,7 @@ function render(s, enrich, hist){
   // ── Цена рядом с названием ──
   const heroPrice = priceOk ? `
     <span class="hero-price">
-      <span class="hp-cap">Цена</span>
+      <span class="hp-cap">${esc(t('price'))}</span>
       <span class="hp-val">${money(s.askingPrice)}</span>
       ${multiple ? `<span class="hp-mult">${mult(multiple)}</span>` : ''}
     </span>` : '';
@@ -506,40 +543,40 @@ function render(s, enrich, hist){
   let mrrSub = '';
   if (gMrrRaw != null && Number.isFinite(Number(gMrrRaw))) {
     const g = Number(gMrrRaw);
-    if (Math.abs(g) < 0.05) mrrSub = `<span class="flat">без изменений</span> к пред. 30 дн.`;
-    else if (g > 0) mrrSub = `<span class="up">↑ ${pct(g)}</span> к пред. 30 дн.`;
-    else mrrSub = `<span class="down">↓ ${pct(g)}</span> к пред. 30 дн.`;
+    if (Math.abs(g) < 0.05) mrrSub = `<span class="flat">${esc(t('noChange'))}</span> ${esc(t('vsPrev'))}`;
+    else if (g > 0) mrrSub = `<span class="up">↑ ${pct(g)}</span> ${esc(t('vsPrev'))}`;
+    else mrrSub = `<span class="down">↓ ${pct(g)}</span> ${esc(t('vsPrev'))}`;
   }
   const gRaw = s.growth30d != null ? s.growth30d : enrich.cachedGrowth30d;
-  let revSub = 'за последние 30 дней';
+  let revSub = t('last30full');
   if (gRaw != null && Number.isFinite(Number(gRaw))) {
     const g = Number(gRaw);
-    if (Math.abs(g) < 0.05) revSub = `<span class="flat">без изменений</span> за 30 дней`;
-    else if (g > 0) revSub = `<span class="up">↑ ${pct(g)}</span> рост за 30 дней`;
-    else revSub = `<span class="down">↓ ${pct(g)}</span> за 30 дней`;
+    if (Math.abs(g) < 0.05) revSub = `<span class="flat">${esc(t('noChange'))}</span> ${esc(t('for30'))}`;
+    else if (g > 0) revSub = `<span class="up">↑ ${pct(g)}</span> ${esc(t('growthUp30'))}`;
+    else revSub = `<span class="down">↓ ${pct(g)}</span> ${esc(t('for30'))}`;
   }
 
   // Подписки / клиенты (0 = «не сообщается» → показываем клиентов или прочерк)
   let subsCard;
   if (Number(s.activeSubscriptions) > 0)
-    subsCard = mCard('Активные подписки', Number(s.activeSubscriptions).toLocaleString('ru-RU'), 'платящих подписчиков');
+    subsCard = mCard(esc(t('activeSubs')), num(s.activeSubscriptions), esc(t('payingSubs')));
   else if (Number(s.customers) > 0)
-    subsCard = mCard('Клиенты', Number(s.customers).toLocaleString('ru-RU'), 'всего покупателей');
+    subsCard = mCard(esc(t('customers')), num(s.customers), esc(t('totalBuyers')));
   else
-    subsCard = mCard('Активные подписки', '—', 'нет данных');
+    subsCard = mCard(esc(t('activeSubs')), '—', esc(t('noData')));
 
   const marginVal = s.profitMarginLast30Days;
-  const marginSub = (Number(marginVal) >= 80) ? 'почти нулевые расходы' : 'за последние 30 дней';
+  const marginSub = (Number(marginVal) >= 80) ? esc(t('nearZeroCost')) : esc(t('last30full'));
   const marginCard = (marginVal != null && Number.isFinite(Number(marginVal)))
-    ? mCard('Маржа прибыли (30 дн.)', Math.round(Number(marginVal)) + '%', marginSub)
-    : mCard('Маржа прибыли (30 дн.)', '—', 'нет данных');
+    ? mCard(esc(t('margin')), Math.round(Number(marginVal)) + '%', marginSub)
+    : mCard(esc(t('margin')), '—', esc(t('noData')));
 
   const multCard = multiple
-    ? mCard('Мультипл выручки', mult(multiple), 'цена ÷ годовая выручка')
-    : mCard('Выручка за месяц', money(rev.last30Days), 'последние 30 дней');
+    ? mCard(esc(t('revMultiple')), mult(multiple), esc(t('priceOverAnnual')))
+    : mCard(esc(t('monthRev')), money(rev.last30Days), esc(t('last30short')));
 
   const verified = provider
-    ? `<span class="verified"><span class="dot"></span>Проверено · ${esc(provider)}</span>` : '';
+    ? `<span class="verified"><span class="dot"></span>${esc(t('verifiedBy'))} ${esc(provider)}</span>` : '';
 
   const metrics = `
     <div class="m-card feat">
@@ -548,46 +585,47 @@ function render(s, enrich, hist){
       <div class="m-value">${money(rev.mrr)}</div>
       ${mrrSub ? `<div class="m-sub">${mrrSub}</div>` : ''}
     </div>
-    ${mCard('Выручка (30 дней)', money(rev.last30Days), revSub)}
+    ${mCard(esc(t('rev30')), money(rev.last30Days), revSub)}
     ${subsCard}
     ${marginCard}
-    ${mCard('Выручка за всё время', money(rev.total), 'суммарно')}
+    ${mCard(esc(t('totalRev')), money(rev.total), esc(t('sumTotal')))}
     ${multCard}
   `;
 
   // ── График (выбор метрики) ──
-  CARD_S = s; CARD_HIST = hist;
+  CARD_S = s; CARD_HIST = hist; CARD_ENRICH = enrich;
   const available = CHART_METRICS.filter(m => metricHasData(s, hist, m));
-  // По умолчанию — MRR, если по нему есть данные; иначе первая доступная метрика.
-  CARD_METRIC = available.some(m => m.key === 'mrr_cents')
-    ? 'mrr_cents' : (available[0] ? available[0].key : 'mrr_cents');
+  // Сохраняем текущий выбор метрики при смене языка; иначе — MRR, иначе первая доступная.
+  CARD_METRIC = available.some(m => m.key === CARD_METRIC)
+    ? CARD_METRIC
+    : (available.some(m => m.key === 'mrr_cents') ? 'mrr_cents' : (available[0] ? available[0].key : 'mrr_cents'));
   const chartSection = available.length
     ? `<div class="sec" id="cardChartSlot">${buildChartSection(s, hist, CARD_METRIC)}</div>` : '';
 
   // ── Сделка ──
   const dealRows = [];
-  if (multiple) dealRows.push(kv('Мультипл выручки', mult(multiple).replace('×','× годовых')));
-  if (provider) dealRows.push(kv('Платёжный провайдер', esc(provider) + ' (подтверждён)'));
-  if (enrich.cachedRank) dealRows.push(kv('Место в рейтинге выручки', '#' + enrich.cachedRank));
+  if (multiple) dealRows.push(kv(esc(t('revMultiple')), mult(multiple) + ' ' + esc(t('annualSuffix'))));
+  if (provider) dealRows.push(kv(esc(t('paymentProvider')), esc(provider) + ' ' + esc(t('confirmed'))));
+  if (enrich.cachedRank) dealRows.push(kv(esc(t('revenueRank')), '#' + enrich.cachedRank));
   const dealSection = priceOk ? `
     <div>
-      <div class="sec-title">Сделка</div>
+      <div class="sec-title">${esc(t('deal'))}</div>
       <div class="deal-box">
-        <div class="price-row"><span class="k">Цена</span><span class="v">${money(s.askingPrice)}</span></div>
+        <div class="price-row"><span class="k">${esc(t('price'))}</span><span class="v">${money(s.askingPrice)}</span></div>
         ${dealRows.join('')}
       </div>
     </div>` : '';
 
   // ── О компании ──
   const aboutRows = [];
-  if (s.category) aboutRows.push(kv('Категория', esc(s.category) + (businessType ? ' · ' + esc(businessType) : '')));
-  if (s.country) aboutRows.push(kv('Страна', esc(s.country)));
-  if (s.foundedDate) { const y = new Date(s.foundedDate).getFullYear(); if (y) aboutRows.push(kv('Основан', y)); }
-  if (Array.isArray(ai.tags) && ai.tags.length) aboutRows.push(kv('Теги', esc(ai.tags.slice(0,4).join(' · '))));
-  if (s.website) aboutRows.push(kv('Сайт', esc(hostname(s.website))));
+  if (s.category) aboutRows.push(kv(esc(t('category')), esc(s.category) + (businessType ? ' · ' + esc(businessType) : '')));
+  if (s.country) aboutRows.push(kv(esc(t('country')), esc(s.country)));
+  if (s.foundedDate) { const y = new Date(s.foundedDate).getFullYear(); if (y) aboutRows.push(kv(esc(t('founded')), y)); }
+  if (Array.isArray(ai.tags) && ai.tags.length) aboutRows.push(kv(esc(t('tags')), esc(ai.tags.slice(0,4).join(' · '))));
+  if (s.website) aboutRows.push(kv(esc(t('website')), esc(hostname(s.website))));
   const aboutSection = aboutRows.length ? `
     <div>
-      <div class="sec-title">О компании</div>
+      <div class="sec-title">${esc(t('about'))}</div>
       ${aboutRows.join('')}
     </div>` : '';
 
@@ -595,18 +633,18 @@ function render(s, enrich, hist){
     <div class="sec"><div class="cols">${dealSection || '<div></div>'}${aboutSection || '<div></div>'}</div></div>` : '';
 
   const html = `
-  <div class="page" id="cardPage">
+  <div class="page" id="cardPage"${CARD_LANG === 'ar' ? ' dir="rtl"' : ''} lang="${CARD_LANG}">
     <div class="brand">
       <div class="brand-left">
         ${BRAND_LOGO}
         <div>
           <div class="brand-word">STARTUP<span class="m"> MARKET</span></div>
-          <div class="brand-sub">Проверенные стартапы с реальной выручкой · startupmarket.tech</div>
+          <div class="brand-sub">${esc(t('brandSub'))}</div>
         </div>
       </div>
       <div class="brand-right">
-        <span class="sheet-tag">Карточка стартапа</span>
-        <div class="sheet-date">Данные на ${esc(ruDate(new Date()))} · за 30 дней</div>
+        <span class="sheet-tag">${esc(t('sheetTag'))}</span>
+        <div class="sheet-date">${esc(t('dataOn'))} ${esc(ruDate(new Date()))} · ${esc(t('per30'))}</div>
       </div>
     </div>
 
@@ -622,7 +660,7 @@ function render(s, enrich, hist){
     </div>
 
     <div class="sec">
-      <div class="sec-title">Ключевые метрики · за 30 дней</div>
+      <div class="sec-title">${esc(t('keyMetrics'))}</div>
       <div class="metrics">${metrics}</div>
     </div>
 
@@ -687,9 +725,21 @@ document.getElementById('cbReset').addEventListener('click', () => {
   input.value = ''; setStatus(indexDone ? INDEX.length + ' стартапов в поиске.' : ''); input.focus();
 });
 
+/* ── Переключение языка карточки ────────────────────────────────────────── */
+const langSel = document.getElementById('cbLang');
+try { const saved = localStorage.getItem('card_lang'); if (saved && L[saved]) CARD_LANG = saved; } catch {}
+langSel.value = CARD_LANG;
+langSel.addEventListener('change', () => {
+  CARD_LANG = L[langSel.value] ? langSel.value : 'ru';
+  try { localStorage.setItem('card_lang', CARD_LANG); } catch {}
+  if (CARD_S) render(CARD_S, CARD_ENRICH, CARD_HIST);   // перерисовать уже построенную карточку
+});
+
 /* ── Автозагрузка по ?slug= (для прямых ссылок из админки) ──────────────── */
 (function(){
   const q = new URLSearchParams(location.search);
+  const lang = q.get('lang');
+  if (lang && L[lang]) { CARD_LANG = lang; langSel.value = lang; }
   const slug = q.get('slug');
   if (slug) { input.value = slug; loadCard(slug); }
   buildIndex();
