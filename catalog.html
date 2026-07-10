@@ -362,15 +362,6 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
         </button>
         <div class="fgroup-b">
           <div class="sb-sub">
-            <div class="sb-label"><span data-i18n="idx.fltAdded">Добавлены</span> <span class="tip-wrap"><span class="tip-icon">?</span><span class="tip-box" data-i18n="idx.tipAdded">Примерная дата появления стартапа на площадке (по нашим наблюдениям)</span></span></div>
-            <select class="sb-select" id="addedSelect" onchange="onAddedChange(this.value)">
-              <option value="0" data-i18n="idx.fltAddedAny">За всё время</option>
-              <option value="7" data-i18n="idx.fltAdded7d">За 7 дней</option>
-              <option value="14" data-i18n="idx.fltAdded14d">За 14 дней</option>
-              <option value="30" data-i18n="idx.fltAdded30d">За 30 дней</option>
-            </select>
-          </div>
-          <div class="sb-sub">
             <div class="sb-label"><span data-i18n="idx.fltMargin">Маржа прибыли</span></div>
             <div class="range-row"><input class="sb-input" id="marginMin" type="text" placeholder="Min %"><div class="range-sep">-</div><input class="sb-input" id="marginMax" type="text" placeholder="Max %"></div>
           </div>
@@ -413,6 +404,7 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
           <option value="growth-desc" data-i18n="idx.sortGrowth">Рост ↓</option>
           <option value="price-asc" data-i18n="idx.sortPriceAsc">Цена ↑</option>
           <option value="price-desc" data-i18n="idx.sortPriceDesc">Цена ↓</option>
+          <option value="added-desc" data-i18n="idx.sortAdded">Сначала новые</option>
         </select>
       </div>
       </div>
@@ -518,7 +510,7 @@ let filters = {
   mrrMin:0, mrrMax:0, rev30Min:0, rev30Max:0,
   priceMin:0, priceMax:0, growthMin:'', growthMax:'',
   multipleMax:0, marginMin:0, marginMax:0,
-  audience:'', mobile:'', addedWithin:0, saleFirst:false
+  audience:'', mobile:'', saleFirst:false
 };
 
 // "Date added" filter data. TrustMRR gives no listing date, so we approximate it with
@@ -876,6 +868,10 @@ function sortItems(arr) {
     if (sort === 'growth-desc') return s.growth30d != null ? s.growth30d : -Infinity;
     if (sort === 'price-asc')   return (s.onSale && s.askingPrice) ? s.askingPrice : Infinity;  // no price → last
     if (sort === 'price-desc')  return (s.onSale && s.askingPrice) || 0;
+    // "Newest first": rank by the earliest day we saw the startup (first_seen map). Ties
+    // resolve on dataScore below. Unknown dates (map still loading, or startup predates
+    // our tracking) sink to the bottom of the desc order.
+    if (sort === 'added-desc')  { const fs = firstSeenMap[s.slug]; return fs ? Date.parse(fs+'T00:00:00Z') : -Infinity; }
     if (sort === 'revenue-desc' && isGmvLike(s)) return 0;  // MoR/marketplace gross volume isn't company revenue - keep it out of the revenue ranking
     return (s.revenue && s.revenue.last30Days) || 0;  // revenue-desc (default)
   };
@@ -917,16 +913,11 @@ function sortItems(arr) {
 function applyClientFilters(items, f) {
   f = f || filters;
   const q = (f.search||'').toLowerCase();
-  // "Added within N days": only enforce once the first-seen map has loaded, otherwise
-  // it's a no-op so the grid never blanks while the map is still in flight.
-  const addedCutoff = (f.addedWithin>0 && firstSeenReady)
-    ? Date.now() - f.addedWithin*86400000 : 0;
   const filtered = items.filter(s => {
     // Drop "TrustMRR stub" listings entirely: their only link is a trustmrr.com
     // placeholder (not the company's own site) or they name trustmrr in the description,
     // so a buyer can't independently verify them. (Project A was one of these.)
     if (isTrustmrrStub(s)) return false;
-    if (addedCutoff) { const fs = firstSeenMap[s.slug]; if (!fs || Date.parse(fs+'T00:00:00Z') < addedCutoff) return false; }
     if (q && !s.name.toLowerCase().includes(q) && !(s.description||'').toLowerCase().includes(q)) return false;
     if (f.category && (s.category||'') !== f.category) return false;
     const mrr   = s.revenue&&s.revenue.mrr||0;
@@ -1209,14 +1200,14 @@ async function fetchTotalsMeta() {
   } catch {}
 }
 
-// Load the "date added" map (slug → earliest-seen date) for the "Added within N days"
-// filter. Instant from localStorage (24h TTL), then a background refresh. When it lands,
-// re-apply so an already-selected date window takes effect without a manual re-trigger.
+// Load the "date added" map (slug → earliest-seen date) that powers the "Сначала новые"
+// sort. Instant from localStorage (24h TTL), then a background refresh. When it lands,
+// re-sort so an already-selected "newest first" order takes effect without re-triggering.
 async function fetchFirstSeen() {
   const applyMap = (map) => {
     if (!map || !Object.keys(map).length) return;
     firstSeenMap = map; firstSeenReady = true;
-    if (filters.addedWithin > 0) { displayItems = applyClientFilters(loadedItems); renderCards(); updateCount(); }
+    if (filters.sort === 'added-desc') { displayItems = applyClientFilters(loadedItems); renderCards(); updateCount(); }
   };
   let cached = null;
   try { cached = JSON.parse(localStorage.getItem(FS_LS_KEY)||'null'); } catch {}
@@ -1238,7 +1229,7 @@ function hasActiveFilter() {
     filters.mrrMin || filters.mrrMax || filters.rev30Min || filters.rev30Max ||
     filters.priceMin || filters.priceMax || filters.growthMin!=='' || filters.growthMax!=='' ||
     filters.multipleMax || filters.marginMin || filters.marginMax ||
-    filters.audience || filters.mobile || filters.addedWithin);
+    filters.audience || filters.mobile);
 }
 
 function updateCount() {
@@ -1324,7 +1315,7 @@ function syncUrl(push) {
 // default "sale") is actually cleared, then overlay applyUrlParams().
 function restoreFromUrl() {
   const prevOnSale = filters.onSale;
-  filters = {onSale:true,category:'',sort:'revenue-desc',search:'',mrrMin:0,mrrMax:0,rev30Min:0,rev30Max:0,priceMin:0,priceMax:0,growthMin:'',growthMax:'',multipleMax:0,marginMin:0,marginMax:0,audience:'',mobile:'',addedWithin:0,saleFirst:false};
+  filters = {onSale:true,category:'',sort:'revenue-desc',search:'',mrrMin:0,mrrMax:0,rev30Min:0,rev30Max:0,priceMin:0,priceMax:0,growthMin:'',growthMax:'',multipleMax:0,marginMin:0,marginMax:0,audience:'',mobile:'',saleFirst:false};
   document.querySelectorAll('.sb-input').forEach(i=>{i.value='';toggleClear(i);});
   document.querySelectorAll('.sb-select').forEach(s=>s.selectedIndex=0);
   const si=document.getElementById('searchInput'); if(si) si.value='';
@@ -1381,18 +1372,6 @@ function onSortChange(v) {
   filters.sort = v; renderLimit = 60;
   displayItems = applyClientFilters(loadedItems); renderCards(); updateCount(); syncUrl(true); persistFilters();
 }
-function onAddedChange(v) {
-  filters.addedWithin = parseInt(v,10)||0; renderLimit = 60; persistFilters();
-  // "Date added" is a whole-catalog concept: freshly-added startups are almost never
-  // on-sale, so applying the window inside the on-sale view leaves the grid empty. When
-  // a window is picked while "На продаже" is active, switch the status to "Все" (which
-  // re-fetches the full catalog) so the filter actually surfaces the recent listings.
-  if (filters.addedWithin > 0 && filters.onSale === true) {
-    const allOpt = document.querySelector('.status-opt[data-filter="all"]');
-    if (allOpt) { setStatus(allOpt); return; }
-  }
-  displayItems = applyClientFilters(loadedItems); renderCards(); updateCount();
-}
 function onSearch(v) {
   filters.search=v.trim(); clearTimeout(searchTimer);
   searchTimer=setTimeout(()=>{renderLimit=60;displayItems=applyClientFilters(loadedItems);renderCards();updateCount();syncUrl();persistFilters();},300);
@@ -1409,7 +1388,6 @@ function applyFilters() {
   filters.marginMin=n('marginMin');filters.marginMax=n('marginMax');
   filters.audience=sel('audienceSelect');
   filters.mobile=sel('mobileSelect');
-  filters.addedWithin=parseInt(sel('addedSelect'),10)||0;
   renderLimit=60;
   displayItems=applyClientFilters(loadedItems);
   renderCards();updateCount();
@@ -1446,7 +1424,7 @@ function groupCounts() {
     categories: filters.category ? 1 : 0,
     fin: (filters.rev30Min||filters.rev30Max?1:0) + (filters.mrrMin||filters.mrrMax?1:0),
     deal: (filters.growthMin!==''||filters.growthMax!==''?1:0) + (filters.priceMin||filters.priceMax?1:0) + (filters.multipleMax?1:0),
-    more: (filters.marginMin||filters.marginMax?1:0) + (filters.audience?1:0) + (filters.mobile?1:0) + (filters.addedWithin?1:0)
+    more: (filters.marginMin||filters.marginMax?1:0) + (filters.audience?1:0) + (filters.mobile?1:0)
   };
 }
 function refreshGroupBadges() {
@@ -1479,8 +1457,7 @@ function readPanelFilters() {
     growthMin:stripSep(txt('growthMin')), growthMax:stripSep(txt('growthMax')),
     multipleMax:parseFloat(sel('multipleSelect'))||0,
     marginMin:num('marginMin'), marginMax:num('marginMax'),
-    audience:sel('audienceSelect'), mobile:sel('mobileSelect'),
-    addedWithin:parseInt(sel('addedSelect'),10)||0
+    audience:sel('audienceSelect'), mobile:sel('mobileSelect')
   });
 }
 function updateApplyCount() {
@@ -1500,7 +1477,6 @@ function updateFilterBadge() {
   if (filters.marginMin||filters.marginMax) n++;
   if (filters.audience) n++;
   if (filters.mobile) n++;
-  if (filters.addedWithin) n++;
   if (filters.onSale!==true) n++;
   const btn=document.getElementById('filterToggle'), b=document.getElementById('filterBadge');
   if (btn) btn.classList.toggle('has-active', n>0);
@@ -1516,7 +1492,7 @@ function resetFilters() {
   const ss=document.getElementById('sortSelect'); if(ss) ss.value='revenue-desc';
   const cdl=document.getElementById('catDDLabel'); if(cdl) cdl.textContent=t('idx','fltCatsAll');
   closeCatDD(); _catSig='';
-  filters={onSale:true,category:'',sort:'revenue-desc',search:'',mrrMin:0,mrrMax:0,rev30Min:0,rev30Max:0,priceMin:0,priceMax:0,growthMin:'',growthMax:'',multipleMax:0,marginMin:0,marginMax:0,audience:'',mobile:'',addedWithin:0,saleFirst:false};
+  filters={onSale:true,category:'',sort:'revenue-desc',search:'',mrrMin:0,mrrMax:0,rev30Min:0,rev30Max:0,priceMin:0,priceMax:0,growthMin:'',growthMax:'',multipleMax:0,marginMin:0,marginMax:0,audience:'',mobile:'',saleFirst:false};
   syncUrl(true); persistFilters();
   reloadFromAPI();
 }
@@ -1539,7 +1515,6 @@ function populateFilterInputs() {
   const ms=document.getElementById('multipleSelect'); if(ms) ms.value=filters.multipleMax?String(filters.multipleMax):'';
   const as=document.getElementById('audienceSelect'); if(as) as.value=filters.audience||'';
   const mo=document.getElementById('mobileSelect'); if(mo) mo.value=filters.mobile||'';
-  const ad=document.getElementById('addedSelect'); if(ad) ad.value=filters.addedWithin?String(filters.addedWithin):'0';
   const si=document.getElementById('searchInput'); if(si) si.value=filters.search||'';
   const ss=document.getElementById('sortSelect'); if(ss) ss.value=filters.sort||'revenue-desc';
   const cdl=document.getElementById('catDDLabel'); if(cdl) cdl.textContent=filters.category||t('idx','fltCatsAll');
@@ -1566,7 +1541,7 @@ function applyUrlParams() {
     filters.category = category;
     const lbl = document.getElementById('catDDLabel'); if (lbl) lbl.textContent = category;
   }
-  if (['revenue-desc','growth-desc','price-asc','price-desc'].includes(sort)) {
+  if (['revenue-desc','growth-desc','price-asc','price-desc','added-desc'].includes(sort)) {
     filters.sort = sort;
     const ss = document.getElementById('sortSelect'); if (ss) ss.value = sort;
   }
