@@ -550,7 +550,10 @@ function catdbOpen() {
     req.onerror   = () => rej(req.error);
   });
 }
-function snapKey() { return (filters.onSale===true ? 'sale' : 'all') + '_' + getLang(); }
+// v2 prefix: orphans pre-existing snapshots that may still contain trustmrr-stub
+// listings (their cached list-form website was blank, so the client filter couldn't
+// catch them). Bumping the key forces a clean reload from the now-filtered server.
+function snapKey() { return 'v2_' + (filters.onSale===true ? 'sale' : 'all') + '_' + getLang(); }
 async function snapRead() {
   try {
     const db = await catdbOpen();
