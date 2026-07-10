@@ -358,7 +358,7 @@
 
 <script src="/auth-config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="/shared.js?v=20260710a"></script>
+<script src="/shared.js?v=20260710b"></script>
 <script>
 // Resilience guard: loadSimilar() (the "More … for sale" rail) calls isRecommendable()
 // and shuffle() from shared.js. If a browser serves a STALE cached shared.js right
@@ -552,7 +552,7 @@ function regCtaHtml() {
   return `<div class="reg-gate">
     <div class="reg-gate-text">
       <strong>${escHtml(t('startupPage','regGate'))}</strong>
-      <span>${escHtml(t('startupPage','regNote'))}</span>
+      <span>${escHtml(t('startupPage','regNote')).replace(/\n/g,'<br>')}</span>
     </div>
     <a href="/auth.html?from=${from}" class="btn btn-primary btn-sm">${escHtml(t('startupPage','regBtn'))}</a>
   </div>`;
@@ -1946,7 +1946,7 @@ function renderContactSection(s) {
       </span>
       <span class="contact-cta-text">
         <span class="contact-cta-title">${escHtml(t('startupPage','regGate'))}</span>
-        <span class="contact-cta-sub">${escHtml(t('startupPage','regNote'))}</span>
+        <span class="contact-cta-sub">${escHtml(t('startupPage','regNote')).replace(/\n/g,'<br>')}</span>
       </span>
       <a class="btn btn-primary btn-sm" href="/auth.html?from=${from}">${escHtml(t('startupPage','regBtn'))}</a>
     </div>`;
