@@ -897,6 +897,12 @@ function sortItems(arr) {
     const w = s && s.website;
     return (!w || !String(w).trim() || String(w).toLowerCase().includes('trustmrr.com')) ? 1 : 0;
   };
+  // For the "date added" sorts the date IS the ranking, so it must come right after the
+  // optional on-sale float - the anon/nodata/bare quality tiers only break ties *within*
+  // the same day (else freshly-added listings without revenue/site get wrongly buried and
+  // the "newest" list shows older, data-rich startups instead). Value sorts keep the
+  // original order: quality tiers first, then the metric.
+  const dateSort = sort === 'added-desc' || sort === 'added-asc';
   return arr
     .map((s, i) => ({ s, i,
       sale: (saleFirst && s.onSale) ? 0 : 1,
@@ -905,14 +911,21 @@ function sortItems(arr) {
       bare: noSite(s),
       v: metricVal(s),
       score: dataScore(s) }))
-    .sort((a, b) =>
-      (a.sale - b.sale) ||
-      (a.anon - b.anon) ||
-      (a.nodata - b.nodata) ||
-      (a.bare - b.bare) ||
-      (asc ? a.v - b.v : b.v - a.v) ||
-      (b.score - a.score) ||
-      (a.i - b.i))
+    .sort((a, b) => dateSort
+      ? ( (a.sale - b.sale) ||
+          (asc ? a.v - b.v : b.v - a.v) ||
+          (a.anon - b.anon) ||
+          (a.nodata - b.nodata) ||
+          (a.bare - b.bare) ||
+          (b.score - a.score) ||
+          (a.i - b.i) )
+      : ( (a.sale - b.sale) ||
+          (a.anon - b.anon) ||
+          (a.nodata - b.nodata) ||
+          (a.bare - b.bare) ||
+          (asc ? a.v - b.v : b.v - a.v) ||
+          (b.score - a.score) ||
+          (a.i - b.i) ))
     .map(o => o.s);
 }
 // f defaults to the committed global `filters`. The mobile "Show N" preview passes a
