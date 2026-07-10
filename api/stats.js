@@ -38,6 +38,34 @@ function readPage(p) {
   return redisGet(`sm_${params.toString()}`);
 }
 
+// Rebuild the { slug: 'YYYY-MM-DD' } first-seen map straight from startup_archive (the
+// durable source) when the Redis cache is cold. Mirrors scripts/refresh-catalog.js
+// writeFirstSeen: explicit limit/offset paging (NOT Range headers — a mispaginated
+// full-table response would otherwise never satisfy the short-page break) with a hard
+// page cap so it can never loop to timeout.
+async function rebuildFirstSeen() {
+  const U = process.env.SUPABASE_URL, K = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!U || !K) return {};
+  const headers = { apikey: K, Authorization: `Bearer ${K}` };
+  const map = {};
+  const PAGE = 1000, MAX_PAGES = 60;   // caps at 60k rows
+  for (let page = 0; page < MAX_PAGES; page++) {
+    let rows;
+    try {
+      const r = await fetch(
+        `${U}/rest/v1/startup_archive?select=slug,first_seen&first_seen=not.is.null&order=slug.asc&limit=${PAGE}&offset=${page * PAGE}`,
+        { headers, signal: AbortSignal.timeout(15000) },
+      );
+      if (!r.ok) break;
+      rows = await r.json();
+    } catch { break; }
+    if (!Array.isArray(rows) || rows.length === 0) break;
+    for (const row of rows) if (row && row.slug && row.first_seen) map[row.slug] = row.first_seen;
+    if (rows.length < PAGE) break;
+  }
+  return map;
+}
+
 // Mirror of shared.js isGmvLike (the server has no access to shared.js): gross volume
 // from a MoR/marketplace platform — or a retail storefront's sales — is not the
 // company's own revenue, so keep it out of the sum. Two shapes qualify:
@@ -85,9 +113,24 @@ export default async function handler(req, res) {
   // (writeFirstSeen) — see supabase-first-seen-migration.sql. Served here so we don't spend
   // one of the 12 Hobby serverless slots on a dedicated endpoint.
   if ((req.query && req.query.section) === 'firstseen') {
-    const fs = await redisGet('sm_first_seen_v1');
+    let fs = await redisGet('sm_first_seen_v1');
+    let cache = fs ? 'HIT' : 'EMPTY';
+    // Self-heal: writeFirstSeen normally stocks this key nightly, but it lives on a 26h
+    // Redis TTL — a single missed or failed sweep expires it, and the catalog "Added
+    // within N days" filter then silently degrades to a no-op (shows every startup). When
+    // the key is cold, rebuild it from startup_archive and write it back so the filter
+    // keeps working regardless of the sweep's health. The edge cache (s-maxage below)
+    // caps this to roughly one rebuild per region per hour.
+    if (!fs) {
+      const map = await rebuildFirstSeen();
+      if (Object.keys(map).length) {
+        fs = { m: map, updatedAt: new Date().toISOString() };
+        await redisSet('sm_first_seen_v1', fs, 26 * 3600);
+        cache = 'REBUILD';
+      }
+    }
     res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=86400');
-    res.setHeader('X-Cache', fs ? 'HIT' : 'EMPTY');
+    res.setHeader('X-Cache', cache);
     return res.status(200).json({ map: (fs && fs.m) || {}, updatedAt: (fs && fs.updatedAt) || null });
   }
 
