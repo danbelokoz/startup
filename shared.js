@@ -318,6 +318,18 @@ function isGmvLike(s) {
   if (mrr > 0 && cust === 0 && subs <= 2 && l30 >= mrr * 100 && l30 >= 25000) return true;
   return false;
 }
+// A "TrustMRR stub" listing has no independently verifiable presence: its only link
+// points back at trustmrr.com (a placeholder, not the company's own site) or it names
+// trustmrr in the description. These can't be checked out by a buyer, so we drop them
+// from every surface entirely (catalog + all recommendation rails). Match on either
+// the website host or a "trustmrr" mention in the description.
+function isTrustmrrStub(s) {
+  if (!s) return false;
+  const w = String(s.website || '').toLowerCase();
+  if (w.includes('trustmrr')) return true;
+  const d = String(s.description || '').toLowerCase();
+  return d.includes('trustmrr');
+}
 // Eligible to be *recommended* in a rail (landing leaders/cards + the startup-page
 // "More … for sale" rail): a real, live deal only - on sale, not anonymous/stealth,
 // with non-zero headline revenue and a real asking price. Keeps empty "$0 / -"
@@ -326,7 +338,7 @@ function isGmvLike(s) {
 function isRecommendable(s) {
   // isGmvLike: a storefront/marketplace whose headline figure is gross volume, not the
   // company's own revenue - it shouldn't compete in revenue-ranked recommendation rails.
-  if (!s || !s.slug || !s.onSale || isAnonStartup(s) || isGmvLike(s)) return false;
+  if (!s || !s.slug || !s.onSale || isAnonStartup(s) || isGmvLike(s) || isTrustmrrStub(s)) return false;
   const rev = s.revenue || {};
   if (!(Number(rev.last30Days) > 0) && !(Number(rev.mrr) > 0)) return false;
   return Number(s.askingPrice) > 0;

@@ -28,7 +28,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin/>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap"/>
-<link rel="stylesheet" href="/shared.css?v=2"/>
+<link rel="stylesheet" href="/shared.css?v=3"/>
 <script src="/auth-config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="/shared.js"></script>
@@ -451,6 +451,13 @@ window.isGmvLike = window.isGmvLike || function (s) {
   if (mrr === 0 && subs === 0 && cust === 0 && l30 >= 100000) return true;
   if (mrr > 0 && cust === 0 && subs <= 2 && l30 >= mrr * 100 && l30 >= 25000) return true;
   return false;
+};
+// Same stale-cache guard for isTrustmrrStub (used by applyClientFilters below) - a
+// returning user with an old shared.js must still filter out trustmrr.com placeholders.
+window.isTrustmrrStub = window.isTrustmrrStub || function (s) {
+  if (!s) return false;
+  return String(s.website || '').toLowerCase().includes('trustmrr')
+      || String(s.description || '').toLowerCase().includes('trustmrr');
 };
 
 /* ── GUEST GATE HELPERS ───────────────────────────────────────────────────────
@@ -915,6 +922,10 @@ function applyClientFilters(items, f) {
   const addedCutoff = (f.addedWithin>0 && firstSeenReady)
     ? Date.now() - f.addedWithin*86400000 : 0;
   const filtered = items.filter(s => {
+    // Drop "TrustMRR stub" listings entirely: their only link is a trustmrr.com
+    // placeholder (not the company's own site) or they name trustmrr in the description,
+    // so a buyer can't independently verify them. (Project A was one of these.)
+    if (isTrustmrrStub(s)) return false;
     if (addedCutoff) { const fs = firstSeenMap[s.slug]; if (!fs || Date.parse(fs+'T00:00:00Z') < addedCutoff) return false; }
     if (q && !s.name.toLowerCase().includes(q) && !(s.description||'').toLowerCase().includes(q)) return false;
     if (f.category && (s.category||'') !== f.category) return false;

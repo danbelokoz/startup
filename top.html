@@ -26,7 +26,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin/>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap"/>
-<link rel="stylesheet" href="/shared.css?v=2"/>
+<link rel="stylesheet" href="/shared.css?v=3"/>
 <script src="/auth-config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="/shared.js"></script>
@@ -211,7 +211,11 @@ async function loadLeaderboard() {
         // revenue, so a one-off payment on a near-zero base can't inflate the % growth
         // ranking (tiny MRR, huge %).
         const rev = (x && x.revenue) || {};
-        const ok = Number(rev.mrr || 0) > 1000 && Number(rev.last30Days || 0) >= 300;
+        // Exclude "TrustMRR stub" listings (only link is a trustmrr.com placeholder, or
+        // trustmrr named in the description) - they can't be independently verified.
+        const stub = String((x && x.website) || '').toLowerCase().includes('trustmrr')
+                  || String((x && x.description) || '').toLowerCase().includes('trustmrr');
+        const ok = Number(rev.mrr || 0) > 1000 && Number(rev.last30Days || 0) >= 300 && !stub;
         if (x && x.slug && !seen.has(x.slug) && ok) { seen.add(x.slug); pool.push(x); }
       }
     }

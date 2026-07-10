@@ -28,7 +28,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin/>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap"/>
-<link rel="stylesheet" href="/shared.css?v=2"/>
+<link rel="stylesheet" href="/shared.css?v=3"/>
 <script src="/auth-config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="/shared.js"></script>
@@ -495,8 +495,13 @@ window.isAnonStartup = window.isAnonStartup || function (s) {
   const n = (s && s.name || '').trim().toLowerCase();
   return !n || n.includes('anonymous');
 };
+window.isTrustmrrStub = window.isTrustmrrStub || function (s) {
+  if (!s) return false;
+  return String(s.website || '').toLowerCase().includes('trustmrr')
+      || String(s.description || '').toLowerCase().includes('trustmrr');
+};
 window.isRecommendable = window.isRecommendable || function (s) {
-  if (!s || !s.slug || !s.onSale || isAnonStartup(s)) return false;
+  if (!s || !s.slug || !s.onSale || isAnonStartup(s) || isTrustmrrStub(s)) return false;
   if (window.isGmvLike && window.isGmvLike(s)) return false;   // gross-volume listing - not revenue
   const rev = s.revenue || {};
   if (!(Number(rev.last30Days) > 0) && !(Number(rev.mrr) > 0)) return false;
