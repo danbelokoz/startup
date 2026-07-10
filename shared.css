@@ -160,15 +160,15 @@ body.mm-lock { overflow: hidden; }
 .tip-wrap:hover .tip-icon { border-color: var(--text2); color: var(--text2); }
 .tip-box {
   display: none; position: absolute; bottom: calc(100% + 7px);
-  left: 50%; transform: translateX(-50%);
+  left: -6px; transform: none;
   background: #0B0E11; color: #EAECEF; font-size: 11px;
   line-height: 1.45; padding: 7px 10px; border-radius: 7px;
   border: 1px solid var(--border);
   pointer-events: none; z-index: 200; width: 190px; white-space: normal; font-weight: 400;
 }
 .tip-box::after {
-  content: ''; position: absolute; top: 100%; left: 50%;
-  transform: translateX(-50%); border: 5px solid transparent; border-top-color: #0B0E11;
+  content: ''; position: absolute; top: 100%; left: 12px;
+  transform: none; border: 5px solid transparent; border-top-color: #0B0E11;
 }
 .tip-wrap:hover .tip-box { display: block; }
 

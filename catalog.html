@@ -1382,8 +1382,16 @@ function onSortChange(v) {
   displayItems = applyClientFilters(loadedItems); renderCards(); updateCount(); syncUrl(true); persistFilters();
 }
 function onAddedChange(v) {
-  filters.addedWithin = parseInt(v,10)||0; renderLimit = 60;
-  displayItems = applyClientFilters(loadedItems); renderCards(); updateCount(); persistFilters();
+  filters.addedWithin = parseInt(v,10)||0; renderLimit = 60; persistFilters();
+  // "Date added" is a whole-catalog concept: freshly-added startups are almost never
+  // on-sale, so applying the window inside the on-sale view leaves the grid empty. When
+  // a window is picked while "На продаже" is active, switch the status to "Все" (which
+  // re-fetches the full catalog) so the filter actually surfaces the recent listings.
+  if (filters.addedWithin > 0 && filters.onSale === true) {
+    const allOpt = document.querySelector('.status-opt[data-filter="all"]');
+    if (allOpt) { setStatus(allOpt); return; }
+  }
+  displayItems = applyClientFilters(loadedItems); renderCards(); updateCount();
 }
 function onSearch(v) {
   filters.search=v.trim(); clearTimeout(searchTimer);
