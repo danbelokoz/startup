@@ -872,13 +872,18 @@ function sortItems(arr) {
     if (sort === 'growth-desc') return s.growth30d != null ? s.growth30d : -Infinity;
     if (sort === 'price-asc')   return (s.onSale && s.askingPrice) ? s.askingPrice : Infinity;  // no price → last
     if (sort === 'price-desc')  return (s.onSale && s.askingPrice) || 0;
-    // "Newest / oldest first": rank by the earliest day we saw the startup (first_seen
-    // map). Ties resolve on dataScore below. Unknown dates (map still loading, or startup
-    // predates our tracking) sink to the bottom for BOTH directions — hence the sentinel
-    // flips with the sort order (+Infinity sinks in asc, -Infinity sinks in desc).
+    // "Newest / oldest first": rank by when the product entered the marketplace. The real
+    // signal is TrustMRR's firstListedForSaleAt (the sale-listing date) — it's populated
+    // and well-spread for on-sale startups, so the default view sorts meaningfully. Fall
+    // back to our own first_seen map (earliest day we saw it) for listings without a sale
+    // date, e.g. plain catalog entries in the "Все" view. Unknown on both → sink to the
+    // bottom for BOTH directions (sentinel flips: +Infinity sinks in asc, -Infinity desc).
     if (sort === 'added-desc' || sort === 'added-asc') {
+      const listed = s.firstListedForSaleAt ? Date.parse(s.firstListedForSaleAt) : NaN;
+      if (!Number.isNaN(listed)) return listed;
       const fs = firstSeenMap[s.slug];
-      return fs ? Date.parse(fs+'T00:00:00Z') : (sort === 'added-asc' ? Infinity : -Infinity);
+      if (fs) return Date.parse(fs+'T00:00:00Z');
+      return sort === 'added-asc' ? Infinity : -Infinity;
     }
     if (sort === 'revenue-desc' && isGmvLike(s)) return 0;  // MoR/marketplace gross volume isn't company revenue - keep it out of the revenue ranking
     return (s.revenue && s.revenue.last30Days) || 0;  // revenue-desc (default)
