@@ -520,14 +520,18 @@ let filters = {
   audience:'', mobile:'', saleFirst:false
 };
 
-// "Date added" filter data. TrustMRR gives no listing date, so we approximate it with
-// the earliest day we saw each startup: a { slug: 'YYYY-MM-DD' } map published nightly
-// to Redis by the catalog sweep and served by /api/stats?section=firstseen. Loaded once,
-// cached in localStorage (24h). Until it's ready the date filter is a no-op so the grid
-// never blanks; fetchFirstSeen() re-applies once the map arrives.
-let firstSeenMap = {};
-let firstSeenReady = false;
-const FS_LS_KEY = 'sm_first_seen_v1';
+// "Newest/oldest" sort keys on firstListedForSaleAt (the TrustMRR sale-listing date), but
+// TrustMRR's LIST endpoint drops that field for a slice of on-sale listings (~73) — some of
+// which are actually recent (e.g. yakkr-growth, listed Jun-23). The DETAIL endpoint has it,
+// so we lazily backfill those from /api/startup and cache the recovered { slug: ISO } here.
+// Loaded from localStorage instantly (24h TTL); enrichment only runs when a date sort is on.
+let listedOverlay = {};        // slug → recovered firstListedForSaleAt (null once checked & empty)
+let listedEnriching = false;
+const LISTED_LS_KEY = 'sm_listed_overlay_v1';
+function loadListedOverlay() {
+  try { const c = JSON.parse(localStorage.getItem(LISTED_LS_KEY)||'null');
+    if (c && c.map && c.ts && Date.now()-c.ts < 24*3600*1000) listedOverlay = c.map; } catch {}
+}
 
 /* ── CACHE ─────────────────────────────────────────────────────────────────── */
 function cacheRead() {
@@ -679,6 +683,7 @@ async function loadInitial() {
     displayItems = applyClientFilters(loadedItems);
     updateStats(); renderCards(); updateCount(); buildCategoryOptions();
     restoreScroll();
+    if (filters.sort === 'added-desc' || filters.sort === 'added-asc') enrichListedDates();  // restored a date sort → backfill missing listing dates
     if (!allLoaded) loadAllPages(tk);              // finish remaining pages (appends)
     else if (Date.now()-snap.ts > FRESH_TTL) backgroundRefresh(tk); // stale → silent refresh
     return;
@@ -715,6 +720,7 @@ async function fetchPage(page, bg) {
       if (isDefault()) cacheWrite(items, hasMore, meta&&meta.total);
       displayItems = applyClientFilters(loadedItems);
       updateStats(); renderCards(); updateCount(); buildCategoryOptions();
+      if (filters.sort === 'added-desc' || filters.sort === 'added-asc') enrichListedDates();  // landed with a date sort → backfill missing listing dates
     } else {
       const fresh = items.filter(s=>!loadedItems.find(x=>x.slug===s.slug));
       loadedItems  = loadedItems.concat(fresh);
@@ -879,14 +885,16 @@ function sortItems(arr) {
     if (sort === 'price-asc')   return (s.onSale && s.askingPrice) ? s.askingPrice : Infinity;  // no price → last
     if (sort === 'price-desc')  return (s.onSale && s.askingPrice) || 0;
     // "Newest / oldest first": rank strictly by TrustMRR's firstListedForSaleAt — the day
-    // the product was listed on the marketplace. Listings without it sink to the bottom in
-    // BOTH directions (sentinel flips: +Infinity sinks in asc, -Infinity in desc). We do
-    // NOT fall back to our first_seen map here: on-sale startups almost all share the
-    // 2026-06-14 tracking-epoch backfill, and that fake "recent" date would float dateless
-    // listings above ones with genuine earlier listing dates (the bug where founded-2017
-    // cards topped "newest").
+    // the product was listed on the marketplace — or the listedOverlay backfill for the
+    // listings whose date the LIST endpoint dropped (recovered from DETAIL). Listings with
+    // no date on either sink to the bottom in BOTH directions (sentinel flips: +Infinity
+    // in asc, -Infinity in desc). We deliberately do NOT fall back to our first_seen map:
+    // on-sale startups almost all share the 2026-06-14 tracking-epoch backfill, and that
+    // fake "recent" date would float dateless listings above genuine earlier ones (the bug
+    // where founded-2017 cards topped "newest").
     if (sort === 'added-desc' || sort === 'added-asc') {
-      const listed = s.firstListedForSaleAt ? Date.parse(s.firstListedForSaleAt) : NaN;
+      const raw = s.firstListedForSaleAt || listedOverlay[s.slug];   // overlay backfills LIST-endpoint gaps
+      const listed = raw ? Date.parse(raw) : NaN;
       if (!Number.isNaN(listed)) return listed;
       return sort === 'added-asc' ? Infinity : -Infinity;
     }
@@ -1231,26 +1239,30 @@ async function fetchTotalsMeta() {
   } catch {}
 }
 
-// Load the "date added" map (slug → earliest-seen date) that powers the "Сначала новые"
-// sort. Instant from localStorage (24h TTL), then a background refresh. When it lands,
-// re-sort so an already-selected "newest first" order takes effect without re-triggering.
-async function fetchFirstSeen() {
-  const applyMap = (map) => {
-    if (!map || !Object.keys(map).length) return;
-    firstSeenMap = map; firstSeenReady = true;
-    if (filters.sort === 'added-desc' || filters.sort === 'added-asc') { displayItems = applyClientFilters(loadedItems); renderCards(); updateCount(); }
-  };
-  let cached = null;
-  try { cached = JSON.parse(localStorage.getItem(FS_LS_KEY)||'null'); } catch {}
-  if (cached && cached.map && cached.ts && Date.now()-cached.ts < 24*3600*1000) applyMap(cached.map);
-  if (cached && cached.ts && Date.now()-cached.ts < 6*3600*1000) return;   // fresh enough
-  try {
-    const r = await fetch(API+'/stats?section=firstseen').then(r=>r.json()).catch(()=>null);
-    if (r && r.map && Object.keys(r.map).length) {
-      try { localStorage.setItem(FS_LS_KEY, JSON.stringify({map:r.map, ts:Date.now()})); } catch {}
-      applyMap(r.map);
-    }
-  } catch {}
+// Backfill listing dates the LIST endpoint omitted, from the DETAIL endpoint (/api/startup,
+// server-cached 24h so this is cheap after the first warm). Only runs while a date sort is
+// active, only for on-sale items still missing a date and not already checked. Recovered
+// dates (and confirmed-empties, stored as null) are cached in localStorage so a returning
+// user does at most one pass per day. Re-sorts once done if a date sort is still selected.
+async function enrichListedDates() {
+  if (listedEnriching) return;
+  const targets = loadedItems.filter(s => s && s.onSale && !s.firstListedForSaleAt && !(s.slug in listedOverlay));
+  if (!targets.length) return;
+  listedEnriching = true;
+  const CONC = 5, CAP = 200;   // bounded so a pathological null-set can't hammer the proxy
+  const list = targets.slice(0, CAP);
+  for (let i = 0; i < list.length; i += CONC) {
+    await Promise.all(list.slice(i, i + CONC).map(async s => {
+      try {
+        const d = await fetch(API+'/startup?slug='+encodeURIComponent(s.slug)).then(r => r.ok ? r.json() : null).catch(() => null);
+        const det = d && (d.startup || d.data || d);
+        listedOverlay[s.slug] = (det && det.firstListedForSaleAt) || null;   // remember null too → no refetch
+      } catch { listedOverlay[s.slug] = null; }
+    }));
+  }
+  try { localStorage.setItem(LISTED_LS_KEY, JSON.stringify({ map: listedOverlay, ts: Date.now() })); } catch {}
+  listedEnriching = false;
+  if (filters.sort === 'added-desc' || filters.sort === 'added-asc') { displayItems = applyClientFilters(loadedItems); renderCards(); updateCount(); }
 }
 
 // True when the user has narrowed the catalog with anything beyond the on-sale/all
@@ -1402,6 +1414,9 @@ function onCategoryChange(v) {
 function onSortChange(v) {
   filters.sort = v; renderLimit = 60;
   displayItems = applyClientFilters(loadedItems); renderCards(); updateCount(); syncUrl(true); persistFilters();
+  // A date sort just became active → backfill the listing dates the LIST endpoint dropped
+  // (no-op if none missing or already fetched); it re-sorts itself once the dates arrive.
+  if (v === 'added-desc' || v === 'added-asc') enrichListedDates();
 }
 function onSearch(v) {
   filters.search=v.trim(); clearTimeout(searchTimer);
@@ -1710,9 +1725,9 @@ function formatInput(inp){
 })();
 
 if (!restoreSavedFilters()) applyUrlParams();
+loadListedOverlay();
 loadInitial();
 fetchTotalsMeta();
-fetchFirstSeen();
 </script>
 </body>
 </html>
