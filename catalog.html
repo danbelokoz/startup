@@ -878,17 +878,16 @@ function sortItems(arr) {
     if (sort === 'growth-desc') return s.growth30d != null ? s.growth30d : -Infinity;
     if (sort === 'price-asc')   return (s.onSale && s.askingPrice) ? s.askingPrice : Infinity;  // no price → last
     if (sort === 'price-desc')  return (s.onSale && s.askingPrice) || 0;
-    // "Newest / oldest first": rank by when the product entered the marketplace. The real
-    // signal is TrustMRR's firstListedForSaleAt (the sale-listing date) — it's populated
-    // and well-spread for on-sale startups, so the default view sorts meaningfully. Fall
-    // back to our own first_seen map (earliest day we saw it) for listings without a sale
-    // date, e.g. plain catalog entries in the "Все" view. Unknown on both → sink to the
-    // bottom for BOTH directions (sentinel flips: +Infinity sinks in asc, -Infinity desc).
+    // "Newest / oldest first": rank strictly by TrustMRR's firstListedForSaleAt — the day
+    // the product was listed on the marketplace. Listings without it sink to the bottom in
+    // BOTH directions (sentinel flips: +Infinity sinks in asc, -Infinity in desc). We do
+    // NOT fall back to our first_seen map here: on-sale startups almost all share the
+    // 2026-06-14 tracking-epoch backfill, and that fake "recent" date would float dateless
+    // listings above ones with genuine earlier listing dates (the bug where founded-2017
+    // cards topped "newest").
     if (sort === 'added-desc' || sort === 'added-asc') {
       const listed = s.firstListedForSaleAt ? Date.parse(s.firstListedForSaleAt) : NaN;
       if (!Number.isNaN(listed)) return listed;
-      const fs = firstSeenMap[s.slug];
-      if (fs) return Date.parse(fs+'T00:00:00Z');
       return sort === 'added-asc' ? Infinity : -Infinity;
     }
     if (sort === 'revenue-desc' && isGmvLike(s)) return 0;  // MoR/marketplace gross volume isn't company revenue - keep it out of the revenue ranking
