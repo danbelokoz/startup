@@ -325,8 +325,15 @@ function isGmvLike(s) {
 // the website host or a "trustmrr" mention in the description.
 function isTrustmrrStub(s) {
   if (!s) return false;
-  const w = String(s.website || '').toLowerCase();
+  const w = String(s.website || '').trim().toLowerCase();
   if (w.includes('trustmrr')) return true;
+  // A placeholder/junk website with no real dotted hostname (e.g. "https://bbb", the
+  // test listing "Project A") can't be an independently verifiable company site, so we
+  // treat it as a stub too. Empty/null websites are left to isAnonStartup.
+  if (w) {
+    const host = w.replace(/^https?:\/\//, '').replace(/^www\./, '').split(/[\/?#]/)[0];
+    if (host && !host.includes('.')) return true;
+  }
   const d = String(s.description || '').toLowerCase();
   return d.includes('trustmrr');
 }

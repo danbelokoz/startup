@@ -449,8 +449,14 @@ window.isGmvLike = window.isGmvLike || function (s) {
 // returning user with an old shared.js must still filter out trustmrr.com placeholders.
 window.isTrustmrrStub = window.isTrustmrrStub || function (s) {
   if (!s) return false;
-  return String(s.website || '').toLowerCase().includes('trustmrr')
-      || String(s.description || '').toLowerCase().includes('trustmrr');
+  const w = String(s.website || '').trim().toLowerCase();
+  if (w.includes('trustmrr')) return true;
+  // Junk placeholder website with no real dotted host (e.g. "https://bbb" / "Project A").
+  if (w) {
+    const host = w.replace(/^https?:\/\//, '').replace(/^www\./, '').split(/[\/?#]/)[0];
+    if (host && !host.includes('.')) return true;
+  }
+  return String(s.description || '').toLowerCase().includes('trustmrr');
 };
 
 /* ── GUEST GATE HELPERS ───────────────────────────────────────────────────────
@@ -484,7 +490,7 @@ const LIMIT = 50;
 const API_SORT = 'revenue-desc';  // catalog always pulls the full set in one stable
                                   // order; revenue/growth/price sorting is done
                                   // client-side so it's instant and never reloads.
-const LS_KEY  = 'sm_v8_p1_' + getLang();   // per-language (descriptions overlaid by lang); bump version to clear old caches (v8: flush snapshots written before firstListedForSaleAt was cached, so «newest/oldest» sort has real listing dates)
+const LS_KEY  = 'sm_v9_p1_' + getLang();   // per-language (descriptions overlaid by lang); bump version to clear old caches (v9: flush snapshots holding the "Project A" junk-website stub, now filtered server+client)
 const LS_FAVS = 'sm_favs';
 const CACHE_TTL  = 7 * 24 * 3600 * 1000; // serve stale cache up to 7 days
 const FRESH_TTL  = 24 *      3600 * 1000; // background refresh only if >24h old
@@ -553,7 +559,7 @@ function catdbOpen() {
 // v2 prefix: orphans pre-existing snapshots that may still contain trustmrr-stub
 // listings (their cached list-form website was blank, so the client filter couldn't
 // catch them). Bumping the key forces a clean reload from the now-filtered server.
-function snapKey() { return 'v3_' + (filters.onSale===true ? 'sale' : 'all') + '_' + getLang(); }   // v3: orphan snapshots cached before firstListedForSaleAt existed → «newest/oldest» sort would otherwise fall back to the uniform first_seen epoch and appear broken
+function snapKey() { return 'v4_' + (filters.onSale===true ? 'sale' : 'all') + '_' + getLang(); }   // v4: orphan snapshots holding the "Project A" junk-website stub (list-form website "https://bbb" was neither a real site nor a literal trustmrr link, so the old filter missed it)
 async function snapRead() {
   try {
     const db = await catdbOpen();

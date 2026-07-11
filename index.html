@@ -497,8 +497,14 @@ window.isAnonStartup = window.isAnonStartup || function (s) {
 };
 window.isTrustmrrStub = window.isTrustmrrStub || function (s) {
   if (!s) return false;
-  return String(s.website || '').toLowerCase().includes('trustmrr')
-      || String(s.description || '').toLowerCase().includes('trustmrr');
+  const w = String(s.website || '').trim().toLowerCase();
+  if (w.includes('trustmrr')) return true;
+  // Junk placeholder website with no real dotted host (e.g. "https://bbb" / "Project A").
+  if (w) {
+    const host = w.replace(/^https?:\/\//, '').replace(/^www\./, '').split(/[\/?#]/)[0];
+    if (host && !host.includes('.')) return true;
+  }
+  return String(s.description || '').toLowerCase().includes('trustmrr');
 };
 window.isRecommendable = window.isRecommendable || function (s) {
   if (!s || !s.slug || !s.onSale || isAnonStartup(s) || isTrustmrrStub(s)) return false;
