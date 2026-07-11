@@ -484,7 +484,7 @@ const LIMIT = 50;
 const API_SORT = 'revenue-desc';  // catalog always pulls the full set in one stable
                                   // order; revenue/growth/price sorting is done
                                   // client-side so it's instant and never reloads.
-const LS_KEY  = 'sm_v7_p1_' + getLang();   // per-language (descriptions overlaid by lang); bump version to clear old caches (v7: flush snapshots that still held trustmrr-stub listings)
+const LS_KEY  = 'sm_v8_p1_' + getLang();   // per-language (descriptions overlaid by lang); bump version to clear old caches (v8: flush snapshots written before firstListedForSaleAt was cached, so «newest/oldest» sort has real listing dates)
 const LS_FAVS = 'sm_favs';
 const CACHE_TTL  = 7 * 24 * 3600 * 1000; // serve stale cache up to 7 days
 const FRESH_TTL  = 24 *      3600 * 1000; // background refresh only if >24h old
@@ -553,7 +553,7 @@ function catdbOpen() {
 // v2 prefix: orphans pre-existing snapshots that may still contain trustmrr-stub
 // listings (their cached list-form website was blank, so the client filter couldn't
 // catch them). Bumping the key forces a clean reload from the now-filtered server.
-function snapKey() { return 'v2_' + (filters.onSale===true ? 'sale' : 'all') + '_' + getLang(); }
+function snapKey() { return 'v3_' + (filters.onSale===true ? 'sale' : 'all') + '_' + getLang(); }   // v3: orphan snapshots cached before firstListedForSaleAt existed → «newest/oldest» sort would otherwise fall back to the uniform first_seen epoch and appear broken
 async function snapRead() {
   try {
     const db = await catdbOpen();
