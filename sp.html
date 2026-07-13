@@ -1189,7 +1189,7 @@ async function fetchEnrichment(slug) {
 // label = English fallback; labelKey routes through i18n (metricLabel) so the
 // selector reads in the active UI language.
 const CHART_METRICS_ALL = [
-  { key: 'daily_rev',    labelKey: 'cmDailyRev',  label: 'Daily revenue', kind: 'money', source: 'revenue-history', flow: true },
+  { key: 'rev30d_cents', labelKey: 'rev30',       label: 'Revenue (30d)', kind: 'money' },
   { key: 'mrr_cents',    labelKey: 'cmMrr',       label: 'MRR',           kind: 'money' },
   { key: 'customers',    labelKey: 'cmCustomers', label: 'Customers',     kind: 'int'   },
   { key: 'subscriptions',labelKey: 'cmSubs',      label: 'Subscriptions', kind: 'int'   },
@@ -1203,7 +1203,7 @@ let _chartData         = [];
 let _priceHistory      = [];
 let _revenueHistory    = [];
 let _chartStartup      = null;
-let _chartMetric       = 'daily_rev';
+let _chartMetric       = 'rev30d_cents';
 let _chartPeriod       = 30;      // default view: revenue, last 30 days ('all' | 30 | 60 | 90 | 180)
 let _chartInitialized  = false;   // guard: fetch only once per page load
 let _chartGeom         = null;    // geometry cache for hover tooltip
@@ -1381,6 +1381,7 @@ function computePoints(metric, period) {
     // last snapshot can lag the live value. The API is the source of truth; the
     // snapshots only exist to give the chart a history (TrustMRR has no history API).
     const live = {
+      rev30d_cents:  s.revenue ? s.revenue.last30Days : null,
       mrr_cents:     s.revenue ? s.revenue.mrr : null,
       customers:     s.customers,
       subscriptions: s.activeSubscriptions,
