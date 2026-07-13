@@ -38,17 +38,48 @@ def fetch_done_slugs(url, key):
     return done
 
 
+def fetch_lang_slugs(url, key, lang):
+    """All slugs that already have a non-empty translation for `lang`, paged out.
+
+    Lets a single-language pass (e.g. Russian-only) skip startups it already covered
+    even though they're still status='pending' (other languages not filled yet)."""
+    have, offset, page = set(), 0, 1000
+    while True:
+        u = (f"{url}/rest/v1/startup_descriptions?translations->>{lang}=neq."
+             f"&select=slug&limit={page}&offset={offset}")
+        st, body, _ = http("GET", u, supa_headers(key))
+        if st != 200:
+            print(f"  (note: could not read '{lang}' slugs, HTTP {st} — assuming none)", file=sys.stderr)
+            break
+        rows = json.loads(body) if body else []
+        if not rows:
+            break
+        for r in rows:
+            have.add(r["slug"])
+        if len(rows) < page:
+            break
+        offset += page
+    return have
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=12)
     ap.add_argument("--all", action="store_true")
     ap.add_argument("--min-len", type=int, default=40)
+    ap.add_argument("--have-lang", metavar="LANG",
+                    help="also skip slugs that already have this language filled "
+                         "(e.g. --have-lang ru for a Russian-only pass)")
     args = ap.parse_args()
 
     url, key = supa_cfg_optional()
     if key:
         done = fetch_done_slugs(url, key)
         print(f"Already done: {len(done)}")
+        if args.have_lang:
+            have = fetch_lang_slugs(url, key, args.have_lang)
+            done |= have
+            print(f"Already have '{args.have_lang}': {len(have)} (skipping those too)")
     else:
         print("No SUPABASE_SERVICE_ROLE_KEY yet — not deduping against done "
               "(set .env.local before the real run).")

@@ -307,6 +307,7 @@ async function renderOverview() {
     fetch('/api/stats').then(r => r.json()).catch(() => null),
   ]);
   const dDone    = desc && desc.done != null ? desc.done : null;
+  const dRu      = desc && desc.ru != null ? desc.ru : null;
   const catTotal = stats && stats.total != null ? stats.total : null;
   const catOnSale = stats && stats.onSale != null ? stats.onSale : null;
   const catUpdated = stats && stats.updatedAt ? stats.updatedAt : null;
@@ -345,6 +346,7 @@ async function renderOverview() {
       <div class="adm-kpi"><div class="n">${newListings.toLocaleString()}</div><div class="l">Новых заявок</div></div>
       <div class="adm-kpi"><div class="n">${dDone != null ? dDone.toLocaleString() : '-'}${catTotal != null ? ' / ' + catTotal.toLocaleString() : ''}</div><div class="l">Описания готовы (с переводом)</div></div>
       <div class="adm-kpi"><div class="n">${dBacklog != null ? dBacklog.toLocaleString() : '-'}</div><div class="l">Ждут перефраза/перевода</div></div>
+      <div class="adm-kpi"><div class="n">${dRu != null ? dRu.toLocaleString() : '-'}${catTotal != null ? ' / ' + catTotal.toLocaleString() : ''}</div><div class="l">Переведены на русский</div></div>
     </div>
     <div class="adm-card">
       <h3>Каталог - реально vs показываем${catUpdated ? ` <span class="adm-mini" style="font-weight:500;">свод ${fmtDateTime(catUpdated)}</span>` : ''}</h3>

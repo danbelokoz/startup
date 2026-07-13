@@ -443,11 +443,16 @@ export default async function handler(req, res) {
           `/rest/v1/startup_descriptions?select=slug&limit=1${filter ? '&' + filter : ''}`,
           { headers: { Prefer: 'count=exact' } }
         );
-        const [all, done, pending] = await Promise.all([cnt(''), cnt('status=eq.done'), cnt('status=eq.pending')]);
+        // `ru` = rows with a non-empty Russian translation (neq. empty excludes the
+        // "" placeholders written for languages a batch didn't fill).
+        const [all, done, pending, ru] = await Promise.all([
+          cnt(''), cnt('status=eq.done'), cnt('status=eq.pending'), cnt('translations->>ru=neq.'),
+        ]);
         return res.status(200).json({
           inTable: rangeTotal(all.headers),
           done:    rangeTotal(done.headers),
           pending: rangeTotal(pending.headers),
+          ru:      rangeTotal(ru.headers),
         });
       }
       default:
