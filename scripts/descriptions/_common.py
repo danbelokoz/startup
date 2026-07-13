@@ -65,7 +65,12 @@ def supa_headers(key, extra=None):
 
 
 def get_json(url, timeout=60):
-    with urllib.request.urlopen(url, timeout=timeout) as r:
+    # The public site bot-gates the default Python-urllib UA (403); send a browser UA.
+    req = urllib.request.Request(url, headers={
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                      "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"
+    })
+    with urllib.request.urlopen(req, timeout=timeout) as r:
         return json.load(r)
 
 
