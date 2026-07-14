@@ -117,8 +117,16 @@ All translations in `shared.js` in the `T` object:
 - Base URL: `https://trustmrr.com/api/v1`
 - Auth: `Authorization: Bearer tmrr_...`
 - Docs: `trustmrr.com/docs/api`
-- Key params: `page`, `limit` (max 50), `sort`, `onSale`, `category`
-- Rate limit: 20 req/min
+- Key params: `page`, `limit`, `sort`, `onSale`, `category`
+- ⚠️ **Лимиты ужесточены в июле 2026** (сломали ночной свод — падал на ~12-й странице с 429):
+  - **Rate limit: 10 req/min** (standard key; premium — 60/min). Было 20.
+  - **`limit` режется до 10** — просишь 50, получаешь 10. Было 50.
+  - Следствие: каталог (~8400 стартапов) = ~840 upstream-страниц. `scripts/refresh-catalog.js`
+    ходит по 10 записей с паузой 7с (~8.5 req/min) + ретрай на 429, а затем **сшивает**
+    их обратно в 50-элементные страницы под ключи `sm_page=N&limit=50&sort=revenue-desc`,
+    которые ждут фронт и `api/startups.js`. Полный обход ≈ 100 мин (timeout воркфлоу 180).
+  - `api/startups.js` при `limit>10` сам склеивает 5 upstream-страниц; куцый ответ
+    в кэш не пишется (иначе 10-элементные страницы затирают полные 50-элементные).
 
 ## GitHub Actions
 `.github/workflows/refresh-cache.yml` — runs daily at 3:00 UTC to warm up Redis cache.

@@ -165,11 +165,46 @@ async function withOurDescriptions(data, lang) {
   return dropDead(data);
 }
 
-async function fetchTrustMRR(params, apiKey) {
-  const r = await fetch(`https://trustmrr.com/api/v1/startups?${params}`, { headers: { Authorization: `Bearer ${apiKey}` } });
+// TrustMRR now caps a page at 10 items (it silently ignores a bigger ?limit=) and a
+// standard key at 10 req/min. Everything here still asks for 50-item pages, so one
+// logical page = UPSTREAM_PER_PAGE upstream pages stitched together.
+const UPSTREAM_MAX_LIMIT = 10;
+
+async function fetchUpstreamPage(page, limit, params, apiKey) {
+  const p = new URLSearchParams(params);
+  p.set('page', String(page));
+  p.set('limit', String(limit));
+  const r = await fetch(`https://trustmrr.com/api/v1/startups?${p}`, { headers: { Authorization: `Bearer ${apiKey}` } });
   if (r.status === 401) throw new Error('401');
   if (!r.ok) throw new Error('upstream_' + r.status);
   return r.json();
+}
+
+// Fetch one logical page. For limit <= 10 that's a single upstream call; above that we
+// walk consecutive 10-item upstream pages and concatenate. Any failing sub-page (429 is
+// the common one — the key allows only 10 req/min) throws, so the caller falls back to
+// cached data instead of caching a half-built page.
+async function fetchTrustMRR(params, apiKey) {
+  const page  = parseInt(params.get('page')  || '1', 10)  || 1;
+  const limit = parseInt(params.get('limit') || '50', 10) || 50;
+  if (limit <= UPSTREAM_MAX_LIMIT) return fetchUpstreamPage(page, limit, params, apiKey);
+
+  const chunks = Math.ceil(limit / UPSTREAM_MAX_LIMIT);
+  const first  = (page - 1) * chunks + 1;   // upstream pages are 10 items wide
+  const items  = [];
+  let meta = null;
+  for (let i = 0; i < chunks; i++) {
+    const data = await fetchUpstreamPage(first + i, UPSTREAM_MAX_LIMIT, params, apiKey);
+    const batch = data && Array.isArray(data.data) ? data.data : [];
+    meta = data && data.meta ? data.meta : meta;
+    items.push(...batch);
+    if (batch.length < UPSTREAM_MAX_LIMIT || !(data.meta && data.meta.hasMore)) break;  // end of catalog
+  }
+  const total = (meta && meta.total) || items.length;
+  return {
+    data: items,
+    meta: { total, page, limit, hasMore: (page - 1) * limit + items.length < total },
+  };
 }
 
 // Guards against a broken/changed upstream payload silently overwriting good cache:
@@ -178,7 +213,13 @@ async function fetchTrustMRR(params, apiKey) {
 // the existing cache instead of replacing it with garbage.
 function isValidList(data) {
   if (!data || !Array.isArray(data.data) || data.data.length === 0) return false;
-  return data.data.filter(s => s && s.slug).length >= data.data.length * 0.5;
+  if (data.data.filter(s => s && s.slug).length < data.data.length * 0.5) return false;
+  // A short page mid-catalog means the stitch above gave up early (a 429 on one of its
+  // sub-pages). Caching it would overwrite a full 50-item page with a truncated one —
+  // exactly how the catalog started losing rows when TrustMRR cut ?limit= to 10.
+  const limit = data.meta && data.meta.limit;
+  if (limit && data.data.length < limit && data.meta && data.meta.hasMore) return false;
+  return true;
 }
 
 export default async function handler(req, res) {

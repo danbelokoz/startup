@@ -9,7 +9,9 @@ on:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # ~840 upstream pages × 7s ≈ 100 min since TrustMRR cut ?limit= to 10 items and
+    # standard keys to 10 req/min (was ~170 pages × 3.2s ≈ 9 min). Headroom for 429 backoffs.
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
 

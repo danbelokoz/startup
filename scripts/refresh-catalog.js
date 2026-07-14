@@ -18,7 +18,20 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const TRUSTMRR_API_KEY         = process.env.TRUSTMRR_API_KEY;
 
 const FRESH_TTL = 82800; // 23h freshness window — must match api/startups.js
-const DELAY_MS  = 3200;  // 3.2s between pages → ~18 req/min (TrustMRR limit is 20)
+
+// TrustMRR tightened its API in July 2026 and the old settings (50-item pages, 3.2s
+// apart) stopped working overnight — every sweep died on ~page 12 with a 429:
+//   • a standard key is now 10 req/min, not 20;
+//   • ?limit= is capped at 10 — ask for 50 and you still get 10.
+// So: fetch 10-item pages at ~8.5 req/min, and stitch them back into the 50-item pages
+// the site's cache keys are built around (PAGE_SIZE) before writing to Redis.
+const UPSTREAM_LIMIT = 10;   // hard cap on TrustMRR's side
+const PAGE_SIZE      = 50;   // logical page size the frontend/api cache keys use
+const DELAY_MS       = 7000; // 7s between pages → ~8.5 req/min, under the 10/min ceiling
+                             // with headroom for the live site sharing the same key
+const MAX_PAGES      = 2000; // hard stop (~20k startups) so a bad meta can't loop forever
+const RETRY_429      = 5;    // a 429 is a wait, not a failure — back off and retry
+const RETRY_WAIT_MS  = 65000;
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
@@ -230,24 +243,36 @@ async function main() {
   console.log('Catalog refresh — full sweep\n');
   await recordParserStart('catalog');
 
-  let page = 1, totalStartups = 0, hasMore = true;
+  let page = 1, totalStartups = 0, hasMore = true, upstreamTotal = 0;
   const allStartups = [];
 
-  while (hasMore) {
-    const params   = new URLSearchParams({ page: String(page), limit: '50', sort: 'revenue-desc' });
-    const cacheKey = `sm_${params.toString()}`;
+  while (hasMore && page <= MAX_PAGES) {
+    const params = new URLSearchParams({ page: String(page), limit: String(UPSTREAM_LIMIT), sort: 'revenue-desc' });
 
-    let data;
-    try {
-      const r = await fetch(`https://trustmrr.com/api/v1/startups?${params}`, {
-        headers: { Authorization: `Bearer ${TRUSTMRR_API_KEY}` },
-      });
-      if (r.status === 401) { await recordParserRun('catalog', false, totalStartups, 'Неверный ключ TrustMRR API', totalStartups); process.exit(1); }
-      if (!r.ok)            { await recordParserRun('catalog', false, totalStartups, `TrustMRR ${r.status} на стр. ${page}`, totalStartups); process.exit(1); }
-      data = await r.json();
-    } catch (err) {
-      await recordParserRun('catalog', false, totalStartups, `Ошибка на стр. ${page}: ${err.message}`, totalStartups);
-      process.exit(1);
+    let data = null;
+    for (let attempt = 0; attempt <= RETRY_429; attempt++) {
+      try {
+        const r = await fetch(`https://trustmrr.com/api/v1/startups?${params}`, {
+          headers: { Authorization: `Bearer ${TRUSTMRR_API_KEY}` },
+        });
+        if (r.status === 401) { await recordParserRun('catalog', false, totalStartups, 'Неверный ключ TrustMRR API', totalStartups); process.exit(1); }
+        if (r.status === 429) {
+          if (attempt === RETRY_429) { await recordParserRun('catalog', false, totalStartups, `TrustMRR 429 на стр. ${page} — лимит не отпустил после ${RETRY_429} попыток`, totalStartups); process.exit(1); }
+          console.log(`  ⏳ 429 на стр. ${page} — пауза ${RETRY_WAIT_MS / 1000}с (попытка ${attempt + 1}/${RETRY_429})`);
+          await sleep(RETRY_WAIT_MS);
+          continue;
+        }
+        if (!r.ok) { await recordParserRun('catalog', false, totalStartups, `TrustMRR ${r.status} на стр. ${page}`, totalStartups); process.exit(1); }
+        data = await r.json();
+        break;
+      } catch (err) {
+        if (attempt === RETRY_429) {
+          await recordParserRun('catalog', false, totalStartups, `Ошибка на стр. ${page}: ${err.message}`, totalStartups);
+          process.exit(1);
+        }
+        console.log(`  ⏳ сеть упала на стр. ${page} (${err.message}) — повтор через ${RETRY_WAIT_MS / 1000}с`);
+        await sleep(RETRY_WAIT_MS);
+      }
     }
 
     // Bad/changed schema → stop before overwriting good cache, totals and snapshots.
@@ -256,19 +281,34 @@ async function main() {
       process.exit(1);
     }
 
-    await Promise.all([
-      redisSet(cacheKey, data),
-      redisSet(`${cacheKey}_f`, 1, FRESH_TTL),
-    ]);
-
     const n = Array.isArray(data.data) ? data.data.length : 0;
     totalStartups += n;
-    if (Array.isArray(data.data)) allStartups.push(...data.data);
+    if (n) allStartups.push(...data.data);
+    if (data.meta?.total) upstreamTotal = data.meta.total;
     hasMore = data.meta?.hasMore ?? false;
-    if (page % 10 === 0 || !hasMore) console.log(`  page ${page} · ${totalStartups} startups`);
+    if (page % 25 === 0 || !hasMore) console.log(`  page ${page} · ${totalStartups} startups`);
     page++;
     if (hasMore) await sleep(DELAY_MS);
   }
+
+  // Stitch the 10-item upstream pages back into the 50-item pages every cache key on the
+  // site is keyed by (`sm_page=N&limit=50&sort=revenue-desc` — same shape api/startups.js
+  // builds from the query). Written only after the whole sweep succeeds, so a run that
+  // dies halfway leaves yesterday's complete cache untouched rather than a partial one.
+  const total = upstreamTotal || allStartups.length;
+  let pagesWritten = 0;
+  for (let i = 0; i < allStartups.length; i += PAGE_SIZE) {
+    const pageNo   = i / PAGE_SIZE + 1;
+    const slice    = allStartups.slice(i, i + PAGE_SIZE);
+    const cacheKey = `sm_${new URLSearchParams({ page: String(pageNo), limit: String(PAGE_SIZE), sort: 'revenue-desc' })}`;
+    const payload  = { data: slice, meta: { total, page: pageNo, limit: PAGE_SIZE, hasMore: i + slice.length < allStartups.length } };
+    await Promise.all([
+      redisSet(cacheKey, payload),
+      redisSet(`${cacheKey}_f`, 1, FRESH_TTL),
+    ]);
+    pagesWritten++;
+  }
+  console.log(`  cached ${pagesWritten} × ${PAGE_SIZE}-item pages`);
 
   // Invalidate the onSale aggregate so the next request rebuilds from fresh data.
   try { await kv('POST', `/del/${encodeURIComponent('sm_onsale_agg_revenue-desc')}`); } catch {}
@@ -283,9 +323,9 @@ async function main() {
   const sitemapCount = await writeSitemap(allStartups);
 
   console.log(`\n─────────────────────────────────────`);
-  console.log(`Pages: ${page - 1} · startups: ${totalStartups} · snapshots: ${written} · archive: ${archived} · firstSeen: ${firstSeen} · pruned: ${pruned} · sitemap: ${sitemapCount}`);
+  console.log(`Upstream pages: ${page - 1} · cached pages: ${pagesWritten} · startups: ${totalStartups} · snapshots: ${written} · archive: ${archived} · firstSeen: ${firstSeen} · pruned: ${pruned} · sitemap: ${sitemapCount}`);
 
-  await recordParserRun('catalog', true, written, `${page - 1} стр. · снимков: ${written} · архив: ${archived} · sitemap: ${sitemapCount}`, totalStartups);
+  await recordParserRun('catalog', true, written, `${page - 1} стр. по ${UPSTREAM_LIMIT} → ${pagesWritten} стр. кэша · снимков: ${written} · архив: ${archived} · sitemap: ${sitemapCount}`, totalStartups);
 }
 
 main().catch(async (e) => {
