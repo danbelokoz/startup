@@ -802,7 +802,9 @@ function parserChart(h, expected, typicalBatch) {
     const barH = x.n > 0 ? Math.max(1, (x.n / maxN) * plotH) : 1;
     const allOk = x.ok === x.runs;
     const tip = fmtMskShort(h.startMs + i * h.hourMs) + ' МСК|обновлено стартапов: ' + x.n
-      + '|запусков за час: ' + x.runs + (allOk ? '|✓ успех' : '|✕ есть ошибки');
+      + '|запусков за час: ' + x.runs
+      + (x.bad ? '|сайт не ответил: ' + x.bad : '')
+      + (allOk ? '|✓ успех' : '|✕ есть ошибки');
     return `<rect x="${(i*bw).toFixed(2)}" y="${(baseY-barH).toFixed(2)}" width="${(bw*0.74).toFixed(2)}" height="${barH.toFixed(2)}" fill="${allOk ? 'var(--green)' : '#f5a623'}" data-tip="${esc(tip)}"/>`;
   }).join('');
 
@@ -873,16 +875,25 @@ async function renderParsers() {
     <div class="adm-mini" style="margin-bottom:14px;">Каждый парсер пишет статус в Redis при каждом запуске. Всё время - московское (МСК). «Обновлено сегодня» считается по UTC-суткам.</div>
     <div style="display:grid;gap:12px;">
     ${parsers.map(p => {
+      // p.unreachable = последний РАЗБИРАЕМЫЙ САЙТ закрылся от нас (403/таймаут). Это не
+      // сбой парсера — он отработал штатно, ему просто не отдали страницу. Красным
+      // красим только настоящий отказ на нашей стороне.
       const okBadge = p.lastRun == null
         ? '<span class="adm-pill">нет данных</span>'
-        : (p.ok ? '<span class="adm-pill" style="border-color:rgba(14,203,129,0.4);color:var(--green);">✓ успешно</span>'
-                : '<span class="adm-pill" style="border-color:rgba(245,166,35,0.55);color:#f5a623;">✕ завершился с ошибкой</span>');
+        : (p.unreachable ? '<span class="adm-pill" style="border-color:rgba(14,203,129,0.4);color:var(--green);">✓ работает · сайт не ответил</span>'
+          : p.ok ? '<span class="adm-pill" style="border-color:rgba(14,203,129,0.4);color:var(--green);">✓ успешно</span>'
+                 : '<span class="adm-pill" style="border-color:rgba(245,166,35,0.55);color:#f5a623;">✕ завершился с ошибкой</span>');
       // In-flight / crashed-run badge: ⏳ while running, ⚠ if it started but never finished.
       const runBadge = p.running
         ? (p.running.stale
             ? `<span class="adm-pill" style="border-color:rgba(245,166,35,0.6);color:#f5a623;">⚠ запущен, не завершён · ~${p.running.ageMin} мин</span>`
             : `<span class="adm-pill" style="border-color:rgba(124,156,255,0.5);color:#7c9cff;">⏳ выполняется · ~${p.running.ageMin} мин</span>`)
         : '';
+      // Доля недоступных от всех попыток за сутки — сама по себе метрика здоровья:
+      // единичные 403 это норма, а вот скачок доли = нас начали блокировать массово.
+      const attempts = (p.today || 0) + (p.todayBad || 0);
+      const badShare = (p.todayBad && attempts)
+        ? ` <span class="adm-mini">(${Math.round(p.todayBad / attempts * 100)}%)</span>` : '';
       const cnt = p.onDemand
         ? (p.today != null ? p.today.toLocaleString() : '-')
         : ((p.attempted != null || p.count != null)
@@ -898,6 +909,7 @@ async function renderParsers() {
           <div><div class="l2">Последнее обновление</div><div class="v2">${dt(p.lastRun)}</div>${p.lastRun?`<div class="adm-mini">${relTime(p.lastRun)}</div>`:''}</div>
           <div><div class="l2">Следующее обновление</div><div class="v2">${p.onDemand ? 'по запросу' : dt(p.nextRun)}</div>${p.onDemand?'':(p.nextRun?`<div class="adm-mini">${relTime(p.nextRun)}</div>`:'')}</div>
           <div><div class="l2">${p.onDemand ? 'Обновлено сегодня (UTC)' : 'Взято → обработано'}</div><div class="v2">${cnt}</div>${p.onDemand ? '' : '<div class="adm-mini">в работу → реально обработано</div>'}</div>
+          ${p.onDemand && p.todayBad != null ? `<div><div class="l2">Недоступны сегодня</div><div class="v2">${p.todayBad.toLocaleString()}${badShare}</div><div class="adm-mini">сайт закрыт от ботов или не ответил</div></div>` : ''}
           <div><div class="l2">Расписание</div><div class="v2" style="font-size:12px;line-height:1.4;">${esc(p.scheduleText)}</div></div>
         </div>
         ${p.note ? `<div class="adm-mini" style="margin-top:10px;">Детали последнего запуска: ${esc(p.note)}</div>` : ''}

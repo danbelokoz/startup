@@ -138,14 +138,14 @@ async function topviews(days, res) {
 // run (see cron-refresh.js, enrich.js, scrape-site.js, scripts/scrape-daily-revenue.js).
 // On-demand parsers also keep a per-UTC-day counter sm_parser_<id>_n_<date>.
 const PARSERS = [
-  { id:'catalog', name:'Каталог — ночной свод', source:'GitHub Actions', scheduleText:'Каждый день в 03:00 UTC', sched:{ m:0, h:[3] }, maxRunMin:25,
-    desc:'Тянет весь каталог из TrustMRR API (~7400 стартапов, ~150 страниц) в Redis, пересчитывает суммарные метрики и пишет дневные снимки в Supabase. Полный свод идёт ~8 мин — поэтому вынесен в GitHub Actions (на Vercel Hobby лимит 60 с обрывал его на середине).' },
+  { id:'catalog', name:'Каталог — ночной свод', source:'GitHub Actions', scheduleText:'Каждый день в 03:17 UTC', sched:{ m:17, h:[3] }, maxRunMin:170,
+    desc:'Тянет весь каталог из TrustMRR API (~8400 стартапов) в Redis, пересчитывает суммарные метрики и пишет дневные снимки в Supabase. С июля 2026 TrustMRR отдаёт максимум 10 записей за запрос и держит 10 запросов/мин, поэтому свод идёт ~840 страниц с паузой 7 с — около 100 минут (был ~8 мин). Живёт в GitHub Actions: на Vercel Hobby лимит 60 с обрывал его на середине.' },
   { id:'daily-revenue', name:'Графики дневной выручки', source:'GitHub Actions', scheduleText:'Каждые 3 ч (00–21 UTC)', sched:{ m:0, h:[0,3,6,9,12,15,18,21] }, maxRunMin:160,
     desc:'Скрейпит графики дневной выручки со страниц TrustMRR (Puppeteer) и пишет их в Supabase. За запуск обрабатывает ротационный батч; стартапы на продаже в приоритете.' },
   { id:'enrich', name:'AI-обогащение (TrustMRR)', source:'Vercel · по запросу', scheduleText:'При открытии карточки · кэш 24 ч', sched:null,
     desc:'Достаёт доп. поля с публичной страницы TrustMRR: AI-описание, теги, Acquire Score, соцсети. Запускается при открытии карточки стартапа, если кэш устарел.' },
   { id:'site', name:'Сайты стартапов', source:'Vercel · по запросу', scheduleText:'При открытии карточки · кэш 7 дней', sched:null,
-    desc:'Парсит сайт самого стартапа: скриншот, OG-теги, тех-стек, цены, соцсети, мобильные приложения. Запускается при открытии карточки.' },
+    desc:'Парсит сайт самого стартапа: OG-теги, тех-стек, цены, соцсети, мобильные приложения. Запускается при открытии карточки. Часть сайтов закрыта от ботов (403) или не отвечает — это не сбой парсера, они считаются отдельно, в «недоступны».' },
 ];
 
 // Next UTC occurrence for a simple {minute, hours[]} daily schedule.
@@ -219,18 +219,20 @@ const HOUR_MS = 3600000;
 async function parsers(res) {
   const day = new Date().toISOString().slice(0, 10);
   const cmds = [];
-  // 4 commands per parser: last-run blob, today's counter, run log (chart), in-flight marker
+  // 5 commands per parser: last-run blob, today's counter, run log (chart), in-flight
+  // marker, today's "target site was unreachable" counter (on-demand parsers only).
   for (const p of PARSERS) cmds.push(
     ['GET', `sm_parser_${p.id}`],
     ['GET', `sm_parser_${p.id}_n_${day}`],
     ['LRANGE', `sm_parser_${p.id}_log`, '0', '-1'],
     ['GET', `sm_parser_${p.id}_run`],
+    ['GET', `sm_parser_${p.id}_bad_${day}`],
   );
   const pipe = (await redisPipeline(cmds)) || [];
   const nowMs = Date.now();
   const startH = Math.floor(nowMs / HOUR_MS) - (HIST_HOURS - 1);
   const list = PARSERS.map((p, i) => {
-    const base = i * 4;
+    const base = i * 5;
     let st = null;
     const raw = pipe[base] && pipe[base].result;
     if (raw) { try { const o = JSON.parse(raw); st = (o && typeof o === 'object' && o.value) ? JSON.parse(o.value) : o; } catch {} }
@@ -250,13 +252,15 @@ async function parsers(res) {
         running = { startedAt: new Date(ro.startedAt).toISOString(), ageMin, stale: ageMin > (p.maxRunMin || 180) };
       }
     }
-    const buckets = Array.from({ length: HIST_HOURS }, () => ({ runs: 0, ok: 0, n: 0 }));
+    const buckets = Array.from({ length: HIST_HOURS }, () => ({ runs: 0, ok: 0, n: 0, bad: 0 }));
     for (const rawE of logArr) {
       let e; try { e = JSON.parse(rawE); } catch { continue; }
       if (!e || typeof e.t !== 'number') continue;
       const idx = Math.floor(e.t / HOUR_MS) - startH;
       if (idx < 0 || idx >= HIST_HOURS) continue;
-      buckets[idx].runs++; buckets[idx].ok += (e.ok ? 1 : 0); buckets[idx].n += (e.n || 0);
+      // e.u = the target site was unreachable (403 / timeout). Counts as a completed run
+      // (ok), just with nothing parsed — so the hour stays green instead of reading red.
+      buckets[idx].runs++; buckets[idx].ok += (e.ok ? 1 : 0); buckets[idx].n += (e.n || 0); buckets[idx].bad += (e.u ? 1 : 0);
     }
     return {
       id: p.id, name: p.name, desc: p.desc, source: p.source, scheduleText: p.scheduleText,
@@ -268,6 +272,9 @@ async function parsers(res) {
       attempted: st && st.attempted != null ? st.attempted : null,
       note:    st && st.note ? st.note : null,
       today:   tRaw != null ? (parseInt(tRaw, 10) || 0) : null,
+      // Sites that refused us today (403/404/timeout) — their problem, not a parser fault.
+      todayBad: (() => { const b = pipe[base + 4] && pipe[base + 4].result; return b != null ? (parseInt(b, 10) || 0) : null; })(),
+      unreachable: st ? !!st.unreachable : false,
       running,
       history: { startMs: startH * HOUR_MS, hourMs: HOUR_MS, hours: HIST_HOURS, buckets },
       expected: expectedRuns(p.sched, logArr, startH * HOUR_MS, nowMs),

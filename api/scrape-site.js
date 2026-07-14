@@ -38,16 +38,31 @@ async function redisSet(key, value, ttl) {
   } catch {}
 }
 
-// Records this run for the admin "Парсеры" tab + per-UTC-day "обновлено сегодня".
-async function recordRun(id, ok, note) {
+// Records this run for the admin "Парсеры" tab + per-UTC-day counters.
+//
+// Three outcomes, and the distinction matters: a startup's own site answering 403/404
+// or timing out is NOT a parser failure — it's the normal state of the web (plenty of
+// sites block bots outright), and we simply have nothing to show for that card. Only a
+// break on OUR side is a failure. Lumping the two together painted the parser red
+// permanently: one 403 from someone else's server and the whole card read "завершился
+// с ошибкой" while it was happily parsing hundreds of other sites.
+//
+//   'ok'          → site parsed        → counter sm_parser_site_n_<day>
+//   'unreachable' → their site said no → counter sm_parser_site_bad_<day>, still ok:true
+//   'fail'        → our side broke     → ok:false (this is what should turn the card red)
+async function recordRun(id, outcome, note) {
   try {
-    await redisSet(`sm_parser_${id}`, { ts: Date.now(), ok: !!ok, count: 1, note: String(note || '') });
-    const k = `sm_parser_${id}_n_${new Date().toISOString().slice(0, 10)}`;
+    const unreachable = outcome === 'unreachable';
+    const ok = outcome !== 'fail';
+    await redisSet(`sm_parser_${id}`, { ts: Date.now(), ok, unreachable, count: 1, note: String(note || '') });
+    const day = new Date().toISOString().slice(0, 10);
+    const k = `sm_parser_${id}_${unreachable ? 'bad' : 'n'}_${day}`;
     await kv('POST', `/incrby/${encodeURIComponent(k)}/1`);
     await kv('POST', `/expire/${encodeURIComponent(k)}/172800`);
     const logKey = `sm_parser_${id}_log`;
     await redisPipeline([
-      ['LPUSH', logKey, JSON.stringify({ t: Date.now(), ok: ok ? 1 : 0, n: 1 })],
+      // u:1 marks "their site, not us" so the admin chart doesn't colour the hour as a failure.
+      ['LPUSH', logKey, JSON.stringify({ t: Date.now(), ok: ok ? 1 : 0, n: unreachable ? 0 : 1, u: unreachable ? 1 : 0 })],
       ['LTRIM', logKey, '0', '999'],
       ['EXPIRE', logKey, '259200'], // 3 days
     ]);
@@ -331,7 +346,8 @@ export default async function handler(req, res) {
     if (!r.ok) {
       const data = { ok: false, status: r.status, latencyMs: elapsed, url: rawUrl };
       await redisSet(cacheKey, data, 3600); // 1h for failed responses
-      await recordRun('site', false, `${host}: HTTP ${r.status}`);
+      // Their server, their rules (403 = bot-blocked, 404 = dead link) — not our failure.
+      await recordRun('site', 'unreachable', `${host}: HTTP ${r.status} — сайт не отдал страницу`);
       return res.status(200).json({ data });
     }
 
@@ -361,7 +377,7 @@ export default async function handler(req, res) {
     };
 
     await redisSet(cacheKey, data, CACHE_TTL);
-    await recordRun('site', true, host);
+    await recordRun('site', 'ok', host);
     res.setHeader('X-Cache', 'MISS');
     res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate=604800');
     return res.status(200).json({ data });
@@ -370,7 +386,10 @@ export default async function handler(req, res) {
     if (e && BLOCK_RE.test(e.message || '')) {
       return res.status(400).json({ error: 'Blocked or unreachable target' });
     }
-    await recordRun('site', false, `${host}: ${(e && e.name === 'AbortError') ? 'timeout' : (e.message || 'fetch_error')}`);
-    return res.status(200).json({ data: { ok: false, error: (e && e.name === 'AbortError') ? 'timeout' : (e.message || 'fetch_error'), url: rawUrl } });
+    // A timeout / DNS failure / refused connection is the target site being unavailable,
+    // not our parser breaking — same bucket as a 403.
+    const why = (e && e.name === 'AbortError') ? 'timeout' : (e.message || 'fetch_error');
+    await recordRun('site', 'unreachable', `${host}: ${why === 'timeout' ? 'таймаут — сайт не ответил' : why}`);
+    return res.status(200).json({ data: { ok: false, error: why, url: rawUrl } });
   }
 }
