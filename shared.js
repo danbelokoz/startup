@@ -161,6 +161,16 @@ Object.assign(T.it, { auth: { signIn:'Accedi', createAccount:'Crea account', ema
 Object.assign(T.zh, { auth: { signIn:'登录', createAccount:'创建账户', email:'邮箱', password:'密码', checkInbox:'请查收邮件', sentPre:'我们已将确认链接发送至', sentPost:'点击链接激活您的账户。', changeEmail:'← 更改邮箱', continueBrowse:'继续浏览 →', guest:'以访客身份继续', forgot:'忘记密码？', setNew:'设置新密码', newPwPh:'新密码', enterNewPw:'在下方输入新密码。', enterEmailFirst:'请先输入您的邮箱地址。', resetSent:'密码重置链接已发送 - 请查收邮件。', pwUpdated:'密码已更新！正在跳转…', errCreds:'邮箱或密码错误。', errConfirm:'请先确认您的邮箱，请查收邮件。', errExists:'该邮箱已注册账户，请直接登录。', errShort:'密码至少需 6 个字符。', errRate:'尝试次数过多，请稍候。', errNetwork:'网络错误，请检查连接。' } });
 Object.assign(T.ar, { auth: { signIn:'تسجيل الدخول', createAccount:'إنشاء حساب', email:'البريد الإلكتروني', password:'كلمة المرور', checkInbox:'تحقق من بريدك', sentPre:'أرسلنا رابط تأكيد إلى', sentPost:'انقر عليه لتفعيل حسابك.', changeEmail:'→ تغيير البريد', continueBrowse:'متابعة التصفح →', guest:'المتابعة كضيف', forgot:'نسيت كلمة المرور؟', setNew:'تعيين كلمة مرور جديدة', newPwPh:'كلمة مرور جديدة', enterNewPw:'أدخل كلمة المرور الجديدة أدناه.', enterEmailFirst:'أدخل بريدك الإلكتروني أولاً.', resetSent:'تم إرسال رابط إعادة التعيين - تحقق من بريدك.', pwUpdated:'تم تحديث كلمة المرور! جارٍ التحويل…', errCreds:'البريد الإلكتروني أو كلمة المرور غير صحيحة.', errConfirm:'يرجى تأكيد بريدك أولاً. تحقق من بريدك.', errExists:'يوجد حساب بهذا البريد بالفعل. سجّل الدخول.', errShort:'يجب أن تتكوّن كلمة المرور من 6 أحرف على الأقل.', errRate:'محاولات كثيرة جدًا. انتظر لحظة.', errNetwork:'خطأ في الشبكة. تحقق من اتصالك.' } });
 
+// Registration gate modal (shown when a guest opens a startup card that isn't
+// part of the free showcase). Sign-up / sign-in happens inline, no page reload.
+Object.assign(T.en, { gate: { title:'Register to open this startup', sub:'Full metrics, seller website and founder are open to registered users. It takes 20 seconds and it’s free.', perk1:'Verified MRR and revenue', perk2:'Seller site and founder', perk3:'Favorites and comparison', haveAcc:'Already have an account?', noAcc:'No account yet?', freeNote:'Free · no card required', gotIt:'Got it', errFields:'Enter your email and a password.', locked:'This startup is available to registered users', lockedCta:'Register free' } });
+Object.assign(T.ru, { gate: { title:'Зарегистрируйтесь, чтобы открыть стартап', sub:'Полные метрики, сайт продавца и основатель открыты зарегистрированным пользователям. Это 20 секунд и бесплатно.', perk1:'Проверенные MRR и выручка', perk2:'Сайт продавца и основатель', perk3:'Избранное и сравнение', haveAcc:'Уже есть аккаунт?', noAcc:'Ещё нет аккаунта?', freeNote:'Бесплатно · без карты', gotIt:'Понятно', errFields:'Введите email и пароль.', locked:'Этот стартап доступен зарегистрированным пользователям', lockedCta:'Зарегистрироваться бесплатно' } });
+Object.assign(T.de, { gate: { title:'Registriere dich, um dieses Startup zu öffnen', sub:'Vollständige Kennzahlen, Verkäufer-Website und Gründer sind für registrierte Nutzer offen. Dauert 20 Sekunden und ist kostenlos.', perk1:'Verifizierte MRR und Umsätze', perk2:'Verkäufer-Website und Gründer', perk3:'Favoriten und Vergleich', haveAcc:'Schon ein Konto?', noAcc:'Noch kein Konto?', freeNote:'Kostenlos · ohne Karte', gotIt:'Verstanden', errFields:'Gib E-Mail und Passwort ein.', locked:'Dieses Startup ist registrierten Nutzern vorbehalten', lockedCta:'Kostenlos registrieren' } });
+Object.assign(T.fr, { gate: { title:'Inscrivez-vous pour ouvrir cette startup', sub:'Métriques complètes, site du vendeur et fondateur sont ouverts aux utilisateurs inscrits. 20 secondes, et c’est gratuit.', perk1:'MRR et revenus vérifiés', perk2:'Site du vendeur et fondateur', perk3:'Favoris et comparaison', haveAcc:'Vous avez déjà un compte ?', noAcc:'Pas encore de compte ?', freeNote:'Gratuit · sans carte', gotIt:'Compris', errFields:'Saisissez votre e-mail et un mot de passe.', locked:'Cette startup est réservée aux utilisateurs inscrits', lockedCta:'S’inscrire gratuitement' } });
+Object.assign(T.it, { gate: { title:'Registrati per aprire questa startup', sub:'Metriche complete, sito del venditore e fondatore sono aperti agli utenti registrati. Bastano 20 secondi ed è gratis.', perk1:'MRR e ricavi verificati', perk2:'Sito del venditore e fondatore', perk3:'Preferiti e confronto', haveAcc:'Hai già un account?', noAcc:'Non hai ancora un account?', freeNote:'Gratis · senza carta', gotIt:'Ho capito', errFields:'Inserisci email e password.', locked:'Questa startup è riservata agli utenti registrati', lockedCta:'Registrati gratis' } });
+Object.assign(T.zh, { gate: { title:'注册后查看该初创公司', sub:'完整指标、卖家网站和创始人信息向注册用户开放。只需 20 秒，完全免费。', perk1:'已验证的 MRR 与收入', perk2:'卖家网站与创始人', perk3:'收藏与对比', haveAcc:'已有账户？', noAcc:'还没有账户？', freeNote:'免费 · 无需银行卡', gotIt:'知道了', errFields:'请输入邮箱和密码。', locked:'该初创公司仅向注册用户开放', lockedCta:'免费注册' } });
+Object.assign(T.ar, { gate: { title:'سجّل لفتح هذه الشركة الناشئة', sub:'المقاييس الكاملة وموقع البائع والمؤسّس متاحة للمستخدمين المسجّلين. يستغرق الأمر 20 ثانية وهو مجاني.', perk1:'MRR وإيرادات موثّقة', perk2:'موقع البائع والمؤسّس', perk3:'المفضلة والمقارنة', haveAcc:'لديك حساب بالفعل؟', noAcc:'ليس لديك حساب بعد؟', freeNote:'مجاني · بدون بطاقة', gotIt:'حسنًا', errFields:'أدخل بريدك الإلكتروني وكلمة المرور.', locked:'هذه الشركة الناشئة متاحة للمستخدمين المسجّلين', lockedCta:'سجّل مجانًا' } });
+
 Object.assign(T.en, { dash: { loading:'Loading your account…', proPerMonth:'/mo', proUnavail:'Subscriptions are temporarily unavailable - we’re preparing the launch of paid tiers. The advanced level will appear here soon.', proFeat1:'Unlimited unlocking of seller contacts', proFeat2:'AI brief on every startup (risk & potential analysis)', proFeat3:'Email alerts for new listings matching your filters', proFeat4:'Export search results to CSV', proFeat5:'Full price-change history and comparison with similar deals', proNotify:'Notify me', proSuccess:'Done - we’ll email you at this address.', title:'My account - Startup Market' } });
 Object.assign(T.ru, { dash: { loading:'Загружаем ваш аккаунт…', proPerMonth:'/мес', proUnavail:'Подписка временно недоступна - мы готовим запуск платных тарифов. Продвинутый уровень скоро появится здесь.', proFeat1:'Безлимитное открытие контактов продавцов', proFeat2:'AI-бриф по каждому стартапу (анализ рисков и потенциала)', proFeat3:'Email-алерты о новых листингах по твоим фильтрам', proFeat4:'Экспорт результатов поиска в CSV', proFeat5:'Полная история изменения цен и сравнение с похожими сделками', proNotify:'Уведомить', proSuccess:'Готово - мы напишем тебе на этот email.', title:'Мой аккаунт - Startup Market' } });
 Object.assign(T.de, { dash: { loading:'Dein Konto wird geladen…', proPerMonth:'/Mon.', proUnavail:'Abonnements sind vorübergehend nicht verfügbar - wir bereiten den Start der kostenpflichtigen Tarife vor. Die erweiterte Stufe erscheint bald hier.', proFeat1:'Unbegrenztes Freischalten von Verkäuferkontakten', proFeat2:'KI-Briefing zu jedem Startup (Risiko- und Potenzialanalyse)', proFeat3:'E-Mail-Benachrichtigungen für neue Inserate nach deinen Filtern', proFeat4:'Suchergebnisse als CSV exportieren', proFeat5:'Vollständige Preisverlauf-Historie und Vergleich mit ähnlichen Deals', proNotify:'Benachrichtigen', proSuccess:'Fertig - wir schreiben dir an diese E-Mail.', title:'Mein Konto - Startup Market' } });
@@ -1006,6 +1016,272 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', mountPaywallTooltip);
 } else {
   mountPaywallTooltip();
+}
+
+/* ── REGISTRATION GATE ────────────────────────────────────────────────────────
+   Startup detail pages are open to registered users only. Two sets of listings
+   stay free for everyone (the "showcase"):
+     - the rails on the landing page (top revenue + top growth), and
+     - the first 9 cards of the default catalog view (on sale, revenue-desc).
+   Their slugs are cached in localStorage (sm_free_slugs_v1) and recomputed from
+   the API whenever the cache goes stale, so a guest who lands on a free card
+   straight from Google is let through too.
+   A guest clicking any other card never leaves the page: the card is blurred and
+   a modal opens where they can register (or sign in) inline. */
+const SM_FREE_KEY = 'sm_free_slugs_v1';
+const SM_FREE_TTL = 6 * 3600 * 1000;   // recompute the showcase every 6h
+
+// Robust "is the user logged in?": window._access only lands after /api/auth
+// returns, so fall back to the live Supabase session and, for the first frame,
+// the persisted sm_authed hint. Only a genuine guest ever gets gated.
+function smIsAuthed() {
+  if (window._access) return !!window._access.authenticated;
+  if (window._session && window._session.user) return true;
+  try { return localStorage.getItem('sm_authed') === '1'; } catch { return false; }
+}
+
+function smFreeCache() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(SM_FREE_KEY) || 'null');
+    if (raw && Array.isArray(raw.slugs)) return raw;
+  } catch {}
+  return { slugs: [], ts: 0 };
+}
+function isFreeSlug(slug) { return !!slug && smFreeCache().slugs.includes(slug); }
+// Union-add (landing/catalog register exactly what they painted); the periodic
+// rebuild in ensureFreeSlugs() replaces the list, so it can't grow forever.
+function smAddFreeSlugs(list) {
+  const add = (list || []).filter(Boolean);
+  if (!add.length) return;
+  const c = smFreeCache();
+  const merged = Array.from(new Set(c.slugs.concat(add)));
+  if (merged.length === c.slugs.length) return;
+  try { localStorage.setItem(SM_FREE_KEY, JSON.stringify({ slugs: merged, ts: c.ts || Date.now() })); } catch {}
+}
+
+let _smFreePromise = null;
+// Rebuild the showcase from the API using the same rules the landing and the
+// catalog render with. Used when the cache is empty/stale - e.g. a guest whose
+// first ever page is /startup/<slug>.
+function ensureFreeSlugs() {
+  const c = smFreeCache();
+  if (c.slugs.length && Date.now() - (c.ts || 0) < SM_FREE_TTL) return Promise.resolve(c.slugs);
+  if (_smFreePromise) return _smFreePromise;
+  _smFreePromise = (async () => {
+    const slugs = [];
+    try {
+      // Catalog: first 9 of the default view (on sale, sorted by 30-day revenue).
+      const r = await fetch('/api/startups?onSale=true&page=1&limit=50&sort=revenue-desc').then(x => x.json()).catch(() => null);
+      ((r && r.data) || [])
+        .filter(s => s && s.slug && !isTrustmrrStub(s) && !isGmvLike(s))
+        .sort((a, b) => ((b.revenue && b.revenue.last30Days) || 0) - ((a.revenue && a.revenue.last30Days) || 0))
+        .slice(0, 9).forEach(s => slugs.push(s.slug));
+      // Landing: top growers (real recurring businesses only - same floor as index.html).
+      const pages = await Promise.all([1, 2, 3].map(pg =>
+        fetch('/api/startups?onSale=true&page=' + pg + '&limit=50&sort=growth-desc').then(x => x.json()).catch(() => null)));
+      const pool = [];
+      const seen = new Set();
+      for (const p of pages) for (const s of ((p && p.data) || [])) {
+        if (!s || !s.slug || seen.has(s.slug) || !isRecommendable(s)) continue;
+        seen.add(s.slug);
+        const rev = s.revenue || {};
+        if (Number(rev.mrr || 0) > 1000 && Number(rev.last30Days || 0) >= 300) pool.push(s);
+      }
+      pool.sort((a, b) => (parseFloat(b.growth30d) || 0) - (parseFloat(a.growth30d) || 0));
+      pool.slice(0, 4).forEach(s => slugs.push(s.slug));
+    } catch {}
+    if (slugs.length) {
+      const merged = Array.from(new Set(slugs));
+      try { localStorage.setItem(SM_FREE_KEY, JSON.stringify({ slugs: merged, ts: Date.now() })); } catch {}
+      return merged;
+    }
+    return smFreeCache().slugs;   // API hiccup: keep whatever we had
+  })();
+  return _smFreePromise;
+}
+
+function canOpenStartup(slug) { return smIsAuthed() || isFreeSlug(slug); }
+
+// Parse "/startup/some-slug.html" (or "/startup/some-slug") out of an href.
+function smSlugFromHref(href) {
+  const m = String(href || '').match(/\/startup\/([^/?#]+?)(?:\.html)?(?:[?#]|$)/);
+  return m ? decodeURIComponent(m[1]) : '';
+}
+
+// ── Gate modal: register / sign in without leaving the page ──────────────────
+let _gateMode = 'signup';
+let _gateOpts = {};
+
+function mountGateModal() {
+  if (document.getElementById('regGateBg')) return;
+  const bg = document.createElement('div');
+  bg.id = 'regGateBg';
+  bg.innerHTML = '<div class="rg-modal" id="regGateModal" role="dialog" aria-modal="true"></div>';
+  document.body.appendChild(bg);
+  bg.addEventListener('click', (e) => { if (e.target === bg) closeRegGate(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeRegGate(); });
+}
+
+function closeRegGate() {
+  const bg = document.getElementById('regGateBg');
+  if (bg) bg.classList.remove('open');
+  document.body.classList.remove('rg-open');
+  document.querySelectorAll('.gate-blurred').forEach(el => el.classList.remove('gate-blurred'));
+  if (typeof _gateOpts.onClose === 'function') _gateOpts.onClose();
+}
+
+// opts: { slug, card (element to blur), onSuccess (else: open the card), onClose }
+function openRegGate(opts) {
+  _gateOpts = opts || {};
+  _gateMode = 'signup';
+  mountGateModal();
+  if (_gateOpts.card && _gateOpts.card.classList) _gateOpts.card.classList.add('gate-blurred');
+  document.body.classList.add('rg-open');
+  renderGateModal();
+  document.getElementById('regGateBg').classList.add('open');
+  setTimeout(() => { const el = document.getElementById('rgEmail'); if (el) el.focus(); }, 60);
+}
+
+function renderGateModal() {
+  const modal = document.getElementById('regGateModal');
+  if (!modal) return;
+  const G = (k) => t('gate', k);
+  const isSignup = _gateMode === 'signup';
+  modal.innerHTML =
+    '<button class="rg-close" type="button" aria-label="Close">×</button>' +
+    '<span class="rg-icon">' + (typeof icon === 'function' ? icon('unlock', { size: 20 }) : '') + '</span>' +
+    '<h2>' + escHtml(G('title')) + '</h2>' +
+    '<p class="rg-sub">' + escHtml(G('sub')) + '</p>' +
+    '<div class="rg-perks">' +
+      '<span>' + escHtml(G('perk1')) + '</span>' +
+      '<span>' + escHtml(G('perk2')) + '</span>' +
+      '<span>' + escHtml(G('perk3')) + '</span>' +
+    '</div>' +
+    '<form id="rgForm" novalidate>' +
+      '<input id="rgEmail" class="rg-input" type="email" autocomplete="email" required placeholder="' + escHtml(t('auth', 'email')) + '"/>' +
+      '<input id="rgPw" class="rg-input" type="password" autocomplete="' + (isSignup ? 'new-password' : 'current-password') + '" required placeholder="' + escHtml(t('auth', 'password')) + '"/>' +
+      '<div class="rg-msg" id="rgErr"></div>' +
+      '<button class="rg-cta" id="rgSubmit" type="submit">' + escHtml(isSignup ? t('auth', 'createAccount') : t('auth', 'signIn')) + '</button>' +
+    '</form>' +
+    '<div class="rg-switch">' +
+      escHtml(isSignup ? G('haveAcc') : G('noAcc')) + ' ' +
+      '<button type="button" id="rgSwitch">' + escHtml(isSignup ? t('auth', 'signIn') : t('auth', 'createAccount')) + '</button>' +
+    '</div>' +
+    '<div class="rg-free">' + escHtml(G('freeNote')) + '</div>';
+  modal.querySelector('.rg-close').addEventListener('click', closeRegGate);
+  modal.querySelector('#rgSwitch').addEventListener('click', () => {
+    _gateMode = isSignup ? 'login' : 'signup';
+    renderGateModal();
+    const el = document.getElementById('rgEmail'); if (el) el.focus();
+  });
+  modal.querySelector('#rgForm').addEventListener('submit', submitGateForm);
+}
+
+function gateError(msg) {
+  const el = document.getElementById('rgErr');
+  if (el) { el.textContent = msg; el.classList.add('show'); }
+}
+
+// Waits for shared.js's Supabase client (initNavAuth is async).
+async function gateSb() {
+  for (let i = 0; i < 40 && !window._sb; i++) await new Promise(r => setTimeout(r, 50));
+  return window._sb || null;
+}
+
+async function submitGateForm(e) {
+  e.preventDefault();
+  const email = (document.getElementById('rgEmail').value || '').trim();
+  const pw    = document.getElementById('rgPw').value || '';
+  const btn   = document.getElementById('rgSubmit');
+  const errEl = document.getElementById('rgErr');
+  if (errEl) errEl.classList.remove('show');
+  if (!email || !pw) { gateError(t('gate', 'errFields')); return; }
+
+  const sb = await gateSb();
+  if (!sb) { location.href = '/auth.html?from=' + encodeURIComponent(location.pathname + location.search); return; }
+
+  const label = btn.textContent;
+  btn.disabled = true; btn.textContent = '…';
+  try {
+    if (_gateMode === 'login') {
+      const { error } = await sb.auth.signInWithPassword({ email, password: pw });
+      if (error) { gateError(gateFriendly(error.message)); return; }
+      onGateSuccess();
+      return;
+    }
+    const { data, error } = await sb.auth.signUp({ email, password: pw });
+    if (error) { gateError(gateFriendly(error.message)); return; }
+    // Supabase hides "email already taken" behind a fake success (anti-enumeration):
+    // the returned user has an empty identities array. Surface it and flip to sign-in.
+    if (data && data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      _gateMode = 'login'; renderGateModal();
+      gateError(t('auth', 'errExists'));
+      return;
+    }
+    if (data && data.session) { onGateSuccess(); return; }
+    showGateSentBox(email);   // e-mail confirmation is on: nothing to unlock yet
+  } finally {
+    btn.disabled = false;
+    if (btn.textContent === '…') btn.textContent = label;
+  }
+}
+
+function showGateSentBox(email) {
+  const modal = document.getElementById('regGateModal');
+  if (!modal) return;
+  modal.innerHTML =
+    '<button class="rg-close" type="button" aria-label="Close">×</button>' +
+    '<span class="rg-icon">' + (typeof icon === 'function' ? icon('check', { size: 20 }) : '') + '</span>' +
+    '<h2>' + escHtml(t('auth', 'checkInbox')) + '</h2>' +
+    '<p class="rg-sub">' + escHtml(t('auth', 'sentPre')) + ' <b>' + escHtml(email) + '</b>. ' + escHtml(t('auth', 'sentPost')) + '</p>' +
+    '<button class="rg-cta" type="button" id="rgDone">' + escHtml(t('gate', 'gotIt')) + '</button>';
+  modal.querySelector('.rg-close').addEventListener('click', closeRegGate);
+  modal.querySelector('#rgDone').addEventListener('click', closeRegGate);
+}
+
+// Signed in: remember it, let the nav/API state catch up, then either run the
+// page's own callback (startup page unlocks in place) or open the card the user
+// originally clicked.
+function onGateSuccess() {
+  try { localStorage.setItem('sm_authed', '1'); } catch {}
+  const bg = document.getElementById('regGateBg');
+  if (bg) bg.classList.remove('open');
+  document.body.classList.remove('rg-open');
+  document.querySelectorAll('.gate-blurred').forEach(el => el.classList.remove('gate-blurred'));
+  if (typeof _gateOpts.onSuccess === 'function') { _gateOpts.onSuccess(); return; }
+  if (_gateOpts.slug) location.href = '/startup/' + encodeURIComponent(_gateOpts.slug) + '.html';
+}
+
+function gateFriendly(msg) {
+  const m = String(msg || '');
+  if (m.includes('Invalid login credentials')) return t('auth', 'errCreds');
+  if (m.includes('Email not confirmed'))       return t('auth', 'errConfirm');
+  if (m.includes('User already registered'))   return t('auth', 'errExists');
+  if (m.includes('Password should be'))        return t('auth', 'errShort');
+  if (m.includes('rate limit') || m.includes('too many')) return t('auth', 'errRate');
+  if (m.includes('network') || m.includes('Failed to fetch')) return t('auth', 'errNetwork');
+  return m;
+}
+
+// Capture-phase interceptor: any link to a startup card anywhere on the site
+// (catalog grid, landing rails, leaderboard, "similar startups" rail) is gated
+// for guests unless the listing is part of the free showcase. Capture + stop so
+// the page's own onclick handlers don't fire either.
+document.addEventListener('click', (e) => {
+  const a = e.target.closest && e.target.closest('a[href*="/startup/"]');
+  if (!a || e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+  const slug = smSlugFromHref(a.getAttribute('href'));
+  if (!slug || canOpenStartup(slug)) return;
+  e.preventDefault();
+  e.stopPropagation();
+  openRegGate({ slug, card: a.closest('.card, .lcard, .lrow, .lead-row, .similar-card') || a });
+}, true);
+
+// Keep the showcase list warm for guests so the gate decision is instant.
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => { if (!smIsAuthed()) ensureFreeSlugs(); });
+} else if (!smIsAuthed()) {
+  ensureFreeSlugs();
 }
 
 // ── SELL STARTUP MODAL ──────────────────────────────────────────────────────

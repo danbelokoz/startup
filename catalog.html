@@ -28,10 +28,10 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin/>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap"/>
-<link rel="stylesheet" href="/shared.css?v=3"/>
+<link rel="stylesheet" href="/shared.css?v=4"/>
 <script src="/auth-config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="/shared.js"></script>
+<script src="/shared.js?v=20260715"></script>
 <style>
 .hero { padding: 32px 28px 20px; max-width: 1200px; margin: 0 auto; text-align: center; }
 .hero-title { font-size: 34px; font-weight: 700; letter-spacing: -1px; color: var(--text); margin-bottom: 6px; }
@@ -213,9 +213,6 @@ input.sb-input:focus { border-color: var(--accent); background: var(--bg2); }
 .card-extra { font-size: 11px; color: var(--text3); display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 4px; margin-bottom: 8px; }
 .card-extra-item { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
 .badge-new { background: var(--green-bg); color: var(--green); border: 1px solid rgba(0,194,122,0.25); font-weight: 600; }
-.name-blur { filter: blur(5px); transition: filter 0.2s; user-select: none; }
-.card:hover .name-blur { filter: blur(3px); }
-.logo-blur { filter: blur(4px); user-select: none; }
 .up { color: var(--trading-up); }
 .dn { color: var(--trading-down); }
 
@@ -464,24 +461,24 @@ window.isTrustmrrStub = window.isTrustmrrStub || function (s) {
    and blur the brand name where it appears inside the description (the description
    text itself stays visible). Site / founder aren't shown on cards at all.
    Defined locally (not in shared.js) so a stale cached shared.js can't break them. */
-// Falls back to the last-known auth state cached in localStorage so a logged-in
-// user never sees a one-frame name blur before /api/auth resolves.
-function isGuest() {
-  if (window._access) return !window._access.authenticated;
-  try { return localStorage.getItem('sm_authed') === '0'; } catch { return false; }
+// Free showcase: the first 9 cards of the DEFAULT view (on sale, sorted by
+// 30-day revenue) open for everyone; their slugs are registered with the gate in
+// shared.js on every render. Local no-op fallback in case a returning visitor
+// still holds a stale cached shared.js.
+window.smAddFreeSlugs = window.smAddFreeSlugs || function () {};
+const FREE_COUNT = 9;
+// Freeness is per-listing, not per-position: a filtered / searched / re-sorted
+// grid has no "free first 9".
+function isDefaultView() {
+  const f = filters;
+  return !!f.onSale && f.sort === 'revenue-desc' && !f.search && !f.category &&
+    !f.mrrMin && !f.mrrMax && !f.rev30Min && !f.rev30Max && !f.priceMin && !f.priceMax &&
+    f.growthMin === '' && f.growthMax === '' && !f.multipleMax && !f.marginMin && !f.marginMax &&
+    !f.audience && !f.mobile;
 }
-function gatedNameHtml(name) {
-  const n = String(name == null ? '' : name);
-  if (n.length <= 3) return escHtml(n);
-  return escHtml(n.slice(0, 3)) + '<span class="name-blur">' + escHtml(n.slice(3)) + '</span>';
-}
-function maskBrandHtml(text, brand) {
-  if (text == null) return '';
-  if (!brand) return escHtml(text);
-  const safe = String(brand).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const marker = '';
-  const marked = String(text).replace(new RegExp('\\b' + safe + '\\b', 'gi'), marker);
-  return escHtml(marked).split(marker).join('<span class="name-blur">' + escHtml(brand) + '</span>');
+function registerFreeCards() {
+  if (!isDefaultView() || !displayItems.length) return;
+  smAddFreeSlugs(displayItems.slice(0, FREE_COUNT).map(s => s.slug));
 }
 
 /* ── CONSTANTS ─────────────────────────────────────────────────────────────── */
@@ -997,6 +994,7 @@ function renderCards() {
     grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:60px 0;color:var(--text3)">'+t('idx','notFound')+'</div>';
     return;
   }
+  registerFreeCards();   // first 9 of the default view stay open to guests
   displayItems.slice(0, renderLimit).forEach(s => grid.insertAdjacentHTML('beforeend', cardHTML(s)));
   setupScroll();
   syncCompareBtns(); renderTray();   // re-sync compare state + refresh chip names once data is loaded
@@ -1009,6 +1007,7 @@ function renderCards() {
 function fillGrid() {
   const grid = document.getElementById('cards');
   if (!displayItems.length) return;
+  registerFreeCards();
   const cards = grid.querySelectorAll('.card[data-slug]');
   // Nothing painted yet (empty grid or the "not found" placeholder is showing):
   // do a full render so results that stream in from a later page replace the
@@ -1085,13 +1084,11 @@ function dataScore(s) {
 function cardHTML(s) {
   const init = s.name.split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase()||'?';
   const isAnon = (s.name||'').toLowerCase().includes('anonymous');
-  // Guests see only the first 3 chars of the name; anonymous listings are left alone.
-  const gate = isGuest() && !isAnon;
   const iconInner = s.icon
     ? '<img src="'+escHtml(s.icon)+'" loading="lazy" onerror="this.parentElement.textContent=\''+init+'\'"/>'
     : init;
   const logoMarkup = iconInner;
-  const nameHtml = gate ? gatedNameHtml(s.name) : escHtml(s.name);
+  const nameHtml = escHtml(s.name);
   const g = s.growth30d;
   const gh = g!=null?' <span class="cm-sub '+(g>=0?'up':'dn')+'">'+(g>=0?'↑':'↓')+Math.abs(parseFloat(g)).toFixed(1)+'%</span>':'';
   const hasP = s.onSale&&s.askingPrice;
@@ -1115,9 +1112,8 @@ function cardHTML(s) {
     ? '<span class="anon-tag" title="'+(t('idx','anonHint')||'Owner chose to stay anonymous')+'">·&nbsp;'+(t('idx','anonLabel')||'anonymous')+'</span>'
     : '';
   const descRaw = s.description && s.description.trim() ? s.description : '';
-  // Description stays visible; for guests only the brand name inside it is blurred.
   const desc = descRaw
-    ? (gate ? maskBrandHtml(descRaw, s.name) : escHtml(descRaw))
+    ? escHtml(descRaw)
     : (isAnon ? (t('idx','anonNoDesc') || 'Seller chose not to disclose product details.') : '');
   // "NEW" badge if listed for sale within the last 7 days
   const daysListed = s.firstListedForSaleAt

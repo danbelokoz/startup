@@ -11,7 +11,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=3" />
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=3" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=3" />
-  <link rel="stylesheet" href="/shared.css?v=3" />
+  <link rel="stylesheet" href="/shared.css?v=4" />
   <style>
     .back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--text2); font-size: 14px; text-decoration: none; padding: 8px 0; transition: color 0.15s; }
     .back-link:hover { color: var(--accent); }
@@ -358,7 +358,7 @@
 
 <script src="/auth-config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="/shared.js?v=20260710b"></script>
+<script src="/shared.js?v=20260715"></script>
 <script>
 // Resilience guard: loadSimilar() (the "More … for sale" rail) calls isRecommendable()
 // and shuffle() from shared.js. If a browser serves a STALE cached shared.js right
@@ -393,6 +393,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   initNavAuth();
   renderCmpBtns();   // reflect any existing compare queue immediately (slug from URL)
   const slug = location.pathname.replace('/startup/','').replace('.html','');
+  applyPageGate(slug);
 
   // 1. Paint instantly from the catalog cache (sessionStorage → IndexedDB) when
   //    we have it, THEN always reconcile with the authoritative /api/startup
@@ -538,13 +539,63 @@ async function renderArchived(slug) {
 }
 
 let _startup = null;
-let _revealed = false;  // gated: site / founder / startup name are shown only to registered users
-// Registered users (free or paid) see everything for free; guests get a blur + register CTA.
-// Falls back to the last-known auth state cached in localStorage so a logged-in
-// user never sees a one-frame blur (name/site/founder) before /api/auth resolves.
+// Whoever can see this page may see all of it: the gate is now on the page as a
+// whole (applyPageGate below), not on individual fields. Nothing is blurred for
+// the visitors who get through - registered users, and anyone on a free-showcase
+// listing (landing rails + the first 9 catalog cards).
+let _revealed = true;
 function isAuthed() {
   if (window._access) return !!window._access.authenticated;
   try { return localStorage.getItem('sm_authed') !== '0'; } catch { return true; }
+}
+
+/* ── PAGE GATE ────────────────────────────────────────────────────────────────
+   A guest opening a gated startup never leaves the page: the content behind is
+   blurred and the shared.js registration modal opens on top, where they can sign
+   up (or sign in) inline. Dismissing it leaves a pill to bring the modal back. */
+let _pageGated = false;
+function lockPage(on) {
+  const c = document.getElementById('content');
+  if (c) c.classList.toggle('gate-locked', !!on);
+  if (!on) { const bar = document.getElementById('gateBar'); if (bar) bar.remove(); }
+}
+function showGateBar() {
+  if (document.getElementById('gateBar')) return;
+  const bar = document.createElement('div');
+  bar.id = 'gateBar';
+  bar.className = 'gate-unlock-bar';
+  bar.innerHTML = '<span>' + escHtml(t('gate','locked') || 'Register to open this startup') + '</span>' +
+    '<button type="button">' + escHtml(t('gate','lockedCta') || 'Register free') + '</button>';
+  bar.querySelector('button').addEventListener('click', openPageGate);
+  document.body.appendChild(bar);
+}
+function unlockPage() {
+  _pageGated = false;
+  if (typeof closeRegGate === 'function') closeRegGate();
+  lockPage(false);
+  if (_startup) renderStartup(_startup);
+}
+function openPageGate() {
+  openRegGate({
+    onSuccess: unlockPage,
+    onClose:   () => { if (_pageGated) showGateBar(); },
+  });
+}
+async function applyPageGate(slug) {
+  // Stale cached shared.js (no gate helpers): let the visitor through rather than
+  // leave them staring at a blurred page with no way to register.
+  if (typeof openRegGate !== 'function' || typeof smIsAuthed !== 'function') return;
+  if (smIsAuthed()) return;
+  lockPage(true);                        // blur first - never flash the content at a guest
+  if (!isFreeSlug(slug)) await ensureFreeSlugs();
+  if (smIsAuthed() || isFreeSlug(slug)) { lockPage(false); return; }
+  _pageGated = true;
+  openPageGate();
+  // /api/auth is authoritative: a logged-in visitor with no cached hint (fresh
+  // browser) unlocks as soon as it resolves.
+  window.addEventListener('navAuthUpdated', () => {
+    if (_pageGated && window._access && window._access.authenticated) unlockPage();
+  });
 }
 // Small inline "register for free" call-to-action reused under the gated blocks.
 function regCtaHtml() {
@@ -647,8 +698,9 @@ function renderStartup(s) {
   document.title = `${s.name} - MRRket`;
   document.getElementById('backLink').textContent = '← ' + t('startupPage','back');
   _startup = s;
-  // Site / founder / name are open to any logged-in user (free), blurred for guests.
-  _revealed = isAuthed();
+  // Everything on the page is open to whoever gets past the page gate (see
+  // applyPageGate) - no per-field blur any more.
+  _revealed = true;
   updateFavBtn(s.slug);
   renderCmpBtns();   // now we have the exact slug - reflect queued state on the button
 

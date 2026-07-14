@@ -28,10 +28,10 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin/>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap"/>
-<link rel="stylesheet" href="/shared.css?v=3"/>
+<link rel="stylesheet" href="/shared.css?v=4"/>
 <script src="/auth-config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="/shared.js"></script>
+<script src="/shared.js?v=20260715"></script>
 <style>
 .wrap{position:relative;overflow:hidden}
 .glow{position:absolute;top:-180px;left:50%;transform:translateX(-50%);width:1100px;height:560px;background:radial-gradient(closest-side,rgba(252,213,53,.13),transparent 72%);pointer-events:none}
@@ -519,18 +519,11 @@ window.shuffle = window.shuffle || function (arr) {
   return a;
 };
 
-// Guest gate: unregistered visitors see only the first 3 characters of a name.
-// isGuest() falls back to the last-known auth state cached in localStorage so a
-// logged-in user doesn't get a one-frame name blur before /api/auth resolves.
-function isGuest() {
-  if (window._access) return !window._access.authenticated;
-  try { return localStorage.getItem('sm_authed') === '0'; } catch { return false; }
-}
-function gatedNameHtml(name) {
-  const n = String(name == null ? '' : name);
-  if (n.length <= 3) return escHtml(n);
-  return escHtml(n.slice(0, 3)) + '<span class="name-blur">' + escHtml(n.slice(3)) + '</span>';
-}
+// Names and logos are public - the gate now sits on the startup page itself
+// (see the REGISTRATION GATE block in shared.js). The listings shown in the two
+// rails below stay open to everyone, so their slugs are registered as free.
+// Local fallback in case a returning visitor still holds a stale shared.js.
+window.smAddFreeSlugs = window.smAddFreeSlugs || function () {};
 
 applyLangToDoc();
 document.getElementById('navPlaceholder').innerHTML = buildNavHTML('home');
@@ -558,8 +551,6 @@ function avatarHTML(s, size) {
   return '<span class="lav'+(blur?' logo-blur':'')+'" style="width:'+size+'px;height:'+size+'px;background:'+(s.icon?'var(--bg3)':col)+';font-size:'+Math.round(size*0.42)+'px">'+inner+'</span>';
 }
 function nameHTML(s) {
-  // Guests see only the first 3 chars of the name (anon listings are left as-is).
-  if (isGuest() && !isAnonStartup(s)) return '<b>'+gatedNameHtml(s.name||'')+'</b>';
   return '<b>'+escHtml(s.name||'')+'</b>';
 }
 function growthPill(g) {
@@ -573,6 +564,7 @@ function renderWidget(items) {
   _leaders = items || [];
   const el = document.getElementById('list');
   if (!el) return;
+  smAddFreeSlugs(_leaders.map(s => s.slug));   // landing rail: open to everyone
   if (!items.length) { el.innerHTML = '<div style="padding:24px 14px;text-align:center;color:var(--text3);font-size:13px">'+t('landing','leadersEmpty')+'</div>'; return; }
   el.innerHTML = items.map(s => {
     return '<a class="lrow" href="/startup/'+escHtml(s.slug)+'.html">'+
@@ -587,6 +579,7 @@ function renderCards(items) {
   _topCards = items || [];
   const el = document.getElementById('cards');
   if (!el) return;
+  smAddFreeSlugs(_topCards.map(s => s.slug));   // landing rail: open to everyone
   if (!items.length) { el.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px 0;color:var(--text3);font-size:13px">'+t('landing','cardsEmpty')+'</div>'; return; }
   el.innerHTML = items.map(s => {
     const hasP = s.onSale && s.askingPrice;
@@ -652,12 +645,10 @@ async function loadLanding() {
 }
 loadLanding();
 
-// Once /api/auth resolves, cache the auth state and re-render the rails so the
-// guest name gate reflects the real login state (no blur flash for logged-in users).
+// Once /api/auth resolves, cache the auth state so the registration gate on the
+// startup cards knows instantly (on every page) whether this visitor is a guest.
 window.addEventListener('navAuthUpdated', () => {
   try { localStorage.setItem('sm_authed', (window._access && window._access.authenticated) ? '1' : '0'); } catch {}
-  if (_leaders.length) renderWidget(_leaders);
-  if (_topCards.length) renderCards(_topCards);
 });
 
 // "Live market" feel: briefly highlight a random growth value every few seconds.
