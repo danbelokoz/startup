@@ -165,9 +165,16 @@ async function withOurDescriptions(data, lang) {
   return dropDead(data);
 }
 
-// TrustMRR now caps a page at 10 items (it silently ignores a bigger ?limit=) and a
-// standard key at 10 req/min. Everything here still asks for 50-item pages, so one
-// logical page = UPSTREAM_PER_PAGE upstream pages stitched together.
+// TrustMRR (July 2026) put THREE gates on a standard key, discovered the hard way:
+//   1. ?limit= is capped at 10 items per page (ask for 50, get 10);
+//   2. 10 requests/min;
+//   3. and — the nasty one — pagination is capped at the first 200 startups. Past
+//      upstream page 20 the API clamps: it keeps returning page-20's data with
+//      hasMore:true FOREVER instead of paging on or signalling the end.
+// So one logical 50-item page = 5 upstream 10-item pages stitched — but only the first
+// ~200 startups are actually reachable; beyond that the stitch would splice five
+// identical copies of the clamped slice. We detect that (no new slugs) and stop, which
+// makes the page short → isValidList rejects it → the good cached page is preserved.
 const UPSTREAM_MAX_LIMIT = 10;
 
 async function fetchUpstreamPage(page, limit, params, apiKey) {
@@ -192,13 +199,20 @@ async function fetchTrustMRR(params, apiKey) {
   const chunks = Math.ceil(limit / UPSTREAM_MAX_LIMIT);
   const first  = (page - 1) * chunks + 1;   // upstream pages are 10 items wide
   const items  = [];
+  const seen   = new Set();
   let meta = null;
   for (let i = 0; i < chunks; i++) {
     const data = await fetchUpstreamPage(first + i, UPSTREAM_MAX_LIMIT, params, apiKey);
     const batch = data && Array.isArray(data.data) ? data.data : [];
     meta = data && data.meta ? data.meta : meta;
-    items.push(...batch);
-    if (batch.length < UPSTREAM_MAX_LIMIT || !(data.meta && data.meta.hasMore)) break;  // end of catalog
+    // Clamp detection: if this chunk adds no slug we haven't already seen, the API has
+    // stopped paging (the 200-item wall) and is repeating a slice — stop before we
+    // splice duplicates. Deduped so a clamped page can never carry a repeat.
+    const fresh = batch.filter(s => s && s.slug && !seen.has(s.slug));
+    for (const s of fresh) seen.add(s.slug);
+    items.push(...fresh);
+    if (fresh.length === 0) break;                                              // clamped / repeating
+    if (batch.length < UPSTREAM_MAX_LIMIT || !(data.meta && data.meta.hasMore)) break;  // true end of catalog
   }
   const total = (meta && meta.total) || items.length;
   return {

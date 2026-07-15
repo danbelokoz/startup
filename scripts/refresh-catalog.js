@@ -243,8 +243,9 @@ async function main() {
   console.log('Catalog refresh — full sweep\n');
   await recordParserStart('catalog');
 
-  let page = 1, totalStartups = 0, hasMore = true, upstreamTotal = 0;
+  let page = 1, totalStartups = 0, hasMore = true, upstreamTotal = 0, capped = false;
   const allStartups = [];
+  const seen = new Set();
 
   while (hasMore && page <= MAX_PAGES) {
     const params = new URLSearchParams({ page: String(page), limit: String(UPSTREAM_LIMIT), sort: 'revenue-desc' });
@@ -281,15 +282,28 @@ async function main() {
       process.exit(1);
     }
 
-    const n = Array.isArray(data.data) ? data.data.length : 0;
-    totalStartups += n;
-    if (n) allStartups.push(...data.data);
+    // Clamp detection: past ~200 startups TrustMRR stops paging and repeats the last
+    // slice with hasMore:true forever (the standard-key gate). Keep only slugs we
+    // haven't seen; the first page that adds nothing new is the wall — stop there
+    // instead of looping to MAX_PAGES (which is what timed the sweep out at 180 min).
+    const batch = Array.isArray(data.data) ? data.data : [];
+    const fresh = batch.filter(s => s && s.slug && !seen.has(s.slug));
+    for (const s of fresh) seen.add(s.slug);
     if (data.meta?.total) upstreamTotal = data.meta.total;
+    if (fresh.length === 0) { capped = true; console.log(`  ⛔ API перестал отдавать новое на стр. ${page} (гейт ~${totalStartups} стартапов) — обход остановлен`); break; }
+    totalStartups += fresh.length;
+    allStartups.push(...fresh);
     hasMore = data.meta?.hasMore ?? false;
     if (page % 25 === 0 || !hasMore) console.log(`  page ${page} · ${totalStartups} startups`);
     page++;
     if (hasMore) await sleep(DELAY_MS);
   }
+
+  // If the API served far fewer than it claims to have (the 200-cap), this run can only
+  // refresh the reachable top slice. Write those pages, but DON'T let a truncated set
+  // clobber the catalog-wide aggregates (hero totals) or shrink the sitemap — the
+  // remaining startups stay served from the existing (pre-cap) cache.
+  const partial = capped || (upstreamTotal && allStartups.length < upstreamTotal * 0.5);
 
   // Stitch the 10-item upstream pages back into the 50-item pages every cache key on the
   // site is keyed by (`sm_page=N&limit=50&sort=revenue-desc` — same shape api/startups.js
@@ -313,19 +327,29 @@ async function main() {
   // Invalidate the onSale aggregate so the next request rebuilds from fresh data.
   try { await kv('POST', `/del/${encodeURIComponent('sm_onsale_agg_revenue-desc')}`); } catch {}
 
-  if (allStartups.length) {
+  // Hero totals: only recompute from a FULL sweep. A 200-item partial would report the
+  // catalog as tiny; keep the last good totals instead.
+  if (allStartups.length && !partial) {
     await redisSet('sm_totals_v1', { ...computeTotals(allStartups), updatedAt: new Date().toISOString() }, 25 * 3600);
+  } else if (partial) {
+    console.log('  ⚠ totals НЕ перезаписаны — набор урезан API-гейтом, оставлены прежние');
   }
 
   const { written, pruned } = await writeSnapshots(allStartups);
   const archived = await writeArchive(allStartups);
   const firstSeen = await writeFirstSeen();   // after archive: new rows exist before we read back
-  const sitemapCount = await writeSitemap(allStartups);
+  // Sitemap: a partial run would drop 8000+ URLs. Only rewrite it from a full sweep.
+  const sitemapCount = partial ? -1 : await writeSitemap(allStartups);
 
   console.log(`\n─────────────────────────────────────`);
-  console.log(`Upstream pages: ${page - 1} · cached pages: ${pagesWritten} · startups: ${totalStartups} · snapshots: ${written} · archive: ${archived} · firstSeen: ${firstSeen} · pruned: ${pruned} · sitemap: ${sitemapCount}`);
+  console.log(`Upstream pages: ${page - 1} · cached pages: ${pagesWritten} · startups: ${totalStartups}${partial ? ` (частично — API-гейт ~${upstreamTotal})` : ''} · snapshots: ${written} · archive: ${archived} · firstSeen: ${firstSeen} · pruned: ${pruned} · sitemap: ${sitemapCount}`);
 
-  await recordParserRun('catalog', true, written, `${page - 1} стр. по ${UPSTREAM_LIMIT} → ${pagesWritten} стр. кэша · снимков: ${written} · архив: ${archived} · sitemap: ${sitemapCount}`, totalStartups);
+  const note = partial
+    ? `⚠ API отдал только ${totalStartups} из ~${upstreamTotal} (гейт TrustMRR ~200) — обновлён топ, остальное сохранено из старого кэша`
+    : `${page - 1} стр. по ${UPSTREAM_LIMIT} → ${pagesWritten} стр. кэша · снимков: ${written} · архив: ${archived} · sitemap: ${sitemapCount}`;
+  // Partial-but-clean is not a failure — it did everything the API allows. ok:true so the
+  // admin card stays green, but the note makes the cap explicit.
+  await recordParserRun('catalog', true, written, note, totalStartups);
 }
 
 main().catch(async (e) => {
