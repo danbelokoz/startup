@@ -779,29 +779,31 @@ function attachChartTips() {
 }
 
 // Activity chart for the last 3 days (МСК). Bars = startups updated per hour, read
-// against the left count axis. The thin strip on the baseline marks every run the
-// parser was DUE to make per its schedule - a small block, not a full column:
-// green = done · amber = late · orange = errored · red = missed. typicalBatch = how
-// many startups it normally takes per run (for the "0 / N" hover on a miss).
-function parserChart(h, expected, typicalBatch) {
+// against the left count axis, which keeps a division of headroom above the tallest
+// one. Schedule adherence (done/late/errored/missed against the parser's cron) is
+// counted from `expected` and shown as a tally line above the chart — it used to be a
+// marker strip under the zero line, which read as negative values.
+function parserChart(h, expected) {
   if (!h || !Array.isArray(h.buckets)) return '';
   const b = h.buckets;
   const hasRuns = b.some(x => x.runs > 0);
   if (!hasRuns && !(expected && expected.length))
     return '<div class="adm-mini" style="margin-top:12px;">Нет запусков за последние 3 дня.</div>';
-  // Round the scale up to a clean 1/2/5×10ⁿ so the axis reads 60/30/0, not 56/28/0.
+  // Scale: round up to a clean 1/1.5/2/3/…×10ⁿ AND leave headroom, so the tallest bar
+  // stops a division or so short of the top instead of hitting the ceiling.
   const rawMax = Math.max(1, ...b.map(x => x.n));
   const niceMax = v => {
-    if (v <= 1) return 1;
     const pow = Math.pow(10, Math.floor(Math.log10(v)));
     for (const m of [1, 1.5, 2, 3, 4, 5, 6, 8, 10]) if (v <= m * pow) return m * pow;
     return 10 * pow;
   };
-  const maxN = niceMax(rawMax);
+  const maxN = rawMax <= 1 ? 2 : niceMax(rawMax * 1.35);
   const midN = maxN / 2;
   const midLabel = Number.isInteger(midN) && midN > 0 && midN < maxN ? midN.toLocaleString() : '';
-  const W = 100, H = 40, MARK = 5;                 // MARK = baseline strip for schedule markers
-  const baseY = H - MARK;
+  // Nothing is drawn below zero any more — the schedule markers used to sit in a strip
+  // under the axis and read as negative values. Their tally still shows as text above.
+  const W = 100, H = 40;
+  const baseY = H;
   const plotH = baseY - 1;
   const bw = W / b.length;
   const windowMs = h.hours * h.hourMs;
@@ -818,23 +820,14 @@ function parserChart(h, expected, typicalBatch) {
     return `<rect x="${(i*bw).toFixed(2)}" y="${(baseY-barH).toFixed(2)}" width="${(bw*0.74).toFixed(2)}" height="${barH.toFixed(2)}" fill="${allOk ? 'var(--green)' : '#f5a623'}" data-tip="${esc(tip)}"/>`;
   }).join('');
 
-  // Schedule markers: small blocks sitting in the baseline strip (not full columns).
-  let okc = 0, failc = 0, latec = 0, missc = 0, marks = '';
-  const COL = { ok:'var(--green)', fail:'#f5a623', late:'#facc15', missed:'#f6465d', pending:'var(--text3)' };
-  const ofN = (typeof typicalBatch === 'number' && typicalBatch > 0) ? ' из ~' + typicalBatch.toLocaleString() : '';
-  const mw = Math.min(2.4, bw * 0.85);
+  // Schedule adherence is now a tally only — counted here, rendered as text above the
+  // chart. No marker lane: it lived below the zero line and looked like negative values.
+  let okc = 0, failc = 0, latec = 0, missc = 0;
   (expected || []).forEach(e => {
     const x = xOfMs(e.ts);
     if (x < -0.5 || x > W + 0.5) return;
     if (e.state === 'ok') okc++; else if (e.state === 'fail') failc++;
     else if (e.state === 'late') latec++; else if (e.state === 'missed') missc++;
-    const label = e.state === 'ok'      ? '✓ запуск выполнен'
-                : e.state === 'fail'    ? '✕ запущен, но завершился с ошибкой|обработано 0' + ofN
-                : e.state === 'late'    ? '⏳ опаздывает - запуска ещё не было|обновлено 0' + ofN
-                : e.state === 'missed'  ? '⚠ пропущен - запуска не было|обновлено 0' + ofN
-                :                         '… ожидается (по плану только что)';
-    const tip = 'по плану: ' + fmtMskShort(e.ts) + ' МСК|' + label;
-    marks += `<rect x="${(x-mw/2).toFixed(2)}" y="${(baseY+0.6).toFixed(2)}" width="${mw.toFixed(2)}" height="${(MARK-1.2).toFixed(2)}" rx="0.4" fill="${COL[e.state]}" data-tip="${esc(tip)}"/>`;
   });
 
   const seps = [24, 48].map(i => `<line x1="${(i*bw).toFixed(2)}" y1="0" x2="${(i*bw).toFixed(2)}" y2="${baseY}" stroke="var(--border)" stroke-width="0.3" stroke-dasharray="1 1"/>`).join('');
@@ -855,27 +848,26 @@ function parserChart(h, expected, typicalBatch) {
     return `<span class="adm-mini" style="flex:1;text-align:${ta};">${lab}</span>`;
   }).join('');
 
-  const CH = 74, padB = Math.round(CH * MARK / H);   // px height + bottom pad so axis "0" meets the baseline
+  const CH = 74;   // px height; the axis "0" now sits flush on the chart floor
   return `<div style="margin-top:14px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px;flex-wrap:wrap;">
       <span class="l2">Активность за 3 дня · по часам · МСК</span>
       ${summary}
     </div>
     <div style="display:flex;gap:5px;">
-      <div style="width:30px;height:${CH}px;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-end;padding:1px 0 ${padB}px;">
+      <div style="width:30px;height:${CH}px;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-end;padding:1px 0 0;">
         <span class="adm-mini">${maxN.toLocaleString()}</span>
         <span class="adm-mini">${midLabel}</span>
         <span class="adm-mini">0</span>
       </div>
       <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="flex:1;height:${CH}px;display:block;background:var(--bg2);border:1px solid var(--border);border-radius:8px;">
         ${grid}${seps}
-        <rect x="0" y="${baseY}" width="${W}" height="${MARK}" fill="var(--bg3)"/>
         <line x1="0" y1="${baseY}" x2="${W}" y2="${baseY}" stroke="var(--border)" stroke-width="0.45"/>
-        ${bars}${marks}
+        ${bars}
       </svg>
     </div>
     <div style="display:flex;margin:3px 0 0 35px;">${xLabels}</div>
-    <div class="adm-mini" style="margin-top:5px;">столбцы - обновлено стартапов · полоса снизу - план: <span style="color:var(--green);">▮</span> выполнен <span style="color:#f5a623;">▮</span> ошибка <span style="color:#facc15;">▮</span> опаздывает <span style="color:#f6465d;">▮</span> пропуск</span>
+    <div class="adm-mini" style="margin-top:5px;">столбцы - обновлено стартапов за час · <span style="color:var(--green);">▮</span> без ошибок <span style="color:#f5a623;">▮</span> были ошибки</div>
   </div>`;
 }
 async function renderParsers() {
@@ -929,7 +921,7 @@ async function renderParsers() {
           <div><div class="l2">Расписание</div><div class="v2" style="font-size:12px;line-height:1.4;">${esc(p.scheduleText)}</div></div>
         </div>
         ${p.note ? `<div class="adm-mini" style="margin-top:10px;">Детали последнего запуска: ${esc(p.note)}</div>` : ''}
-        ${parserChart(p.history, p.expected, p.attempted)}
+        ${parserChart(p.history, p.expected)}
       </div>`;
     }).join('')}
     </div>
