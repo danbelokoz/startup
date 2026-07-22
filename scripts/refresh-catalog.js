@@ -335,11 +335,47 @@ async function readArchive() {
   return { map, complete: true };
 }
 
+// Listings api/startups.js hides at read time: delisted "zombies" (the dead_startups
+// deny-list) and TrustMRR placeholder stubs. The archive keeps them — it never deletes —
+// so the rebuild has to apply the SAME filter. Otherwise the hero totals count rows the
+// catalog refuses to show, and the two numbers disagree on screen.
+async function readDeadSet() {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return new Set();
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/dead_startups?select=slug`, {
+      headers: { apikey: SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!r.ok) return new Set();
+    const rows = await r.json();
+    return Array.isArray(rows) ? new Set(rows.map(x => x && x.slug)) : new Set();
+  } catch { return new Set(); }
+}
+
+// Mirrors isTrustmrrStub in api/startups.js — a listing whose only link points back at
+// trustmrr.com (or has no real dotted hostname) can't be verified by a buyer.
+function isStub(s) {
+  if (!s) return false;
+  const w = String(s.website || '').trim().toLowerCase();
+  if (w.includes('trustmrr')) return true;
+  if (w) {
+    const host = w.replace(/^https?:\/\//, '').replace(/^www\./, '').split(/[\/?#]/)[0];
+    if (host && !host.includes('.')) return true;
+  }
+  return String(s.description || '').toLowerCase().includes('trustmrr');
+}
+
 // Rebuild the catalog pages Redis serves straight from the archive — no API involved, so
 // it isn't bound by the 200-item gate. Same key shape the frontend asks for
 // (catalog.html only ever requests sort=revenue-desc and re-sorts client-side).
 async function rebuildCatalog(map) {
-  const all = [...map.values()].filter(s => s && s.slug);
+  const dead = await readDeadSet();
+  const raw  = [...map.values()].filter(s => s && s.slug);
+  // Fail open on a suspiciously large deny-list — never risk emptying the catalog.
+  const useDead = dead.size > 0 && dead.size < raw.length * 0.5;
+  const all = raw.filter(s => !(useDead && dead.has(s.slug)) && !isStub(s));
+  const dropped = raw.length - all.length;
+  if (dropped) console.log(`  отсеяно ${dropped} (мёртвые/пустышки) — как это делает и сам сайт`);
   const rev = s => (s.revenue && s.revenue.last30Days) || 0;
   all.sort((a, b) => rev(b) - rev(a));
 
