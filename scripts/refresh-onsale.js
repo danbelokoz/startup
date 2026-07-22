@@ -30,7 +30,70 @@ const DELAY_MS      = 12000;   // 12s → 5 req/min, half the quota; the rest st
 const RETRY_429     = 4;
 const RETRY_WAIT_MS = 65000;   // a 429 needs the per-minute window to roll over
 
+// ── Two sources, alternating by day ───────────────────────────────────────────
+// TrustMRR publishes a machine-readable profile per startup at /startup/<slug>.md,
+// explicitly labelled for AI agents. Verified field-by-field against the API on
+// startups the sweep had just refreshed: 31 of 32 values identical (the one gap was
+// a few hours of MRR drift). It carries MRR, revenue, subscriptions, sale status,
+// asking price and multiple — and it is bound by neither the 200-item pagination cap
+// nor the 10 req/min key quota, so it survives whatever TrustMRR does to the API next.
+//
+// We alternate day by day rather than switching outright: each source keeps proving
+// itself in production, and if the .md format ever changes we lose a day's refresh,
+// not the pipeline. The run's note records which source it used.
+const MD_DELAY_MS = 2000;      // public page, not the API quota — polite but ~10x faster
+// The .md omits a few fields the API has (customers, category), so parsed values are
+// MERGED over the existing row instead of replacing it. Overwriting wholesale here
+// would quietly blank those columns for every listing we touch.
+const MD_FIELDS_NOTE = 'merge, not replace';
+
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function pickSource() {
+  if (process.env.SOURCE === 'api' || process.env.SOURCE === 'md') return process.env.SOURCE;
+  // Alternate on UTC day number so a whole day uses one source and the two stay comparable.
+  return Math.floor(Date.now() / 86400000) % 2 === 0 ? 'api' : 'md';
+}
+
+// Parse TrustMRR's public Markdown profile. Deliberately tolerant: every field is
+// optional, and anything missing simply isn't merged. Treated purely as data —
+// the file itself warns that founder-supplied text is untrusted content.
+function parseMd(md) {
+  const g = (re) => { const m = md.match(re); return m ? m[1].trim() : null; };
+  const num = (s) => (s == null ? null : Number(String(s).replace(/[$,%]/g, '')));
+  const out = {};
+  const set = (k, v) => { if (v != null && !(typeof v === 'number' && Number.isNaN(v))) out[k] = v; };
+
+  set('name', g(/^- Name:\s*(.+)$/m));
+  // Trailing slash differs from the API's form; strip it so the two sources agree.
+  const site = g(/^- Website:\s*\[([^\]]+)\]/m);
+  set('website', site ? site.replace(/\/+$/, '') : null);
+  set('icon', g(/^- Icon:\s*\[([^\]]+)\]/m));
+  set('description', g(/^- Description:\s*(.+)$/m));
+  set('country', g(/^- Country:\s*(.+)$/m));
+  set('foundedDate', g(/^- Founded date:\s*(.+)$/m));
+
+  const mrr   = num(g(/^- Current MRR:\s*\$?([\d,\.]+)/m));
+  const rev30 = num(g(/^- Last 30 days revenue snapshot:\s*\$?([\d,\.]+)/m));
+  const total = num(g(/^- All-time revenue snapshot:\s*\$?([\d,\.]+)/m));
+  if (mrr != null || rev30 != null || total != null) {
+    out.revenue = {};
+    if (mrr   != null) out.revenue.mrr = mrr;
+    if (rev30 != null) out.revenue.last30Days = rev30;
+    if (total != null) out.revenue.total = total;
+  }
+  set('growthMRR30d', num(g(/^- Last 30 days MRR growth:\s*(-?[\d\.]+)/m)));
+  set('growth30d',    num(g(/^- Last 30 days revenue growth:\s*(-?[\d\.]+)/m)));
+  set('activeSubscriptions', num(g(/^- Current active subscriptions:\s*([\d,]+)/m)));
+
+  const status = g(/^- Status:\s*(.+)$/m);
+  if (status) out.onSale = /listed for sale/i.test(status);
+  set('askingPrice', num(g(/^- Asking price:\s*\$?([\d,\.]+)/m)));
+  const mult = g(/^- Revenue multiple:\s*([\d\.]+)x/m);
+  set('multiple', mult ? Number(mult) : null);
+  set('firstListedForSaleAt', g(/^- First listed for sale:\s*(.+)$/m));
+  return out;
+}
 
 // ── Redis (Upstash REST) ──────────────────────────────────────────────────────
 async function kv(method, path, body) {
@@ -166,6 +229,44 @@ async function fetchDetail(slug) {
   return { skipped: 'не удалось' };
 }
 
+// The .md route. 404 means the listing is gone, same as the API's 404.
+async function fetchMd(slug) {
+  try {
+    const r = await fetch(`https://trustmrr.com/startup/${encodeURIComponent(slug)}.md`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; StartupMarketBot/1.0)', Accept: 'text/markdown,text/plain' },
+      signal: AbortSignal.timeout(20000),
+    });
+    if (r.status === 404) return { gone: true };
+    if (!r.ok) return { skipped: String(r.status) };
+    const text = await r.text();
+    if (!text || text.length < 200) return { skipped: 'пустой файл' };
+    const parsed = parseMd(text);
+    return parsed && parsed.name ? { parsed } : { skipped: 'не разобрался' };
+  } catch (e) {
+    return { skipped: (e.message || 'ошибка').slice(0, 40) };
+  }
+}
+
+// Existing rows for the batch, so .md values can be merged onto them rather than
+// replacing fields the Markdown profile doesn't carry.
+async function readExisting(slugs) {
+  const map = new Map();
+  for (let i = 0; i < slugs.length; i += 50) {
+    const chunk = slugs.slice(i, i + 50);
+    const list = chunk.map(s => `"${s.replace(/"/g, '')}"`).join(',');
+    try {
+      const r = await fetch(
+        `${SUPABASE_URL}/rest/v1/startup_archive?slug=in.(${encodeURIComponent(list)})&select=slug,data`,
+        { headers: SB_HEADERS, signal: AbortSignal.timeout(30000) },
+      );
+      if (!r.ok) continue;
+      const rows = await r.json();
+      if (Array.isArray(rows)) for (const row of rows) if (row && row.slug) map.set(row.slug, row.data || {});
+    } catch {}
+  }
+  return map;
+}
+
 // Rotating window over the on-sale list, so consecutive runs cover different slugs and
 // the whole inventory comes round about once a day.
 async function nextOffset(total) {
@@ -194,7 +295,13 @@ async function main() {
   const offset = await nextOffset(all.length);
   // Wrap around the end so the last partial window isn't short.
   const slugs = all.length <= BATCH ? all : Array.from({ length: BATCH }, (_, i) => all[(offset + i) % all.length]);
-  console.log(`На продаже: ${all.length} · обрабатываем ${slugs.length}, начиная с #${offset}\n`);
+  const source = pickSource();
+  const pause  = source === 'md' ? MD_DELAY_MS : DELAY_MS;
+  console.log(`На продаже: ${all.length} · обрабатываем ${slugs.length}, начиная с #${offset}`);
+  console.log(`Источник сегодня: ${source === 'md' ? 'машиночитаемая страница (.md)' : 'API'} · пауза ${pause / 1000}с\n`);
+
+  // Only the .md path needs the current rows (it merges rather than replaces).
+  const existing = source === 'md' ? await readExisting(slugs) : new Map();
 
   const today = new Date().toISOString().slice(0, 10);
   const nowIso = new Date().toISOString();
@@ -204,29 +311,34 @@ async function main() {
   for (let i = 0; i < slugs.length; i++) {
     const slug = slugs[i];
     let res;
-    try { res = await fetchDetail(slug); }
+    try { res = source === 'md' ? await fetchMd(slug) : await fetchDetail(slug); }
     catch (e) {   // 401 — the key itself is bad, no point walking 260 more
       await recordParserRun('onsale', false, updated, e.message, slugs.length);
       process.exit(1);
     }
 
+    // Whichever source ran, settle on one full object to store.
+    let data = null;
+    if (res.data) data = res.data;                                   // API: complete object
+    else if (res.parsed) data = { ...(existing.get(slug) || {}), ...res.parsed, slug };  // .md: overlay
+
     if (res.gone) {
       // Delisted upstream. Keep the row (the detail page still renders from it) but
       // stop counting it as inventory, and let the deny-list hide it from the catalog.
       gone++;
-      rows.push({ slug, data: { slug, onSale: false, __delisted: true }, last_seen: today, updated_at: nowIso });
+      rows.push({ slug, data: { ...(existing.get(slug) || {}), slug, onSale: false, __delisted: true }, last_seen: today, updated_at: nowIso });
       await markDead(slug, true);
-    } else if (res.data) {
+    } else if (data) {
       updated++;
-      if (!res.data.onSale) offSale++;          // still listed on TrustMRR, no longer for sale
-      rows.push({ slug, data: res.data, last_seen: today, updated_at: nowIso });
+      if (!data.onSale) offSale++;              // still listed on TrustMRR, no longer for sale
+      rows.push({ slug, data, last_seen: today, updated_at: nowIso });
       await clearDead(slug);                    // came back → un-mark
     } else {
       skipped++;
     }
 
     if ((i + 1) % 50 === 0) console.log(`  ${i + 1}/${slugs.length} · обновлено ${updated} · снято ${gone + offSale}`);
-    if (i < slugs.length - 1) await sleep(DELAY_MS);
+    if (i < slugs.length - 1) await sleep(pause);
   }
 
   const written = await writeArchive(rows);
@@ -234,12 +346,16 @@ async function main() {
   console.log(`\n─────────────────────────────────────`);
   console.log(`Обновлено: ${updated} · удалено у TrustMRR: ${gone} · снято с продажи: ${offSale} · пропущено: ${skipped} · записано: ${written}`);
 
-  const note = `обновлено ${updated} из ${slugs.length}`
+  // Half the batch failing means the source itself changed shape (a reformatted .md,
+  // say) — surface that as a red run instead of quietly refreshing nothing.
+  const healthy = updated >= slugs.length * 0.5;
+  const note = `источник: ${source === 'md' ? '.md' : 'API'} · обновлено ${updated} из ${slugs.length}`
     + (gone ? ` · удалено у TrustMRR: ${gone}` : '')
     + (offSale ? ` · снято с продажи: ${offSale}` : '')
     + (skipped ? ` · пропущено: ${skipped}` : '')
-    + ` · всего на продаже ${all.length}`;
-  await recordParserRun('onsale', true, updated, note, slugs.length);
+    + ` · всего на продаже ${all.length}`
+    + (healthy ? '' : ' · ⚠ слишком много неудач — источник мог измениться');
+  await recordParserRun('onsale', healthy, updated, note, slugs.length);
 }
 
 main().catch(async (e) => {

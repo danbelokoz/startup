@@ -37,6 +37,11 @@ const DELAY_MS       = 7000; // 7s between pages → ~8.5 req/min, under the 10/
 // `startup_archive` as the source of truth, rebuilding the Redis pages from it.
 const WINDOW_MAX_PAGES = 25;  // 200 items ÷ 10 = 20 pages; clamp detection stops earlier
 
+// How much the catalog may shrink in one run before we refuse to publish it. Real
+// churn is a few dozen listings a day (<1%); a 10% drop means something upstream
+// broke, which is exactly the case that ate the catalog in July.
+const SHRINK_TOLERANCE = 0.10;
+
 // The on-sale windows the detector harvests. On-sale listings are the marketplace's
 // actual inventory, so a startup matters to us exactly when it goes up for sale — a
 // newcomer that isn't listed yet gets picked up by the same sweep once it is.
@@ -59,6 +64,15 @@ async function kv(method, path, body) {
   const r = await fetch(`${KV_REST_API_URL}${path}`, opts);
   return r.json();
 }
+async function redisGet(key) {
+  try {
+    const r = await kv('GET', `/get/${encodeURIComponent(key)}`);
+    if (!r.result) return null;
+    const parsed = JSON.parse(r.result);
+    return (parsed && parsed.value) ? JSON.parse(parsed.value) : parsed;
+  } catch { return null; }
+}
+
 async function redisSet(key, value, ttl) {
   try {
     const body = { value: JSON.stringify(value) };
@@ -376,6 +390,22 @@ async function rebuildCatalog(map) {
   const all = raw.filter(s => !(useDead && dead.has(s.slug)) && !isStub(s));
   const dropped = raw.length - all.length;
   if (dropped) console.log(`  отсеяно ${dropped} (мёртвые/пустышки) — как это делает и сам сайт`);
+
+  // ── Shrink guard ────────────────────────────────────────────────────────────
+  // The July wash-out got through because every check asked "is this data valid?"
+  // and none asked "is there as much of it as last time?" — TrustMRR's 10-item
+  // answers were perfectly well-formed, just short, so they overwrote the full
+  // pages unchallenged. This is that missing question: if the catalog would lose
+  // more than SHRINK_TOLERANCE of what we published last time, refuse to write and
+  // leave yesterday's pages up. Shrinking is always recoverable; overwriting good
+  // data with less of it is what cost us two weeks.
+  const prev = await redisGet('sm_totals_v1');
+  const prevTotal = prev && typeof prev.total === 'number' ? prev.total : 0;
+  if (prevTotal && all.length < prevTotal * (1 - SHRINK_TOLERANCE)) {
+    const lost = prevTotal - all.length;
+    console.log(`  ⛔ ОТКАЗ: каталог усох ${prevTotal} → ${all.length} (−${lost}, ${(lost / prevTotal * 100).toFixed(1)}%) — страницы НЕ переписаны`);
+    return { pages: 0, count: all.length, sitemap: 0, refused: { prevTotal, now: all.length } };
+  }
   const rev = s => (s.revenue && s.revenue.last30Days) || 0;
   all.sort((a, b) => rev(b) - rev(a));
 
@@ -450,7 +480,11 @@ async function main() {
   let rebuilt = null;
   if (archiveOk && catalog.size >= knownBefore.size) {
     rebuilt = await rebuildCatalog(catalog);
-    console.log(`\nПересобрано из архива: ${rebuilt.pages} стр. × ${PAGE_SIZE} · ${rebuilt.count} стартапов · sitemap ${rebuilt.sitemap}`);
+    if (rebuilt.refused) {
+      console.log(`\n⚠ пересборка ОТКЛОНЕНА защитой от усыхания — на сайте остались прежние страницы`);
+    } else {
+      console.log(`\nПересобрано из архива: ${rebuilt.pages} стр. × ${PAGE_SIZE} · ${rebuilt.count} стартапов · sitemap ${rebuilt.sitemap}`);
+    }
   } else {
     console.log('\n⚠ пересборка пропущена — архив прочитан не полностью, страницы оставлены прежними');
   }
@@ -458,11 +492,15 @@ async function main() {
   console.log(`\n─────────────────────────────────────`);
   console.log(`Освежено: ${refreshed.size} · новых: ${newSlugs.length} · снимков: ${written} · архив: ${archived} · firstSeen: ${firstSeen} · pruned: ${pruned}`);
 
+  const refused = rebuilt && rebuilt.refused;
   const note = `новых: ${newSlugs.length} · освежено: ${refreshed.size}`
-    + (rebuilt ? ` · каталог пересобран: ${rebuilt.count} в ${rebuilt.pages} стр.` : ' · ⚠ пересборка пропущена')
+    + (refused ? ` · ⛔ пересборка отклонена: каталог усох ${refused.prevTotal}→${refused.now}`
+       : rebuilt ? ` · каталог пересобран: ${rebuilt.count} в ${rebuilt.pages} стр.`
+       : ' · ⚠ пересборка пропущена')
     + (upstreamTotal ? ` · в TrustMRR ~${upstreamTotal}` : '')
     + detectorNote;
-  await recordParserRun('catalog', true, refreshed.size, note, refreshed.size);
+  // A refusal is a real problem worth a red card — it means the data source shrank.
+  await recordParserRun('catalog', !refused, refreshed.size, note, refreshed.size);
 }
 
 main().catch(async (e) => {
