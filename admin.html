@@ -789,7 +789,17 @@ function parserChart(h, expected, typicalBatch) {
   const hasRuns = b.some(x => x.runs > 0);
   if (!hasRuns && !(expected && expected.length))
     return '<div class="adm-mini" style="margin-top:12px;">Нет запусков за последние 3 дня.</div>';
-  const maxN = Math.max(1, ...b.map(x => x.n));
+  // Round the scale up to a clean 1/2/5×10ⁿ so the axis reads 60/30/0, not 56/28/0.
+  const rawMax = Math.max(1, ...b.map(x => x.n));
+  const niceMax = v => {
+    if (v <= 1) return 1;
+    const pow = Math.pow(10, Math.floor(Math.log10(v)));
+    for (const m of [1, 1.5, 2, 3, 4, 5, 6, 8, 10]) if (v <= m * pow) return m * pow;
+    return 10 * pow;
+  };
+  const maxN = niceMax(rawMax);
+  const midN = maxN / 2;
+  const midLabel = Number.isInteger(midN) && midN > 0 && midN < maxN ? midN.toLocaleString() : '';
   const W = 100, H = 40, MARK = 5;                 // MARK = baseline strip for schedule markers
   const baseY = H - MARK;
   const plotH = baseY - 1;
@@ -854,11 +864,12 @@ function parserChart(h, expected, typicalBatch) {
     <div style="display:flex;gap:5px;">
       <div style="width:30px;height:${CH}px;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-end;padding:1px 0 ${padB}px;">
         <span class="adm-mini">${maxN.toLocaleString()}</span>
-        <span class="adm-mini">${Math.round(maxN/2).toLocaleString()}</span>
+        <span class="adm-mini">${midLabel}</span>
         <span class="adm-mini">0</span>
       </div>
       <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="flex:1;height:${CH}px;display:block;background:var(--bg2);border:1px solid var(--border);border-radius:8px;">
         ${grid}${seps}
+        <rect x="0" y="${baseY}" width="${W}" height="${MARK}" fill="var(--bg3)"/>
         <line x1="0" y1="${baseY}" x2="${W}" y2="${baseY}" stroke="var(--border)" stroke-width="0.45"/>
         ${bars}${marks}
       </svg>

@@ -308,7 +308,12 @@ async function parsers(res) {
       unreachable: st ? !!st.unreachable : false,
       running,
       history: { startMs: startH * HOUR_MS, hourMs: HOUR_MS, hours: HIST_HOURS, buckets },
-      expected: expectedRuns(p.sched, logArr, startH * HOUR_MS, nowMs),
+      // Only judge schedule adherence once the parser has actually run at least once.
+      // A freshly added one has no history to miss, and marking every slot since before
+      // it existed as "пропущен" paints the card red for something that never happened.
+      // (sm_parser_<id> is written on every finish and never expires, so a parser that
+      // ran once and then stopped still gets its misses flagged.)
+      expected: st ? expectedRuns(p.sched, logArr, startH * HOUR_MS, nowMs) : [],
     };
   });
   const coverage = list.some(p => p.id === 'onsale') ? await onSaleCoverage() : null;
