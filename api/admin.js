@@ -178,12 +178,25 @@ function expectedRuns(sched, logArr, startMs, nowMs) {
   if (!sched) return null;
   const DAY = 86400000;
   const hours = [...sched.h].sort((a, b) => a - b);
+
+  // Never judge slots from before the parser's first run in this window: a newly added
+  // one would otherwise be blamed for every scheduled slot since the window opened —
+  // days when it didn't exist. The run log holds 3 days, so an established parser that
+  // stopped still has an early entry and keeps its misses flagged all the way back.
+  let earliest = Infinity;
+  for (const rawE of logArr || []) {
+    let e; try { e = JSON.parse(rawE); } catch { continue; }
+    if (e && typeof e.t === 'number') earliest = Math.min(earliest, e.t);
+  }
+  // Back off an hour so the very slot that first run served still counts as covered.
+  const from = Number.isFinite(earliest) ? Math.max(startMs, earliest - 3600000) : startMs;
+
   const exp = [];
-  for (let base = startMs - DAY; base <= nowMs + DAY; base += DAY) {
+  for (let base = from - DAY; base <= nowMs + DAY; base += DAY) {
     const d = new Date(base);
     for (const h of hours) {
       const ts = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), h, sched.m, 0, 0);
-      if (ts >= startMs && ts <= nowMs) exp.push(ts);
+      if (ts >= from && ts <= nowMs) exp.push(ts);
     }
   }
   exp.sort((a, b) => a - b);
