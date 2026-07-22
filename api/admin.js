@@ -218,6 +218,35 @@ function expectedRuns(sched, logArr, startMs, nowMs) {
 const HIST_HOURS = 72; // 3-day history window, hourly buckets
 const HOUR_MS = 3600000;
 
+// Rows matching a PostgREST filter, via the exact-count header (no payload transferred).
+async function countRows(query) {
+  const r = await sb(`/rest/v1/${query}&select=slug`, {
+    headers: { Prefer: 'count=exact', Range: '0-0' },
+  });
+  if (!r.ok || !r.headers) return null;
+  const range = r.headers.get('content-range');
+  if (!range) return null;
+  const n = parseInt(String(range).split('/')[1], 10);
+  return Number.isFinite(n) ? n : null;
+}
+
+// The on-sale refresher walks the inventory on a rotating cursor, so the number that
+// actually matters isn't "did the last run succeed" but "is the full cycle keeping up" —
+// how much of the for-sale set carries a timestamp from the last 24h. A coverage figure
+// well under 100% means the rotation is falling behind and prices are going stale.
+async function onSaleCoverage() {
+  try {
+    if (!supaConfigured()) return null;
+    const since = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const [total, fresh] = await Promise.all([
+      countRows('startup_archive?data->>onSale=eq.true'),
+      countRows(`startup_archive?data->>onSale=eq.true&last_seen=gte.${since}`),
+    ]);
+    if (total == null) return null;
+    return { total, fresh: fresh ?? 0 };
+  } catch { return null; }
+}
+
 async function parsers(res) {
   const day = new Date().toISOString().slice(0, 10);
   const cmds = [];
@@ -282,6 +311,11 @@ async function parsers(res) {
       expected: expectedRuns(p.sched, logArr, startH * HOUR_MS, nowMs),
     };
   });
+  const coverage = list.some(p => p.id === 'onsale') ? await onSaleCoverage() : null;
+  if (coverage) {
+    const card = list.find(p => p.id === 'onsale');
+    if (card) card.coverage = coverage;
+  }
   return res.status(200).json({ parsers: list });
 }
 

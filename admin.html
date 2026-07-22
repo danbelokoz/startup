@@ -889,6 +889,10 @@ async function renderParsers() {
             ? `<span class="adm-pill" style="border-color:rgba(245,166,35,0.6);color:#f5a623;">⚠ запущен, не завершён · ~${p.running.ageMin} мин</span>`
             : `<span class="adm-pill" style="border-color:rgba(124,156,255,0.5);color:#7c9cff;">⏳ выполняется · ~${p.running.ageMin} мин</span>`)
         : '';
+      // Ротационный парсер (листинги на продаже) меряется не «прошёл ли последний
+      // запуск», а тем, успевает ли круг: сколько инвентаря обновлено за сутки.
+      const cov = p.coverage && p.coverage.total ? p.coverage : null;
+      const covPct = cov ? Math.round(cov.fresh / cov.total * 100) : 0;
       // Доля недоступных от всех попыток за сутки — сама по себе метрика здоровья:
       // единичные 403 это норма, а вот скачок доли = нас начали блокировать массово.
       const attempts = (p.today || 0) + (p.todayBad || 0);
@@ -910,6 +914,7 @@ async function renderParsers() {
           <div><div class="l2">Следующее обновление</div><div class="v2">${p.onDemand ? 'по запросу' : dt(p.nextRun)}</div>${p.onDemand?'':(p.nextRun?`<div class="adm-mini">${relTime(p.nextRun)}</div>`:'')}</div>
           <div><div class="l2">${p.onDemand ? 'Обновлено сегодня (UTC)' : 'Взято → обработано'}</div><div class="v2">${cnt}</div>${p.onDemand ? '' : '<div class="adm-mini">в работу → реально обработано</div>'}</div>
           ${p.onDemand && p.todayBad != null ? `<div><div class="l2">Недоступны сегодня</div><div class="v2">${p.todayBad.toLocaleString()}${badShare}</div><div class="adm-mini">сайт закрыт от ботов или не ответил</div></div>` : ''}
+          ${cov ? `<div><div class="l2">Охват за сутки</div><div class="v2" style="color:${covPct >= 90 ? 'var(--green)' : covPct >= 60 ? '#f5a623' : '#f6465d'};">${cov.fresh.toLocaleString()} / ${cov.total.toLocaleString()}</div><div class="adm-mini">${covPct}% листингов обновлено за 24 ч</div></div>` : ''}
           <div><div class="l2">Расписание</div><div class="v2" style="font-size:12px;line-height:1.4;">${esc(p.scheduleText)}</div></div>
         </div>
         ${p.note ? `<div class="adm-mini" style="margin-top:10px;">Детали последнего запуска: ${esc(p.note)}</div>` : ''}
