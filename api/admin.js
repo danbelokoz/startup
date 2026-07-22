@@ -250,10 +250,14 @@ async function countRows(query) {
 async function onSaleCoverage() {
   try {
     if (!supaConfigured()) return null;
-    const since = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    // Measure against updated_at (a real timestamp), not last_seen (a date): comparing
+    // dates would count "yesterday or today", a 24-48h window depending on the hour,
+    // while the card promises 24. Trailing Z, never +00:00 — a plus in a query string
+    // decodes as a space and the filter silently matches nothing.
+    const since = new Date(Date.now() - 86400000).toISOString().replace(/\.\d+Z$/, 'Z');
     const [total, fresh] = await Promise.all([
       countRows('startup_archive?data->>onSale=eq.true'),
-      countRows(`startup_archive?data->>onSale=eq.true&last_seen=gte.${since}`),
+      countRows(`startup_archive?data->>onSale=eq.true&updated_at=gte.${since}`),
     ]);
     if (total == null) return null;
     return { total, fresh: fresh ?? 0 };
