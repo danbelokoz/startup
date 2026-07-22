@@ -138,8 +138,8 @@ async function topviews(days, res) {
 // run (see cron-refresh.js, enrich.js, scrape-site.js, scripts/scrape-daily-revenue.js).
 // On-demand parsers also keep a per-UTC-day counter sm_parser_<id>_n_<date>.
 const PARSERS = [
-  { id:'catalog', name:'Каталог — ночной свод', source:'GitHub Actions', scheduleText:'Каждый день в 03:17 UTC', sched:{ m:17, h:[3] }, maxRunMin:170,
-    desc:'Тянет весь каталог из TrustMRR API (~8400 стартапов) в Redis, пересчитывает суммарные метрики и пишет дневные снимки в Supabase. С июля 2026 TrustMRR отдаёт максимум 10 записей за запрос и держит 10 запросов/мин, поэтому свод идёт ~840 страниц с паузой 7 с — около 100 минут (был ~8 мин). Живёт в GitHub Actions: на Vercel Hobby лимит 60 с обрывал его на середине.' },
+  { id:'catalog', name:'Каталог — свод и новые листинги', source:'GitHub Actions', scheduleText:'Каждый день в 03:17 UTC', sched:{ m:17, h:[3] }, maxRunMin:40,
+    desc:'С июля 2026 TrustMRR отдаёт из API только первые 200 стартапов любой выборки, поэтому каталог целиком через него не обойти. Свод обновляет топ-200, затем детектор проходит 5 окон «на продаже» (выручка ↑↓, цена ↑↓, рост) и ловит листинги, которых у нас ещё не было. Каталог (~8400) пересобирается из архива в Supabase — без API и без потолка. «Взято → обработано» = освежено стартапов; число новых см. в деталях запуска.' },
   { id:'daily-revenue', name:'Графики дневной выручки', source:'GitHub Actions', scheduleText:'Каждые 3 ч (00–21 UTC)', sched:{ m:0, h:[0,3,6,9,12,15,18,21] }, maxRunMin:160,
     desc:'Скрейпит графики дневной выручки со страниц TrustMRR (Puppeteer) и пишет их в Supabase. За запуск обрабатывает ротационный батч; стартапы на продаже в приоритете.' },
   { id:'enrich', name:'AI-обогащение (TrustMRR)', source:'Vercel · по запросу', scheduleText:'При открытии карточки · кэш 24 ч', sched:null,

@@ -29,7 +29,24 @@ const UPSTREAM_LIMIT = 10;   // hard cap on TrustMRR's side
 const PAGE_SIZE      = 50;   // logical page size the frontend/api cache keys use
 const DELAY_MS       = 7000; // 7s between pages → ~8.5 req/min, under the 10/min ceiling
                              // with headroom for the live site sharing the same key
-const MAX_PAGES      = 2000; // hard stop (~20k startups) so a bad meta can't loop forever
+
+// …and a third gate found later: pagination only ever reaches the FIRST 200 startups of
+// any given query. Past that the API repeats the last slice with hasMore:true forever.
+// The catalog (8400) is therefore unreachable in one pass — but each SORT is its own
+// 200-item window, and they only partly overlap. So we harvest several windows and treat
+// `startup_archive` as the source of truth, rebuilding the Redis pages from it.
+const WINDOW_MAX_PAGES = 25;  // 200 items ÷ 10 = 20 pages; clamp detection stops earlier
+
+// The on-sale windows the detector harvests. On-sale listings are the marketplace's
+// actual inventory, so a startup matters to us exactly when it goes up for sale — a
+// newcomer that isn't listed yet gets picked up by the same sweep once it is.
+const DETECT_WINDOWS = [
+  { sort: 'revenue-desc', label: 'на продаже · выручка ↓' },
+  { sort: 'revenue-asc',  label: 'на продаже · выручка ↑' },
+  { sort: 'price-desc',   label: 'на продаже · цена ↓'    },
+  { sort: 'price-asc',    label: 'на продаже · цена ↑'    },
+  { sort: 'growth-desc',  label: 'на продаже · рост ↓'    },
+];
 const RETRY_429      = 5;    // a 429 is a wait, not a failure — back off and retry
 const RETRY_WAIT_MS  = 65000;
 
@@ -236,120 +253,180 @@ function pageLooksValid(data) {
   return data.data.filter(s => s && s.slug).length >= data.data.length * 0.5;
 }
 
+// One upstream page, with the retries that keep a shared 10 req/min quota survivable.
+// Throws on anything unrecoverable; a 429 is a wait, not a failure.
+async function fetchPage(params, label, page) {
+  for (let attempt = 0; attempt <= RETRY_429; attempt++) {
+    try {
+      const r = await fetch(`https://trustmrr.com/api/v1/startups?${params}`, {
+        headers: { Authorization: `Bearer ${TRUSTMRR_API_KEY}` },
+      });
+      if (r.status === 401) throw new Error('Неверный ключ TrustMRR API');
+      if (r.status === 429) {
+        if (attempt === RETRY_429) throw new Error(`429 на «${label}» стр. ${page} — лимит не отпустил за ${RETRY_429} попыток`);
+        console.log(`  ⏳ 429 (${label}, стр. ${page}) — пауза ${RETRY_WAIT_MS / 1000}с (${attempt + 1}/${RETRY_429})`);
+        await sleep(RETRY_WAIT_MS);
+        continue;
+      }
+      if (!r.ok) throw new Error(`TrustMRR ${r.status} на «${label}» стр. ${page}`);
+      return await r.json();
+    } catch (err) {
+      if (/Неверный ключ|лимит не отпустил|TrustMRR \d/.test(err.message) || attempt === RETRY_429) throw err;
+      console.log(`  ⏳ сеть упала (${label}, стр. ${page}): ${err.message} — повтор через ${RETRY_WAIT_MS / 1000}с`);
+      await sleep(RETRY_WAIT_MS);
+    }
+  }
+  throw new Error(`Не удалось получить «${label}» стр. ${page}`);
+}
+
+// Walk one 200-item window (a sort, optionally filtered to on-sale) to its end. Stops at
+// the clamp — the first page that introduces no new slug — so we never spin on repeated
+// data. Returns only unique startups, in API order.
+async function crawlWindow({ sort, onSale = false, label }) {
+  const items = [];
+  const seen  = new Set();
+  let page = 1, hasMore = true, upstreamTotal = 0;
+
+  while (hasMore && page <= WINDOW_MAX_PAGES) {
+    const qs = { page: String(page), limit: String(UPSTREAM_LIMIT), sort };
+    if (onSale) qs.onSale = 'true';
+    const data = await fetchPage(new URLSearchParams(qs), label, page);
+
+    // Bad/changed schema → bail out rather than feed garbage into the archive.
+    if (!pageLooksValid(data)) throw new Error(`Подозрительный ответ (${label}, стр. ${page}) — нет slug`);
+
+    if (data.meta?.total) upstreamTotal = data.meta.total;
+    const batch = Array.isArray(data.data) ? data.data : [];
+    const fresh = batch.filter(s => s && s.slug && !seen.has(s.slug));
+    for (const s of fresh) seen.add(s.slug);
+    if (fresh.length === 0) break;              // clamped: the API is repeating itself
+    items.push(...fresh);
+
+    hasMore = data.meta?.hasMore ?? false;
+    page++;
+    if (hasMore && page <= WINDOW_MAX_PAGES) await sleep(DELAY_MS);
+  }
+  console.log(`  · ${label}: ${items.length} шт.`);
+  return { items, upstreamTotal };
+}
+
+// The full catalog as we know it — one row per startup, ~8400 of them. This is the
+// source of truth the Redis pages get rebuilt from, so a partial read must be detectable:
+// writing pages from half an archive would silently truncate the catalog.
+async function readArchive() {
+  const map = new Map();
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return { map, complete: false };
+  const headers = { apikey: SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` };
+  const PAGE = 1000, MAX_PAGES_READ = 40;
+  for (let p = 0; p < MAX_PAGES_READ; p++) {
+    let rows;
+    try {
+      const r = await fetch(
+        `${SUPABASE_URL}/rest/v1/startup_archive?select=slug,data&order=slug.asc&limit=${PAGE}&offset=${p * PAGE}`,
+        { headers, signal: AbortSignal.timeout(60000) },
+      );
+      if (!r.ok) { console.log(`  ⚠ архив: чтение p${p} → ${r.status}`); return { map, complete: false }; }
+      rows = await r.json();
+    } catch (e) { console.log(`  ⚠ архив: чтение p${p} — ${e.message}`); return { map, complete: false }; }
+    if (!Array.isArray(rows) || rows.length === 0) break;
+    for (const row of rows) if (row && row.slug && row.data) map.set(row.slug, row.data);
+    if (rows.length < PAGE) break;
+  }
+  return { map, complete: true };
+}
+
+// Rebuild the catalog pages Redis serves straight from the archive — no API involved, so
+// it isn't bound by the 200-item gate. Same key shape the frontend asks for
+// (catalog.html only ever requests sort=revenue-desc and re-sorts client-side).
+async function rebuildCatalog(map) {
+  const all = [...map.values()].filter(s => s && s.slug);
+  const rev = s => (s.revenue && s.revenue.last30Days) || 0;
+  all.sort((a, b) => rev(b) - rev(a));
+
+  let pages = 0;
+  for (let i = 0; i < all.length; i += PAGE_SIZE) {
+    const pageNo   = i / PAGE_SIZE + 1;
+    const slice    = all.slice(i, i + PAGE_SIZE);
+    const cacheKey = `sm_${new URLSearchParams({ page: String(pageNo), limit: String(PAGE_SIZE), sort: 'revenue-desc' })}`;
+    await Promise.all([
+      redisSet(cacheKey, { data: slice, meta: { total: all.length, page: pageNo, limit: PAGE_SIZE, hasMore: i + slice.length < all.length } }),
+      redisSet(`${cacheKey}_f`, 1, FRESH_TTL),
+    ]);
+    pages++;
+  }
+  // Fresh flags above also stop the live proxy from going upstream for these pages at
+  // all — which is what was fetching (and caching) clamped data.
+  await redisSet('sm_totals_v1', { ...computeTotals(all), updatedAt: new Date().toISOString() }, 25 * 3600);
+  const sitemap = await writeSitemap(all);
+  try { await kv('POST', `/del/${encodeURIComponent('sm_onsale_agg_revenue-desc')}`); } catch {}
+  return { pages, count: all.length, sitemap };
+}
+
 async function main() {
   if (!KV_REST_API_URL || !KV_REST_API_TOKEN) { console.error('KV_REST_API_* not set'); process.exit(1); }
   if (!TRUSTMRR_API_KEY) { console.error('TRUSTMRR_API_KEY not set'); await recordParserRun('catalog', false, 0, 'Нет ключа TrustMRR API'); process.exit(1); }
 
-  console.log('Catalog refresh — full sweep\n');
+  console.log('Catalog refresh — свод + детектор новых листингов\n');
   await recordParserStart('catalog');
 
-  let page = 1, totalStartups = 0, hasMore = true, upstreamTotal = 0, capped = false;
-  const allStartups = [];
-  const seen = new Set();
+  // ── Фаза 0: что мы уже знаем ────────────────────────────────────────────────
+  // Read first: the slugs present BEFORE this run are what "new" is measured against.
+  const { map: catalog, complete: archiveOk } = await readArchive();
+  const knownBefore = new Set(catalog.keys());
+  console.log(`Архив: ${knownBefore.size} стартапов${archiveOk ? '' : ' ⚠ прочитан НЕ полностью'}\n`);
 
-  while (hasMore && page <= MAX_PAGES) {
-    const params = new URLSearchParams({ page: String(page), limit: String(UPSTREAM_LIMIT), sort: 'revenue-desc' });
+  const refreshed = new Map();   // slug → свежие данные, накопленные за все фазы
+  const absorb = (arr) => { for (const s of arr) if (s && s.slug) { refreshed.set(s.slug, s); catalog.set(s.slug, s); } };
 
-    let data = null;
-    for (let attempt = 0; attempt <= RETRY_429; attempt++) {
-      try {
-        const r = await fetch(`https://trustmrr.com/api/v1/startups?${params}`, {
-          headers: { Authorization: `Bearer ${TRUSTMRR_API_KEY}` },
-        });
-        if (r.status === 401) { await recordParserRun('catalog', false, totalStartups, 'Неверный ключ TrustMRR API', totalStartups); process.exit(1); }
-        if (r.status === 429) {
-          if (attempt === RETRY_429) { await recordParserRun('catalog', false, totalStartups, `TrustMRR 429 на стр. ${page} — лимит не отпустил после ${RETRY_429} попыток`, totalStartups); process.exit(1); }
-          console.log(`  ⏳ 429 на стр. ${page} — пауза ${RETRY_WAIT_MS / 1000}с (попытка ${attempt + 1}/${RETRY_429})`);
-          await sleep(RETRY_WAIT_MS);
-          continue;
-        }
-        if (!r.ok) { await recordParserRun('catalog', false, totalStartups, `TrustMRR ${r.status} на стр. ${page}`, totalStartups); process.exit(1); }
-        data = await r.json();
-        break;
-      } catch (err) {
-        if (attempt === RETRY_429) {
-          await recordParserRun('catalog', false, totalStartups, `Ошибка на стр. ${page}: ${err.message}`, totalStartups);
-          process.exit(1);
-        }
-        console.log(`  ⏳ сеть упала на стр. ${page} (${err.message}) — повтор через ${RETRY_WAIT_MS / 1000}с`);
-        await sleep(RETRY_WAIT_MS);
-      }
+  // ── Фаза 1: топ каталога ────────────────────────────────────────────────────
+  console.log('Фаза 1 — топ каталога (revenue-desc):');
+  const top = await crawlWindow({ sort: 'revenue-desc', label: 'каталог · выручка ↓' });
+  absorb(top.items);
+  const upstreamTotal = top.upstreamTotal;
+
+  // ── Фаза 2: детектор ────────────────────────────────────────────────────────
+  // Each sort is its own 200-item window into the on-sale set; overlapping them reaches
+  // far more than any single one. A failure here must not cost us phase 1's work.
+  console.log('\nФаза 2 — детектор новых листингов (на продаже):');
+  let detectorNote = '';
+  try {
+    for (const w of DETECT_WINDOWS) {
+      await sleep(DELAY_MS);
+      const { items } = await crawlWindow({ ...w, onSale: true });
+      absorb(items);
     }
-
-    // Bad/changed schema → stop before overwriting good cache, totals and snapshots.
-    if (!pageLooksValid(data)) {
-      await recordParserRun('catalog', false, totalStartups, `Подозрительный ответ на стр. ${page} (нет slug) — свод прерван`, totalStartups);
-      process.exit(1);
-    }
-
-    // Clamp detection: past ~200 startups TrustMRR stops paging and repeats the last
-    // slice with hasMore:true forever (the standard-key gate). Keep only slugs we
-    // haven't seen; the first page that adds nothing new is the wall — stop there
-    // instead of looping to MAX_PAGES (which is what timed the sweep out at 180 min).
-    const batch = Array.isArray(data.data) ? data.data : [];
-    const fresh = batch.filter(s => s && s.slug && !seen.has(s.slug));
-    for (const s of fresh) seen.add(s.slug);
-    if (data.meta?.total) upstreamTotal = data.meta.total;
-    if (fresh.length === 0) { capped = true; console.log(`  ⛔ API перестал отдавать новое на стр. ${page} (гейт ~${totalStartups} стартапов) — обход остановлен`); break; }
-    totalStartups += fresh.length;
-    allStartups.push(...fresh);
-    hasMore = data.meta?.hasMore ?? false;
-    if (page % 25 === 0 || !hasMore) console.log(`  page ${page} · ${totalStartups} startups`);
-    page++;
-    if (hasMore) await sleep(DELAY_MS);
+  } catch (e) {
+    detectorNote = ` · детектор прерван: ${e.message}`;
+    console.log(`  ⚠ детектор прерван: ${e.message} — продолжаем с тем, что собрали`);
   }
 
-  // If the API served far fewer than it claims to have (the 200-cap), this run can only
-  // refresh the reachable top slice. Write those pages, but DON'T let a truncated set
-  // clobber the catalog-wide aggregates (hero totals) or shrink the sitemap — the
-  // remaining startups stay served from the existing (pre-cap) cache.
-  const partial = capped || (upstreamTotal && allStartups.length < upstreamTotal * 0.5);
+  const newSlugs = [...refreshed.keys()].filter(s => !knownBefore.has(s));
+  console.log(`\nОсвежено: ${refreshed.size} · НОВЫХ: ${newSlugs.length}${newSlugs.length ? ' → ' + newSlugs.slice(0, 10).join(', ') + (newSlugs.length > 10 ? ' …' : '') : ''}`);
 
-  // Stitch the 10-item upstream pages back into the 50-item pages every cache key on the
-  // site is keyed by (`sm_page=N&limit=50&sort=revenue-desc` — same shape api/startups.js
-  // builds from the query). Written only after the whole sweep succeeds, so a run that
-  // dies halfway leaves yesterday's complete cache untouched rather than a partial one.
-  const total = upstreamTotal || allStartups.length;
-  let pagesWritten = 0;
-  for (let i = 0; i < allStartups.length; i += PAGE_SIZE) {
-    const pageNo   = i / PAGE_SIZE + 1;
-    const slice    = allStartups.slice(i, i + PAGE_SIZE);
-    const cacheKey = `sm_${new URLSearchParams({ page: String(pageNo), limit: String(PAGE_SIZE), sort: 'revenue-desc' })}`;
-    const payload  = { data: slice, meta: { total, page: pageNo, limit: PAGE_SIZE, hasMore: i + slice.length < allStartups.length } };
-    await Promise.all([
-      redisSet(cacheKey, payload),
-      redisSet(`${cacheKey}_f`, 1, FRESH_TTL),
-    ]);
-    pagesWritten++;
-  }
-  console.log(`  cached ${pagesWritten} × ${PAGE_SIZE}-item pages`);
-
-  // Invalidate the onSale aggregate so the next request rebuilds from fresh data.
-  try { await kv('POST', `/del/${encodeURIComponent('sm_onsale_agg_revenue-desc')}`); } catch {}
-
-  // Hero totals: only recompute from a FULL sweep. A 200-item partial would report the
-  // catalog as tiny; keep the last good totals instead.
-  if (allStartups.length && !partial) {
-    await redisSet('sm_totals_v1', { ...computeTotals(allStartups), updatedAt: new Date().toISOString() }, 25 * 3600);
-  } else if (partial) {
-    console.log('  ⚠ totals НЕ перезаписаны — набор урезан API-гейтом, оставлены прежние');
-  }
-
-  const { written, pruned } = await writeSnapshots(allStartups);
-  const archived = await writeArchive(allStartups);
+  // ── Фаза 3: запись и пересборка каталога ────────────────────────────────────
+  const fresh = [...refreshed.values()];
+  const { written, pruned } = await writeSnapshots(fresh);
+  const archived  = await writeArchive(fresh);
   const firstSeen = await writeFirstSeen();   // after archive: new rows exist before we read back
-  // Sitemap: a partial run would drop 8000+ URLs. Only rewrite it from a full sweep.
-  const sitemapCount = partial ? -1 : await writeSitemap(allStartups);
+
+  // Rebuild the whole catalog from the archive — the only path that isn't capped at 200.
+  // Skipped on a partial archive read: truncated pages would erase thousands of startups.
+  let rebuilt = null;
+  if (archiveOk && catalog.size >= knownBefore.size) {
+    rebuilt = await rebuildCatalog(catalog);
+    console.log(`\nПересобрано из архива: ${rebuilt.pages} стр. × ${PAGE_SIZE} · ${rebuilt.count} стартапов · sitemap ${rebuilt.sitemap}`);
+  } else {
+    console.log('\n⚠ пересборка пропущена — архив прочитан не полностью, страницы оставлены прежними');
+  }
 
   console.log(`\n─────────────────────────────────────`);
-  console.log(`Upstream pages: ${page - 1} · cached pages: ${pagesWritten} · startups: ${totalStartups}${partial ? ` (частично — API-гейт ~${upstreamTotal})` : ''} · snapshots: ${written} · archive: ${archived} · firstSeen: ${firstSeen} · pruned: ${pruned} · sitemap: ${sitemapCount}`);
+  console.log(`Освежено: ${refreshed.size} · новых: ${newSlugs.length} · снимков: ${written} · архив: ${archived} · firstSeen: ${firstSeen} · pruned: ${pruned}`);
 
-  const note = partial
-    ? `⚠ API отдал только ${totalStartups} из ~${upstreamTotal} (гейт TrustMRR ~200) — обновлён топ, остальное сохранено из старого кэша`
-    : `${page - 1} стр. по ${UPSTREAM_LIMIT} → ${pagesWritten} стр. кэша · снимков: ${written} · архив: ${archived} · sitemap: ${sitemapCount}`;
-  // Partial-but-clean is not a failure — it did everything the API allows. ok:true so the
-  // admin card stays green, but the note makes the cap explicit.
-  await recordParserRun('catalog', true, written, note, totalStartups);
+  const note = `новых: ${newSlugs.length} · освежено: ${refreshed.size}`
+    + (rebuilt ? ` · каталог пересобран: ${rebuilt.count} в ${rebuilt.pages} стр.` : ' · ⚠ пересборка пропущена')
+    + (upstreamTotal ? ` · в TrustMRR ~${upstreamTotal}` : '')
+    + detectorNote;
+  await recordParserRun('catalog', true, refreshed.size, note, refreshed.size);
 }
 
 main().catch(async (e) => {
