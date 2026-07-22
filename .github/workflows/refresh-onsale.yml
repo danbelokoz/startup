@@ -1,0 +1,38 @@
+name: Refresh on-sale listings
+
+on:
+  workflow_dispatch:
+    inputs:
+      batch:
+        description: 'Listings per run'
+        required: false
+        default: '260'
+  schedule:
+    # Every 3h at :47 — deliberately offset from the catalog sweep (03:17) and the
+    # revenue scraper (:17), so the three never fight over the 10 req/min key.
+    # 8 runs × 260 ≈ 2080/day, so the ~1990 for-sale listings come round about daily.
+    - cron: '47 1,4,7,10,13,16,19,22 * * *'
+
+jobs:
+  onsale:
+    runs-on: ubuntu-latest
+    # 260 listings × 12s ≈ 52 min, plus headroom for 429 back-offs.
+    timeout-minutes: 120
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Refresh for-sale listings by name
+        working-directory: scripts
+        env:
+          KV_REST_API_URL:           ${{ secrets.KV_REST_API_URL }}
+          KV_REST_API_TOKEN:         ${{ secrets.KV_REST_API_TOKEN }}
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          TRUSTMRR_API_KEY:          ${{ secrets.TRUSTMRR_API_KEY }}
+          BATCH:                     ${{ inputs.batch || '260' }}
+        run: node refresh-onsale.js
